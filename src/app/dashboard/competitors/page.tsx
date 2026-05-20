@@ -1,8 +1,15 @@
 'use client';
 
-import DashboardChart from '@/components/dashboard/DashboardChart';
+export const dynamic = 'force-dynamic';
+
+import NextDynamic from 'next/dynamic';
 import Badge from '@/components/dashboard/Badge';
 import { getChartTheme } from '@/lib/dashboard/chart-theme';
+
+const DashboardChart = NextDynamic(
+  () => import('@/components/dashboard/DashboardChart'),
+  { ssr: false }
+);
 
 const COMPETITOR_MATRIX = [
   { company: 'ShadowSpark', focus: 'B2B AI Full-Stack', compliance: '✓ ISA 2025', complianceVariant: 'green' as const, whatsapp: 'Native', whatsappVariant: 'green' as const, pricing: '$149–$599' },
@@ -46,33 +53,34 @@ export default function CompetitorsPage() {
                     borderColor: theme.primary,
                     backgroundColor: theme.bg,
                     pointBackgroundColor: theme.primary,
-                    pointRadius: 4,
-                    borderWidth: 2,
+                    pointBorderColor: theme.primary,
                   },
                   {
                     label: 'Industry Avg',
-                    data: [42, 55, 50, 60, 48, 35],
-                    borderColor: theme.textColor,
+                    data: [65, 55, 50, 60, 45, 40],
+                    borderColor: theme.gridColor,
                     backgroundColor: 'transparent',
-                    pointBackgroundColor: theme.textColor,
-                    pointRadius: 3,
-                    borderWidth: 1.5,
-                    borderDash: [4, 3] as number[],
+                    borderDash: [4, 4],
+                    pointBackgroundColor: theme.gridColor,
+                    pointBorderColor: theme.gridColor,
                   },
                 ],
               }}
               options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: { position: 'bottom', labels: { color: theme.textColor, font: { size: 11 } } },
+                },
                 scales: {
                   r: {
-                    grid: { display: true },
+                    angleLines: { color: theme.gridColor },
+                    grid: { color: theme.gridColor },
+                    pointLabels: { color: theme.textColor, font: { size: 10 } },
                     ticks: { display: false },
-                    pointLabels: { font: { size: 11 } },
-                    min: 0,
-                    max: 100,
                   },
                 },
               }}
-              height={280}
             />
           </div>
         </div>
@@ -80,6 +88,7 @@ export default function CompetitorsPage() {
         <div className="dashboard-card">
           <div className="card-header">
             <div className="card-title">Competitor Matrix</div>
+            <div className="card-sub">Feature comparison</div>
           </div>
           <div className="table-wrap">
             <table className="dashboard-table">
@@ -95,16 +104,10 @@ export default function CompetitorsPage() {
               <tbody>
                 {COMPETITOR_MATRIX.map((row, i) => (
                   <tr key={i}>
-                    <td>
-                      <strong>{row.company}</strong>
-                    </td>
+                    <td style={{ fontWeight: 600 }}>{row.company}</td>
                     <td>{row.focus}</td>
-                    <td>
-                      <Badge variant={row.complianceVariant}>{row.compliance}</Badge>
-                    </td>
-                    <td>
-                      <Badge variant={row.whatsappVariant}>{row.whatsapp}</Badge>
-                    </td>
+                    <td><Badge variant={row.complianceVariant}>{row.compliance}</Badge></td>
+                    <td><Badge variant={row.whatsappVariant}>{row.whatsapp}</Badge></td>
                     <td>{row.pricing}</td>
                   </tr>
                 ))}

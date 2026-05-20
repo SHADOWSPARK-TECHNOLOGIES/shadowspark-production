@@ -15,7 +15,10 @@ export interface ChartTheme {
  * whether the current theme is dark.
  */
 export function getChartTheme(): ChartTheme {
-  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const isDark =
+    typeof document !== 'undefined'
+      ? document.documentElement.getAttribute('data-theme') !== 'light'
+      : true;
 
   return {
     isDark,

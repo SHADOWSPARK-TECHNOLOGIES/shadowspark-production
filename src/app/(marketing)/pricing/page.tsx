@@ -1,3 +1,13 @@
+import type { Metadata } from "next";
+import { canonical } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...canonical("/pricing"),
+  title: "Pricing",
+  description:
+    "Transparent pricing for ShadowSpark sovereign compliance infrastructure — from Starter for emerging fintechs to Enterprise for high-volume operations.",
+};
+
 import Link from "next/link";
 import { ArrowLeft, Check, Shield, Zap, Building2, Infinity, Headphones, MessageSquare, Cpu, BarChart3, Users } from "lucide-react";
 

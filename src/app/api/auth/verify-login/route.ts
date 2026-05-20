@@ -23,6 +23,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { signIn } from "@/auth";
+import { z } from "zod";
+import { rateLimit } from "@/lib/rate-limit";
 
 /** Hardcoded allowed origins */
 const ALLOWED_ORIGINS = [
@@ -33,16 +35,38 @@ const ALLOWED_ORIGINS = [
   "https://www.shadowspark.com",
 ];
 
+const verifyLoginSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  credential: z.any(),
+  challenge: z.string().min(1, "Challenge is required"),
+});
+
 export async function POST(request: Request) {
   try {
-    const { email, credential, challenge } = await request.json();
-
-    if (!email || !credential || !challenge) {
+    const { success: allowed, headers: rateLimitHeaders } = await rateLimit(
+      request,
+      "auth:verify-login",
+      5,
+      "10 s",
+    );
+    if (!allowed) {
       return NextResponse.json(
-        { error: "email, credential, and challenge are required" },
+        { error: "Too many requests" },
+        { status: 429, headers: rateLimitHeaders },
+      );
+    }
+
+    const body = await request.json();
+    const parsed = verifyLoginSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message },
         { status: 400 },
       );
     }
+
+    const { email, credential, challenge } = parsed.data;
 
     // STEP 1: Look up challenge in server-side store
     const storedChallenge = await prisma.webAuthnChallenge.findUnique({

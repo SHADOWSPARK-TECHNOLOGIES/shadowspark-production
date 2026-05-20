@@ -1,3 +1,13 @@
+import type { Metadata } from "next";
+import { canonical } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...canonical("/security"),
+  title: "Security",
+  description:
+    "ShadowSpark employs AES-256 encryption, TLS 1.3, rPPG liveness detection, and Google Cloud Run infrastructure with VPC isolation for institutional-grade security.",
+};
+
 import Link from "next/link";
 import { ArrowLeft, Shield, Lock, Server, Scan, Activity, Key, Siren, Award } from "lucide-react";
 

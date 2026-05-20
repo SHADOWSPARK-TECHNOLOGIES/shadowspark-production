@@ -17,9 +17,6 @@ importers:
       '@google-cloud/storage':
         specifier: ^7.19.0
         version: 7.19.0
-      '@google/generative-ai':
-        specifier: ^0.24.1
-        version: 0.24.1
       '@mendable/firecrawl-js':
         specifier: ^4.18.2
         version: 4.20.0
@@ -117,6 +114,9 @@ importers:
         specifier: ^4.3.6
         version: 4.3.6
     devDependencies:
+      '@google/generative-ai':
+        specifier: ^0.24.1
+        version: 0.24.1
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.2.4

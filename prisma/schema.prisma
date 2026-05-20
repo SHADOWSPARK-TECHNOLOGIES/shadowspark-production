@@ -33,27 +33,27 @@ model Lead {
 }
 
 model User {
-  id        String         @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String?
-  email     String         @unique
+  email     String    @unique
   password  String
-  role      String?        @default("user")
-  createdAt DateTime       @default(now())
+  role      String?   @default("user")
+  createdAt DateTime  @default(now())
   passkeys  Passkey[]
 }
 
 model Passkey {
-  id             String   @id @default(cuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id])
-  credentialId   String   @unique // Base64-encoded WebAuthn credential ID
-  publicKey      String   // Base64-encoded COSE key
-  counter        BigInt   @default(0)
-  deviceType     String?  // "platform" | "cross-platform"
-  transports     String?  // JSON array of AuthenticatorTransportFuture
-  backedUp       Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  lastUsedAt     DateTime?
+  id           String    @id @default(cuid())
+  userId       String
+  credentialId String    @unique
+  publicKey    String
+  counter      BigInt    @default(0)
+  deviceType   String?
+  transports   String?
+  backedUp     Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+  user         User      @relation(fields: [userId], references: [id])
 
   @@map("passkeys")
 }
@@ -64,12 +64,12 @@ model Passkey {
 /// This prevents replay attacks where an intercepted challenge is
 /// reused for a different ceremony or by a different party.
 model WebAuthnChallenge {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  challenge String   @unique
-  type      String   // "registration" | "authentication"
+  challenge String    @unique
+  type      String
   expiresAt DateTime
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   usedAt    DateTime?
 
   @@index([userId, challenge])
@@ -78,35 +78,33 @@ model WebAuthnChallenge {
 }
 
 model TokenizedAsset {
-  id              String   @id @default(cuid())
-  assetType       String   // LAND, WATCH, CREDIT
+  id              String        @id @default(cuid())
+  assetType       String
   name            String
-  location        String?  // Epe, Ikoyi, Banana Island, null for WATCH/CREDIT
+  location        String?
   totalShares     Int
   availableShares Int
-  pricePerShare   Decimal  @db.Decimal(19, 4) // in NGN (not kobo — Decimal for display)
-  currency        String   @default("NGN")
-  metadata        Json?    // Additional asset metadata (GPS coordinates, appraisal value, title deeds)
-  status          String   @default("ACTIVE") // ACTIVE, FULLY_SUBSCRIBED, SETTLED, CANCELLED
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Each share purchase creates a LedgerTransaction via the ledger system
+  pricePerShare   Decimal       @db.Decimal(19, 4)
+  currency        String        @default("NGN")
+  metadata        Json?
+  status          String        @default("ACTIVE")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   tokenHolders    TokenHolder[]
 
   @@map("tokenized_assets")
 }
 
 model TokenHolder {
-  id              String         @id @default(cuid())
+  id               String         @id @default(cuid())
   tokenizedAssetId String
-  tokenizedAsset  TokenizedAsset @relation(fields: [tokenizedAssetId], references: [id])
-  leadId          String?        // Link to Lead who purchased
-  shares          Int
-  purchasePrice   Decimal        @db.Decimal(19, 4) // Price per share at purchase time
-  totalPaid       Decimal        @db.Decimal(19, 4) // shares * purchasePrice
-  transactionId   String?        // Link to LedgerTransaction
-  purchasedAt     DateTime       @default(now())
+  leadId           String?
+  shares           Int
+  purchasePrice    Decimal        @db.Decimal(19, 4)
+  totalPaid        Decimal        @db.Decimal(19, 4)
+  transactionId    String?
+  purchasedAt      DateTime       @default(now())
+  tokenizedAsset   TokenizedAsset @relation(fields: [tokenizedAssetId], references: [id])
 
   @@map("token_holders")
 }
@@ -195,38 +193,32 @@ model Embedding {
   createdAt DateTime @default(now())
 }
 
-// ──────────────────────────────────────────────────
-// HARDENED FINANCIAL CORE — Double-Entry Ledger
-// All account balances are derived from Entry rows.
-// Never store precomputed balances.
-// ──────────────────────────────────────────────────
-
 /// Chart of Accounts — types: WALLET (asset), CLEARING (liability),
 /// INCOME (revenue), EXPENSE (cost), EQUITY (capital).
 model Account {
   id        String   @id @default(cuid())
   userId    String
-  type      String   // WALLET | CLEARING | INCOME | EXPENSE | EQUITY
+  type      String
   currency  String   @default("NGN")
-  entries   Entry[]
   createdAt DateTime @default(now())
+  entries   Entry[]
 }
 
 /// A single double-entry transaction. Every transaction
 /// must have balanced entries (sum debits = sum credits).
 /// State machine: PENDING → POSTED, PENDING → REVERSED, POSTED → REVERSED.
 model LedgerTransaction {
-  id             String   @id @default(cuid())
+  id             String             @id @default(cuid())
   userId         String
-  reference      String   @unique
-  description    String?  // Human-readable reason for the transaction
-  state          String   @default("PENDING") // PENDING | POSTED | REVERSED
-  idempotencyKey String   @unique
-  entries        Entry[]
-  idempotency    LedgerIdempotency? // Optional soft-index for lookups
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  reference      String             @unique
+  idempotencyKey String             @unique
+  createdAt      DateTime           @default(now())
   postedAt       DateTime?
+  description    String?
+  state          String             @default("PENDING")
+  updatedAt      DateTime           @updatedAt
+  entries        Entry[]
+  idempotency    LedgerIdempotency?
 }
 
 /// Individual entry leg. Each entry carries either a debit
@@ -236,21 +228,21 @@ model Entry {
   id            String            @id @default(cuid())
   transactionId String
   accountId     String
-  debit         BigInt            @default(0) // Always ≥ 0. Amount in kobo/subunits.
-  credit        BigInt            @default(0) // Always ≥ 0. Amount in kobo/subunits.
-  currency      String            @default("NGN")
-  description   String?           // Optional line-item memo
-  transaction   LedgerTransaction @relation(fields: [transactionId], references: [id])
-  account       Account           @relation(fields: [accountId], references: [id])
   createdAt     DateTime          @default(now())
+  credit        BigInt            @default(0)
+  currency      String            @default("NGN")
+  debit         BigInt            @default(0)
+  description   String?
+  account       Account           @relation(fields: [accountId], references: [id])
+  transaction   LedgerTransaction @relation(fields: [transactionId], references: [id])
 }
 
 /// Optional dedicated table for idempotency lookups.
 /// Avoids scanning LedgerTransaction for retried operations.
 model LedgerIdempotency {
-  id             String   @id @default(cuid())
-  idempotencyKey String   @unique
-  transactionId  String   @unique
+  id             String            @id @default(cuid())
+  idempotencyKey String            @unique
+  transactionId  String            @unique
+  createdAt      DateTime          @default(now())
   transaction    LedgerTransaction @relation(fields: [transactionId], references: [id])
-  createdAt      DateTime @default(now())
 }

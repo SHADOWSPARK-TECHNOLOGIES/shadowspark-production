@@ -5,6 +5,7 @@ import {
   IBM_Plex_Sans,
 } from "next/font/google";
 import { Toaster } from "sonner";
+import { organizationJsonLd } from "@/lib/seo";
 import "./globals.css";
 
 const ibmPlexSans = IBM_Plex_Sans({
@@ -26,6 +27,7 @@ const cormorantGaramond = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://shadowspark.tech"),
   title: "Shadowspark — Sovereign Financial Node",
   description:
     "Institutional-grade financial infrastructure for High-Net-Worth liquidity movers in the 2026 Lagos market. Real-time ledger transparency, automated regulatory compliance, and AI-powered treasury operations.",
@@ -74,6 +76,11 @@ export default function RootLayout({
       className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} ${cormorantGaramond.variable} h-full antialiased`}
     >
       <body suppressHydrationWarning className="min-h-full flex flex-col">
+        {/* Organization JSON-LD structured data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: organizationJsonLd() }}
+        />
         {/* Skip-to-content link for keyboard and screen-reader users */}
         <a
           href="#main-content"
@@ -81,9 +88,9 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
-        <div id="main-content" className="flex-1">
+        <main id="main-content" className="flex-1">
           {children}
-        </div>
+        </main>
         <Toaster theme="dark" position="bottom-right" />
       </body>
     </html>

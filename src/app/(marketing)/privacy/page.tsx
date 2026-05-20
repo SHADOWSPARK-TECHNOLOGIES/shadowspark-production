@@ -1,3 +1,13 @@
+import type { Metadata } from "next";
+import { canonical } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...canonical("/privacy"),
+  title: "Privacy Policy",
+  description:
+    "Privacy Policy for ShadowSpark — how we collect, use, and protect your biometric, business, and communication data in compliance with Nigerian regulations.",
+};
+
 import Link from "next/link";
 import { ArrowLeft, Shield, Database, Share2, Lock, UserCheck, Clock, Mail } from "lucide-react";
 

@@ -1,3 +1,13 @@
+import type { Metadata } from "next";
+import { canonical } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...canonical("/about"),
+  title: "About",
+  description:
+    "ShadowSpark provides AI-native compliance infrastructure for Nigerian financial institutions — rPPG liveness, automated regulatory monitoring, and real-time pulse detection.",
+};
+
 import Link from "next/link";
 import { ArrowLeft, Target, BookOpen, Zap, Shield, Globe, Cpu, MapPin } from "lucide-react";
 

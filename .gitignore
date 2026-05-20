@@ -63,3 +63,10 @@ temp-proxy.log
 
 # Prisma generated client — generate at build time, not in git
 src/generated/
+
+# Production environment mirror / worktrees — not part of this repo
+shadowspark-production/
+
+# GCP IAM policy files — never commit org-level security configs
+allow_all.yaml
+global_allow.yaml

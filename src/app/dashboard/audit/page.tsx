@@ -1,8 +1,13 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { ChevronRight, Save } from 'lucide-react';
-import DashboardChart from '@/components/dashboard/DashboardChart';
+
+const DashboardChart = dynamic(
+  () => import('@/components/dashboard/DashboardChart'),
+  { ssr: false }
+);
 import DashboardModal from '@/components/dashboard/DashboardModal';
 import SeverityBadge from '@/components/dashboard/SeverityBadge';
 import ProgressBar from '@/components/dashboard/ProgressBar';

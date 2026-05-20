@@ -11,21 +11,43 @@
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+import { rateLimit } from "@/lib/rate-limit";
 
 /** Hardcoded RP ID — DO NOT derive from Host header (spoofable) */
 const RP_ID = process.env.WEBAUTHN_RP_ID || "shadowspark-tech.org";
 const ORIGIN = process.env.WEBAUTHN_ORIGIN || "https://shadowspark-tech.org";
 
+const loginOptionsSchema = z.object({
+  email: z.string().email("Invalid email format"),
+});
+
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
-
-    if (!email || typeof email !== "string") {
+    const { success: allowed, headers: rateLimitHeaders } = await rateLimit(
+      request,
+      "auth:login-options",
+      5,
+      "10 s",
+    );
+    if (!allowed) {
       return NextResponse.json(
-        { error: "Email is required" },
+        { error: "Too many requests" },
+        { status: 429, headers: rateLimitHeaders },
+      );
+    }
+
+    const body = await request.json();
+    const parsed = loginOptionsSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message },
         { status: 400 },
       );
     }
+
+    const { email } = parsed.data;
 
     // Validate origin
     const origin = request.headers.get("origin");

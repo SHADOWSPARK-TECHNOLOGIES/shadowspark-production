@@ -10,9 +10,26 @@ import { sendTextWhatsApp } from "@/lib/whatsapp/send-payment-link";
  *
  * VERIFY_TOKEN must match the token configured in Meta Developer Console
  * for the Shadowspark ClawBot app (ID: 24260677440297544).
+ *
+ * SECURITY: All log output is redacted to prevent PII leakage.
+ * Phone numbers, message bodies, and raw payloads are never written
+ * to production logs.
  */
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "shadowspark-clawbot-v1";
+
+/** Redact a phone number for safe logging — keeps last 2 digits only. */
+function redactPhone(phone: string): string {
+  if (phone.length <= 4) return "****";
+  return "****" + phone.slice(-4);
+}
+
+/** Redact a message body for safe logging — keeps length and first 3 chars. */
+function redactText(text: string): string {
+  if (!text) return "";
+  const preview = text.length > 3 ? text.slice(0, 3) : text;
+  return `${preview}…[${text.length} chars]`;
+}
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -26,8 +43,8 @@ export async function GET(request: NextRequest) {
     return new NextResponse(challenge, { status: 200 });
   }
 
-  // Verification failed
-  console.warn("WhatsApp webhook verification failed", { mode, token });
+  // Verification failed — log only that it failed, not the token value
+  console.warn("WhatsApp webhook verification failed", { mode, tokenMatch: token === VERIFY_TOKEN });
   return new NextResponse("Verification failed", { status: 403 });
 }
 
@@ -39,7 +56,7 @@ export async function GET(request: NextRequest) {
  * - Future: Will route to chatbot intent classifier, payment link flow, etc.
  */
 async function handleIncomingMessage(from: string, text: string, msgType: string) {
-  console.log(`[WhatsApp Handler] Routing message from ${from}: type=${msgType}, text="${text}"`);
+  console.log(`[WhatsApp Handler] Routing message from ${redactPhone(from)}: type=${msgType}, text=${redactText(text)}`);
 
   // For text messages, send a simple acknowledgment reply
   if (msgType === "text" && text.trim()) {
@@ -72,8 +89,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // Log incoming webhook payload for debugging
-    console.log("WhatsApp webhook received:", JSON.stringify(body, null, 2));
+    // Log webhook event metadata only — never the full payload (may contain PII)
+    const entryCount = body?.entry?.length ?? 0;
+    console.log(`WhatsApp webhook received: ${entryCount} entries`);
 
     // Handle different payload types
     const entry = body?.entry?.[0];
@@ -91,11 +109,11 @@ export async function POST(request: NextRequest) {
         const msgType = message.type; // text, image, interactive, etc.
         const text = message.text?.body || "";
 
-        console.log(`WhatsApp message from ${from}: [${msgType}] ${text}`);
+        console.log(`WhatsApp message from ${redactPhone(from)}: [${msgType}] ${redactText(text)}`);
 
         // Route to message handler (fire-and-forget to avoid webhook timeout)
         handleIncomingMessage(from, text, msgType).catch((err) => {
-          console.error(`[WhatsApp Handler] Error processing message from ${from}:`, err);
+          console.error(`[WhatsApp Handler] Error processing message from ${redactPhone(from)}:`, err);
         });
       }
     }
@@ -103,7 +121,7 @@ export async function POST(request: NextRequest) {
     // Handle message status updates (delivered, read, failed)
     if (value.statuses) {
       for (const status of value.statuses) {
-        console.log(`WhatsApp status update: ${status.status} for message ${status.id}`);
+        console.log(`WhatsApp status update: ${status.status} for message ${redactPhone(status.id ?? "")}`);
       }
     }
 

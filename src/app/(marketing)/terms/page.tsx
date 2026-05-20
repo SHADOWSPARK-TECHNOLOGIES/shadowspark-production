@@ -1,3 +1,13 @@
+import type { Metadata } from "next";
+import { canonical } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...canonical("/terms"),
+  title: "Terms of Service",
+  description:
+    "Terms of Service for ShadowSpark sovereign compliance platform — governing access, usage, and obligations for all users of the Platform.",
+};
+
 import Link from "next/link";
 import { ArrowLeft, Shield, Scale, Gavel, Copyright, AlertTriangle, XCircle, MapPin, Mail } from "lucide-react";
 

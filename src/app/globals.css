@@ -61,7 +61,7 @@
   --color-divider: #dcd9d5;
   --color-border: #d4d1ca;
   --color-text: #28251d;
-  --color-text-muted: #7a7974;
+  --color-text-muted: #5c5b55;
   --color-text-faint: #bab9b4;
   --color-text-inverse: #f9f8f4;
   --color-primary: #01696f;
@@ -118,7 +118,7 @@
   --color-divider: #252422;
   --color-border: #333230;
   --color-text: #d1d0ce;
-  --color-text-muted: #76756f;
+  --color-text-muted: #8f8e88;
   --color-text-faint: #6b6a66;
   --color-text-inverse: #1a1917;
   --color-primary: #4a9ba6;
@@ -379,7 +379,8 @@ body {
   overflow-y: auto;
 }
 
-.nav-section {
+.nav-section,
+.sidebar-section-label {
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -389,7 +390,8 @@ body {
   white-space: nowrap;
 }
 
-.nav-item {
+.nav-item,
+.sidebar-link {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -405,14 +407,24 @@ body {
   transition: color var(--transition), background var(--transition);
 }
 
-.nav-item:hover {
+.nav-item:hover,
+.sidebar-link:hover {
   background: var(--color-surface-offset);
   color: var(--color-text);
 }
 
-.nav-item.active {
+.nav-item.active,
+.sidebar-link.active {
   background: var(--color-primary-highlight);
   color: var(--color-primary);
+}
+
+/* Keyboard focus indicator for nav items */
+.nav-item:focus-visible,
+.sidebar-link:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
 }
 
 .nav-item svg {
@@ -421,7 +433,8 @@ body {
   height: 16px;
 }
 
-.nav-badge {
+.nav-badge,
+.sidebar-badge {
   margin-left: auto;
   background: var(--color-notification);
   color: #fff;
@@ -519,6 +532,11 @@ body {
   color: var(--color-text);
 }
 
+.mobile-menu-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .page-title {
   font-size: var(--text-base);
   font-weight: 700;
@@ -559,6 +577,11 @@ body {
 .icon-btn:hover {
   background: var(--color-surface-offset);
   color: var(--color-text);
+}
+
+.icon-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .notif-dot {

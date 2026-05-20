@@ -1,3 +1,18 @@
+import type { Metadata } from "next";
+import { canonical } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...canonical("/"),
+  title: "Sovereign Financial Node — Institutional Infrastructure for Lagos",
+  description:
+    "Institutional-grade financial infrastructure for High-Net-Worth liquidity movers in the 2026 Lagos market. Real-time ledger transparency, automated regulatory compliance, and AI-powered treasury operations.",
+  openGraph: {
+    title: "Shadowspark — Sovereign Financial Node",
+    description:
+      "Total Visibility. Mathematical Certainty. Sovereign Wealth. Institutional infrastructure for the 2026 Lagos market.",
+  },
+};
+
 /**
  * ═══════════════════════════════════════════════════════════════
  * EXECUTIVE TERMINAL — Primary Marketing Interface
@@ -24,21 +39,62 @@
  */
 
 import { Suspense } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { ArrowRight, Shield, FileText } from "lucide-react";
 import { Topbar } from "@/components/marketing/Topbar";
 import { SovereignLogo } from "@/components/marketing/SovereignLogo";
-import { MarketPulse } from "@/components/marketing/MarketPulse";
 import { LedgerTransparency } from "@/components/marketing/LedgerTransparency";
-import { InfraStrip } from "@/components/marketing/InfraStrip";
 import { RWASecuritization } from "@/components/marketing/RWASecuritization";
 import { UrgencyHero } from "@/components/landing/UrgencyHero";
-import { ExecutiveShieldSection } from "@/components/marketing/ExecutiveShieldSection";
-import { MarketPulseSection } from "@/components/marketing/MarketPulseSection";
-import { FinalCTASection } from "@/components/marketing/FinalCTASection";
-import { TerminalFooter } from "@/components/marketing/TerminalFooter";
-import { TestimonialCarousel } from "@/components/marketing/TestimonialCarousel";
 import { TrustedByStrip } from "@/components/marketing/TrustedByStrip";
+
+// Below-fold components loaded lazily to reduce initial bundle size.
+const ExecutiveShieldSection = dynamic(
+  () =>
+    import("@/components/marketing/ExecutiveShieldSection").then(
+      (m) => m.ExecutiveShieldSection,
+    ),
+  { loading: () => <div className="h-[600px]" /> },
+);
+
+const MarketPulseSection = dynamic(
+  () =>
+    import("@/components/marketing/MarketPulseSection").then(
+      (m) => m.MarketPulseSection,
+    ),
+  { loading: () => <div className="h-[500px]" /> },
+);
+
+const FinalCTASection = dynamic(
+  () =>
+    import("@/components/marketing/FinalCTASection").then(
+      (m) => m.FinalCTASection,
+    ),
+  { loading: () => <div className="h-[400px]" /> },
+);
+
+const TerminalFooter = dynamic(
+  () =>
+    import("@/components/marketing/TerminalFooter").then(
+      (m) => m.TerminalFooter,
+    ),
+  { loading: () => <div className="h-[200px]" /> },
+);
+
+const TestimonialCarousel = dynamic(
+  () =>
+    import("@/components/marketing/TestimonialCarousel").then(
+      (m) => m.TestimonialCarousel,
+    ),
+  { loading: () => <div className="h-[300px]" /> },
+);
+
+const InfraStrip = dynamic(
+  () =>
+    import("@/components/marketing/InfraStrip").then((m) => m.InfraStrip),
+  { loading: () => <div className="h-[100px]" /> },
+);
 
 // ── Types ─────────────────────────────────────────────────────────────────
 

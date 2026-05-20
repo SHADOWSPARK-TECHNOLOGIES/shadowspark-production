@@ -10,16 +10,29 @@ export type CrawlJobData = {
   limit?: number;
 };
 
-export const crawlQueue = new Queue<CrawlJobData>(CRAWL_QUEUE, {
-  connection: redis,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: { type: "exponential", delay: 2000 },
-    removeOnComplete: true,
+let _crawlQueue: Queue<CrawlJobData> | null = null;
+
+export function getCrawlQueue(): Queue<CrawlJobData> {
+  if (!_crawlQueue) {
+    _crawlQueue = new Queue<CrawlJobData>(CRAWL_QUEUE, {
+      connection: redis,
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 2000 },
+        removeOnComplete: true,
+      },
+    });
+  }
+  return _crawlQueue;
+}
+
+/** @deprecated Use getCrawlQueue() instead */
+export const crawlQueue = new Proxy({} as Queue<CrawlJobData>, {
+  get(_, prop) {
+    return getCrawlQueue()[prop as keyof Queue<CrawlJobData>];
   },
 });
 
 export async function enqueueCrawl(data: CrawlJobData) {
-  return await crawlQueue.add("crawl-and-embed", data);
+  return await getCrawlQueue().add("crawl-and-embed", data);
 }
-

@@ -1,3 +1,13 @@
+import type { Metadata } from "next";
+import { canonical } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  ...canonical("/cookies"),
+  title: "Cookie Policy",
+  description:
+    "Cookie Policy for ShadowSpark — how we use essential, analytics, and functional cookies on our sovereign compliance platform.",
+};
+
 import Link from "next/link";
 import { ArrowLeft, Shield, Cookie, Sliders, RefreshCw, Globe, Mail } from "lucide-react";
 

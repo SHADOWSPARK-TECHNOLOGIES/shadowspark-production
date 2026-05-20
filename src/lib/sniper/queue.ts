@@ -8,15 +8,29 @@ export interface SniperJobData {
   domain: string;
 }
 
-export const sniperQueue = new Queue<SniperJobData>(SNIPER_QUEUE, {
-  connection: redis,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: {
-      type: "exponential",
-      delay: 5000,
-    },
-    removeOnComplete: true,
-    removeOnFail: false,
+let _sniperQueue: Queue<SniperJobData> | null = null;
+
+export function getSniperQueue(): Queue<SniperJobData> {
+  if (!_sniperQueue) {
+    _sniperQueue = new Queue<SniperJobData>(SNIPER_QUEUE, {
+      connection: redis,
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 5000,
+        },
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
+    });
+  }
+  return _sniperQueue;
+}
+
+/** @deprecated Use getSniperQueue() instead */
+export const sniperQueue = new Proxy({} as Queue<SniperJobData>, {
+  get(_, prop) {
+    return getSniperQueue()[prop as keyof Queue<SniperJobData>];
   },
 });

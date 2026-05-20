@@ -6,7 +6,9 @@ import { getChartTheme, chartFontConfig } from '@/lib/dashboard/chart-theme';
 import { Skeleton } from '@/components/dashboard/Skeleton';
 import { BarChart3, AlertTriangle } from 'lucide-react';
 
-Chart.register(...registerables);
+if (typeof document !== "undefined") {
+  Chart.register(...registerables);
+}
 
 export interface DashboardChartProps {
   type: ChartConfiguration['type'];

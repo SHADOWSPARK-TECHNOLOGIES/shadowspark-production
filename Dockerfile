@@ -24,6 +24,8 @@ RUN pnpm build
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# @google-cloud/secret-manager uses ADC — no gcloud SDK needed on Cloud Run
+# Runtime service account must have roles/secretmanager.secretAccessor
 
 # We copy the entire app for simplicity since we are using tsx/next directly
 COPY --from=builder /app ./

@@ -6,6 +6,23 @@ export const runtime = "nodejs";
 const THRESHOLD = 0.6;
 
 export async function GET() {
+  const checks = {
+    status: "ok" as string,
+    timestamp: new Date().toISOString(),
+    database: "unknown" as string,
+    version: process.env.npm_package_version || "1.0.0",
+    vectorCount: 0,
+    threshold: THRESHOLD,
+  };
+
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    checks.database = "connected";
+  } catch {
+    checks.database = "disconnected";
+    checks.status = "degraded";
+  }
+
   try {
     const result = await prisma.$queryRaw<Array<{ count: number | bigint }>>`
       SELECT COUNT(*) AS count
@@ -13,23 +30,12 @@ export async function GET() {
     `;
 
     const rawCount = result[0]?.count ?? 0;
-    const vectorCount = typeof rawCount === "bigint" ? Number(rawCount) : Number(rawCount);
-
-    return NextResponse.json({
-      status: "ok",
-      vectorCount,
-      threshold: THRESHOLD,
-      timestamp: new Date().toISOString(),
-    });
+    checks.vectorCount = typeof rawCount === "bigint" ? Number(rawCount) : Number(rawCount);
   } catch (error) {
     console.error("[api][health] failed to read vector health", error);
-
-    return NextResponse.json(
-      {
-        status: "error",
-        message: error instanceof Error ? error.message : "Unknown health check error",
-      },
-      { status: 500 }
-    );
+    if (checks.status === "ok") checks.status = "degraded";
   }
+
+  const statusCode = checks.status === "ok" ? 200 : 503;
+  return NextResponse.json(checks, { status: statusCode });
 }

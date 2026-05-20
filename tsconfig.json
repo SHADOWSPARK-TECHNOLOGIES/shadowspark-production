@@ -39,6 +39,7 @@
   "exclude": [
     "node_modules",
     "codex",
-    "scripts"
+    "scripts",
+    "shadowspark-production"
   ]
 }

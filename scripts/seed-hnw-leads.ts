@@ -302,6 +302,7 @@ interface LeadInput {
   termsAccepted: boolean;
   paymentRef?: string;
   demoScheduled: boolean;
+  demoSlug?: string;
   regulatorySignals: RegulatorySignalEntry[];
 }
 
@@ -445,6 +446,7 @@ function generateLeads(): LeadInput[] {
       let paymentRef: string | undefined = undefined;
       let demoScheduled = false;
       let nextFollowUpAt: Date | undefined = undefined;
+      let demoSlug: string | undefined = undefined;
 
       if (status === "converted") {
         termsAccepted = true;
@@ -454,6 +456,7 @@ function generateLeads(): LeadInput[] {
       if (status === "demo_scheduled") {
         demoScheduled = true;
         nextFollowUpAt = futureDate(randomInt(1, 14));
+        demoSlug = `demo-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
       }
 
       if (status === "QUALIFIED") {
@@ -557,11 +560,29 @@ async function main() {
       demoScheduled: lead.demoScheduled,
     };
 
-    await prisma.lead.upsert({
+    const createdLead = await prisma.lead.upsert({
       where: { email: lead.email },
       update: dbLead,
       create: dbLead,
     });
+
+    // Create Demo record for demo_scheduled leads so the operator dashboard
+    // shows "Demo Generated" status and the demo preview page works.
+    if (lead.demoSlug && lead.status === "demo_scheduled") {
+      await prisma.demo.upsert({
+        where: { leadId: createdLead.id },
+        update: {},
+        create: {
+          slug: lead.demoSlug,
+          leadId: createdLead.id,
+          config: {
+            type: "calendar_placeholder",
+            scheduledAt: new Date(Date.now() + 86400000).toISOString(),
+          },
+          approved: false,
+        },
+      });
+    }
 
     if ((i + 1) % 10 === 0) {
       console.log(`  ✅ Seeded ${i + 1}/${leads.length} leads`);

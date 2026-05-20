@@ -34,7 +34,7 @@ export default function CheckoutPage() {
   const paystackConfig = {
     reference: `shadowspark_${leadId}_${new Date().getTime()}`,
     email: leadEmail || "lead@example.com",
-    amount: 1500000, // ₦15,000 converted to kobo
+    amount: 100, // $1 Demo Deposit (in kobo)
     publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "",
   };
 
@@ -68,7 +68,7 @@ export default function CheckoutPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#050505] text-cyan-400 flex items-center justify-center font-sans">
+      <div className="min-h-screen bg-[#050505] text-emerald-400 flex items-center justify-center font-sans">
         <span className="animate-pulse">Loading secure checkout...</span>
       </div>
     );
@@ -79,8 +79,8 @@ export default function CheckoutPage() {
       <div className="max-w-6xl w-full">
         {/* Trust Badge */}
         <div className="flex justify-center mb-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-xs font-semibold text-cyan-400 tracking-widest uppercase">
-            <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 text-xs font-semibold text-emerald-400 tracking-widest uppercase">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
             Powered by ShadowSpark AI • Secure Checkout
           </div>
         </div>
@@ -88,7 +88,7 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Mini-Audit Summary */}
           <div className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-8 shadow-2xl">
-            <p className="text-xs uppercase tracking-widest text-cyan-400 font-bold mb-3">Engine Tier: Semantic Growth</p>
+            <p className="text-xs uppercase tracking-widest text-emerald-400 font-bold mb-3">Engine Tier: Semantic Growth</p>
             <h1 className="text-3xl font-bold text-white tracking-tight mb-4">
               Semantic Growth
             </h1>
@@ -101,15 +101,15 @@ export default function CheckoutPage() {
               <h3 className="text-sm uppercase tracking-widest text-zinc-500 font-bold mb-4">Priority Actions:</h3>
               <ul className="space-y-3 text-zinc-300">
                 <li className="flex items-start gap-3">
-                  <span className="text-cyan-400 flex-shrink-0 mt-0.5">✓</span>
+                  <span className="text-emerald-400 flex-shrink-0 mt-0.5">✓</span>
                   <span>Activate Semantic Lead Capture</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-cyan-400 flex-shrink-0 mt-0.5">✓</span>
+                  <span className="text-emerald-400 flex-shrink-0 mt-0.5">✓</span>
                   <span>Deploy WhatsApp‑to‑Vault Automation</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-cyan-400 flex-shrink-0 mt-0.5">✓</span>
+                  <span className="text-emerald-400 flex-shrink-0 mt-0.5">✓</span>
                   <span>Track Intent & Conversions</span>
                 </li>
               </ul>
@@ -119,29 +119,29 @@ export default function CheckoutPage() {
           {/* Right Column - Payment Summary */}
           <div className="rounded-[2rem] border border-zinc-800 bg-zinc-950 p-8 shadow-2xl flex flex-col justify-between">
             <div>
-              <p className="text-xs uppercase tracking-widest text-cyan-400 font-bold mb-3">Deployment Fee</p>
+              <p className="text-xs uppercase tracking-widest text-emerald-400 font-bold mb-3">Demo Deposit</p>
               
               <div className="text-center mb-8">
-                <div className="text-6xl font-bold text-white tracking-tighter mb-4">₦15,000</div>
-                <p className="text-sm text-cyan-400/80 font-medium">
-                  Fully credited toward your final deployment.
+                <div className="text-6xl font-bold text-white tracking-tighter mb-4">$1</div>
+                <p className="text-sm text-emerald-400/80 font-medium">
+                  Fully credited toward your first invoice if you deploy.
                 </p>
               </div>
 
-              <div className="bg-cyan-950/20 rounded-xl p-4 border border-cyan-500/20 mb-6">
+              <div className="bg-emerald-950/20 rounded-xl p-4 border border-emerald-500/20 mb-6">
                 <p className="text-sm text-zinc-300">
-                  This Semantic System Preview replaces <span className="font-semibold text-cyan-400">$20k+ in traditional custom development.</span>
+                  This demo deposit secures a tailored ShadowSpark environment&mdash;configured around your funnel, not a generic slide deck.
                 </p>
               </div>
             </div>
 
             {/* Paystack / Payment Integration */}
-            <button 
-              className="w-full rounded-full bg-cyan-500 px-6 py-4 text-base font-bold text-black transition-all hover:bg-cyan-400 hover:scale-[1.02] shadow-[0_0_30px_rgba(0,255,255,0.2)] disabled:opacity-50 disabled:hover:scale-100 disabled:hover:bg-cyan-500"
+            <button
+              className="w-full rounded-full bg-emerald-600 px-6 py-4 text-base font-bold text-white transition-all hover:bg-emerald-500 hover:scale-[1.02] shadow-[0_0_30px_rgba(16,149,106,0.3)] disabled:opacity-50 disabled:hover:scale-100 disabled:hover:bg-emerald-600"
               onClick={handlePayment}
               disabled={processing || !leadEmail}
             >
-              {processing ? "Verifying..." : "Pay ₦15,000 (Fully Credited)"}
+              {processing ? "Verifying..." : "Pay $1 (Fully Credited)"}
             </button>
             {!leadEmail && (
               <p className="text-center text-xs text-red-400 mt-3">Unable to load lead profile.</p>
@@ -154,15 +154,15 @@ export default function CheckoutPage() {
           <h3 className="text-center text-sm uppercase tracking-widest text-zinc-500 font-bold mb-6">What happens next?</h3>
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 text-center">
-              <div className="text-cyan-400 font-bold text-xl mb-2">1</div>
-              <p className="text-sm text-zinc-400">Deployment fee locked & environment reserved instantly.</p>
+              <div className="text-emerald-400 font-bold text-xl mb-2">1</div>
+              <p className="text-sm text-zinc-400">Deposit locked & environment reserved instantly.</p>
             </div>
             <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 text-center">
-              <div className="text-cyan-400 font-bold text-xl mb-2">2</div>
+              <div className="text-emerald-400 font-bold text-xl mb-2">2</div>
               <p className="text-sm text-zinc-400">Semantic Intelligence configured for your lead pipeline.</p>
             </div>
             <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 text-center">
-              <div className="text-cyan-400 font-bold text-xl mb-2">3</div>
+              <div className="text-emerald-400 font-bold text-xl mb-2">3</div>
               <p className="text-sm text-zinc-400">Live platform access & comprehensive onboarding begins.</p>
             </div>
           </div>

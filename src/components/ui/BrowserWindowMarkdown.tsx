@@ -20,7 +20,7 @@ const markdownComponents: Components = {
     <p className="mt-5 text-base leading-8 text-slate-300 sm:text-[1.05rem]">{children}</p>
   ),
   blockquote: ({ children }) => (
-    <blockquote className="mt-6 rounded-r-2xl border-l-2 border-cyan-300/50 bg-cyan-300/[0.06] px-5 py-4 text-sm leading-7 text-cyan-50">
+    <blockquote className="mt-6 rounded-r-2xl border-l-2 border-cyan-300/50 bg-cyan-300/6 px-5 py-4 text-sm leading-7 text-cyan-50">
       {children}
     </blockquote>
   ),
@@ -76,7 +76,7 @@ const markdownComponents: Components = {
     </thead>
   ),
   tbody: ({ children }) => <tbody className="divide-y divide-white/10">{children}</tbody>,
-  tr: ({ children }) => <tr className="transition-colors hover:bg-white/[0.02]">{children}</tr>,
+  tr: ({ children }) => <tr className="transition-colors hover:bg-white/2">{children}</tr>,
   th: ({ children }) => (
     <th className="px-5 py-4 font-mono text-[11px] uppercase tracking-[0.2em]">{children}</th>
   ),

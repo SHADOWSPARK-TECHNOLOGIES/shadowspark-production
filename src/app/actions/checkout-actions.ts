@@ -11,9 +11,9 @@ export async function processCheckout(leadId: string, data: {
 }) {
   if (!data.termsAccepted) throw new Error("Terms must be accepted");
 
-  const semanticGrowthAmountKobo = 1500000;
-  const semanticGrowthAmountNaira = 15000;
-  const mockPaystackLink = `https://checkout.paystack.com/test_${leadId}_${Date.now()}?amount=${semanticGrowthAmountKobo}`;
+  const demoDepositAmountKobo = 100; // $1 Demo Deposit (in kobo)
+  const demoDepositAmountUsd = 1;
+  const mockPaystackLink = `https://checkout.paystack.com/test_${leadId}_${Date.now()}?amount=${demoDepositAmountKobo}`;
 
   await prisma.lead.update({
     where: { id: leadId },
@@ -25,7 +25,7 @@ export async function processCheckout(leadId: string, data: {
         leadVolume: data.leadVolume,
         painPoint: data.painPoint,
         selectedPackage: data.packageId,
-        deploymentFeeNaira: semanticGrowthAmountNaira,
+        demoDepositUsd: demoDepositAmountUsd,
         creditedToFinal: true
       },
       paymentRef: mockPaystackLink,
@@ -50,7 +50,7 @@ export async function verifyPayment(leadId: string, reference: string) {
     // For now, we update the lead and record the payment.
     await prisma.payment.create({
       data: {
-        amount: 1500000,
+        amount: 100, // $1 Demo Deposit (in kobo)
         status: "success",
         reference,
         leadId,

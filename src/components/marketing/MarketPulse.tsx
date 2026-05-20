@@ -118,7 +118,7 @@ export function MarketPulse() {
           return (
             <div
               key={pulse.id}
-              className="glass-panel group flex items-center gap-4 rounded-xl px-4 py-3 golden-transition duration-300 hover:bg-white/[0.06]"
+              className="glass-panel group flex items-center gap-4 rounded-xl px-4 py-3 golden-transition duration-300 hover:bg-white/6"
             >
               {/* Source badge */}
               <span

@@ -84,7 +84,7 @@ export function AppleCardsCarousel({
 
                   <p className="text-sm leading-7 text-slate-300">{item.summary}</p>
 
-                  <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+                  <div className="rounded-[1.4rem] border border-white/8 bg-white/3 px-4 py-4">
                     <p className="text-[11px] font-mono uppercase tracking-[0.2em] text-slate-500">
                       Business Outcome
                     </p>

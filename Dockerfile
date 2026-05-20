@@ -1,6 +1,6 @@
 # ---------- Base ----------
 FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl curl
 RUN npm install -g pnpm
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -31,5 +31,13 @@ COPY --from=builder /app ./
 EXPOSE 8080
 ENV PORT 8080
 
-# Default command is to start the web server
+# Health check — pings the health endpoint every 30s
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:8080/api/health || exit 1
+
+# Use tini as init to handle zombie reaping and signal forwarding
+RUN apk add --no-cache tini
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Default command — runs all three processes under tini
 CMD ["sh", "-c", "pnpm worker:crawl & pnpm worker:lead & pnpm start"]

@@ -25,13 +25,20 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, Shield, FileText, ScrollText } from "lucide-react";
+import { ArrowRight, Shield, FileText } from "lucide-react";
 import { Topbar } from "@/components/marketing/Topbar";
 import { SovereignLogo } from "@/components/marketing/SovereignLogo";
 import { MarketPulse } from "@/components/marketing/MarketPulse";
 import { LedgerTransparency } from "@/components/marketing/LedgerTransparency";
-import { OrbitalScanRing } from "@/components/marketing/OrbitalScanRing";
+import { InfraStrip } from "@/components/marketing/InfraStrip";
 import { RWASecuritization } from "@/components/marketing/RWASecuritization";
+import { UrgencyHero } from "@/components/landing/UrgencyHero";
+import { ExecutiveShieldSection } from "@/components/marketing/ExecutiveShieldSection";
+import { MarketPulseSection } from "@/components/marketing/MarketPulseSection";
+import { FinalCTASection } from "@/components/marketing/FinalCTASection";
+import { TerminalFooter } from "@/components/marketing/TerminalFooter";
+import { TestimonialCarousel } from "@/components/marketing/TestimonialCarousel";
+import { TrustedByStrip } from "@/components/marketing/TrustedByStrip";
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -132,7 +139,7 @@ async function HeroSection({
         <div className="mt-12 w-full max-w-lg">
           <Suspense
             fallback={
-              <div className="h-28 w-full animate-pulse rounded-2xl bg-white/[0.03]" />
+              <div className="h-28 w-full animate-pulse rounded-2xl bg-white/3" />
             }
           >
             <LedgerTransparency />
@@ -154,7 +161,7 @@ async function HeroSection({
 
           <Link
             href="/admin/health"
-            className="inline-flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.03] px-8 py-4 text-sm font-medium text-zinc-300 backdrop-blur-md golden-transition duration-300 hover:border-white/20 hover:bg-white/10"
+            className="inline-flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/3 px-8 py-4 text-sm font-medium text-zinc-300 backdrop-blur-md golden-transition duration-300 hover:border-white/20 hover:bg-white/10"
           >
             <FileText className="h-4 w-4" />
             View Q2 2026 Regulatory Intelligence
@@ -169,214 +176,38 @@ async function HeroSection({
           </span>
           CBN BVN-PHONE LOCK: MAY 1st — IDENTITY ANCHORED & COMPLIANT
         </div>
+
+        {/* Compact trust reinforcement — payment rails microcopy */}
+        <p className="mt-8 text-[11px] font-mono tracking-wide text-zinc-600">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-1 w-1 rounded-full bg-emerald-500/60" />
+            WhatsApp Business API
+          </span>
+          <span className="mx-2.5 inline-block text-zinc-700 select-none">·</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-1 w-1 rounded-full bg-emerald-500/60" />
+            Paystack Payments
+          </span>
+        </p>
       </div>
     </section>
   );
 }
 
 // ── Section 3: Executive Shield (Anti-Deepfake Identity) ─────────────────
-
-function ExecutiveShieldSection() {
-  return (
-    <section className="relative border-t border-white/5 py-24">
-      {/* Background depth */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(16,149,106,0.04),transparent_50%)]" />
-
-      <div className="relative mx-auto max-w-5xl px-6 text-center">
-        {/* Section badge */}
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/10 bg-emerald-500/5 px-4 py-1.5 text-[10px] font-mono uppercase tracking-[0.22em] text-emerald-400">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          The Executive Shield
-        </div>
-
-        <h2 className="mt-6 font-display text-3xl font-semibold tracking-tight text-white md:text-5xl golden-transition">
-          Anti-Deepfake Identity Infrastructure
-        </h2>
-
-        <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-zinc-400 font-sans">
-          69% of biometric fraud is now AI-generated. Shadowspark deploys
-          Active Liveness + Passive Behavioral Biometrics to secure every
-          identity verification — hardware-backed FIDO2, liveness detection,
-          and behavioral profiling that runs silently in the background.
-        </p>
-
-        {/* Orbital Scan Ring */}
-        <div className="mt-12 flex justify-center">
-          <OrbitalScanRing />
-        </div>
-      </div>
-    </section>
-  );
-}
+// Handled by ExecutiveShieldSection component
 
 // ── Section 4: Market Pulse (RAG Regulatory Feed) ────────────────────────
-
-function MarketPulseSection() {
-  return (
-    <section className="relative border-t border-white/5 py-24">
-      {/* Background depth */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(201,146,42,0.03),transparent_50%)]" />
-
-      <div className="relative mx-auto max-w-5xl px-6">
-        {/* Section header */}
-        <div className="mb-4 flex items-center gap-2.5">
-          <ScrollText className="h-4 w-4 text-gold-500" />
-          <div>
-            <h2 className="text-sm font-bold uppercase tracking-[0.22em] text-white font-display">
-              Market Pulse
-            </h2>
-            <p className="text-[10px] font-mono text-zinc-600">
-              REGULATORY SIGNAL FEED — FIRECRAWL RAG BRIDGE
-            </p>
-          </div>
-        </div>
-
-        <p className="mb-8 max-w-2xl text-sm leading-relaxed text-zinc-500 font-sans">
-          Real-time regulatory signals ingested from CBN, SEC, NITDA, and NIBSS
-          portals via the Firecrawl semantic bridge. Each signal includes a
-          Semantic Proximity score indicating alignment strength.
-        </p>
-
-        <Suspense
-          fallback={
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-12 w-full animate-pulse rounded-xl bg-white/[0.03]"
-                />
-              ))}
-            </div>
-          }
-        >
-          <MarketPulse />
-        </Suspense>
-
-        {/* CTA link */}
-        <div className="mt-8 flex justify-center">
-          <Link
-            href="/admin/health"
-            className="inline-flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-gold-400 golden-transition duration-300 hover:text-gold-300"
-          >
-            <FileText className="h-3.5 w-3.5" />
-            View Full Q2 2026 Regulatory Intelligence Report
-            <ArrowRight className="h-3.5 w-3.5 golden-transition duration-300 group-hover:translate-x-0.5" />
-          </Link>
-        </div>
-      </div>
-    </section>
-  );
-}
+// Handled by MarketPulseSection component
 
 // ── Section 5: RWA Securitization ────────────────────────────────────────
-
 // Handled by RWASecuritization server component
 
 // ── Section 6: Final CTA — Executive Access ──────────────────────────────
-
-function FinalCTASection() {
-  return (
-    <section className="relative border-t border-white/5 py-24">
-      {/* Background depth */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(16,149,106,0.03),transparent_50%)]" />
-
-      <div className="relative mx-auto max-w-5xl px-6 text-center">
-        {/* HUD Section Header */}
-        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/10 bg-emerald-500/5 px-4 py-1.5 text-[10px] font-mono uppercase tracking-[0.22em] text-emerald-400">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-          Executive Access
-        </div>
-
-        <h2 className="mt-6 font-display text-3xl font-semibold tracking-tight text-white md:text-5xl golden-transition">
-          Deploy Your Sovereign Financial Node
-        </h2>
-
-        <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-zinc-400 font-sans">
-          Initialize your institutional onboarding to access the full Shadowspark
-          treasury suite — real-time ledger, automated regulatory compliance,
-          AI-powered liquidity management, and RWA securitization for the Lagos
-          market. Hardened for the May 1st BVN-Phone Lock.
-        </p>
-
-        {/* CTA cluster */}
-        <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <Link
-            href="/checkout/new"
-            className="group relative inline-flex items-center gap-3 overflow-hidden rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-10 py-5 text-sm font-bold uppercase tracking-widest text-emerald-400 backdrop-blur-md golden-transition duration-300 hover:bg-emerald-500/20 hover:shadow-[0_0_60px_rgba(16,149,106,0.2)]"
-          >
-            <span className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(16,149,106,0.1),transparent)] translate-x-[-100%] golden-transition duration-700 group-hover:translate-x-[100%]" />
-            <Shield className="h-5 w-5" />
-            Initialize Onboarding
-            <ArrowRight className="h-5 w-5 golden-transition duration-300 group-hover:translate-x-1" />
-          </Link>
-
-          <Link
-            href="/admin/health"
-            className="inline-flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-10 py-5 text-sm font-medium text-zinc-300 backdrop-blur-md golden-transition duration-300 hover:border-white/20 hover:bg-white/10"
-          >
-            <FileText className="h-5 w-5" />
-            View Q2 2026 Regulatory Intelligence
-          </Link>
-        </div>
-
-        {/* Trust signals */}
-        <div className="mt-16 flex flex-wrap items-center justify-center gap-8 text-[10px] font-mono uppercase tracking-[0.2em] text-zinc-600">
-          <span className="flex items-center gap-2">
-            <span className="inline-block h-1 w-1 rounded-full bg-emerald-500" />
-            SOC 2 Type II
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="inline-block h-1 w-1 rounded-full bg-emerald-500" />
-            AES-256 Encrypted
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="inline-block h-1 w-1 rounded-full bg-emerald-500" />
-            NDPC Compliant
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="inline-block h-1 w-1 rounded-full bg-emerald-500" />
-            Double-Entry Ledger
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="inline-block h-1 w-1 rounded-full bg-emerald-500" />
-            BVN-Phone Lock Ready
-          </span>
-        </div>
-      </div>
-    </section>
-  );
-}
+// Handled by FinalCTASection component
 
 // ── Footer ────────────────────────────────────────────────────────────────
-
-function TerminalFooter() {
-  return (
-    <footer className="border-t border-white/5 py-12">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-          <div className="flex items-center gap-3">
-            <SovereignLogo size={28} animated={false} variant="emerald" />
-            <span className="text-sm font-bold tracking-tight text-white font-sans">
-              SHADOWSPARK
-            </span>
-          </div>
-
-          <p className="text-[10px] font-mono tracking-[0.15em] text-zinc-700">
-            SOVEREIGN FINANCIAL NODE — LAGOS MAINNET
-          </p>
-
-          <div className="flex items-center gap-6 text-[11px] text-zinc-600">
-            <span>v1.0.0</span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              OPERATIONAL
-            </span>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
+// Handled by TerminalFooter component
 
 // ── Main Page ─────────────────────────────────────────────────────────────
 
@@ -385,6 +216,10 @@ export default async function ExecutiveTerminal({
 }: {
   searchParams: SearchParams;
 }) {
+  const params = await searchParams;
+  const isUrgencyZone =
+    typeof params?.zone === "string" && params.zone === "urgency";
+
   return (
     <div className="bg-obsidian font-sans text-zinc-400 selection:bg-emerald-500/30">
       {/* Section 1: Fixed Compliance Anchor Topbar */}
@@ -393,8 +228,15 @@ export default async function ExecutiveTerminal({
       {/* Spacer for fixed topbar */}
       <div className="h-14" />
 
-      {/* Section 2: Hero — Institutional Intent */}
-      <HeroSection searchParams={searchParams} />
+      {/* Section 2: Hero — Institutional Intent / Funnel Blitz Mode */}
+      {isUrgencyZone ? (
+        <UrgencyHero />
+      ) : (
+        <HeroSection searchParams={searchParams} />
+      )}
+
+      {/* Trusted By Strip — Social proof after hero */}
+      <TrustedByStrip />
 
       {/* Section 3: Executive Shield — Anti-Deepfake Identity */}
       <ExecutiveShieldSection />
@@ -405,8 +247,14 @@ export default async function ExecutiveTerminal({
       {/* Section 5: RWA Securitization */}
       <RWASecuritization />
 
+      {/* Testimonials Carousel — Social proof before CTA */}
+      <TestimonialCarousel />
+
       {/* Section 6: Final CTA */}
       <FinalCTASection />
+
+      {/* Infrastructure Trust Strip */}
+      <InfraStrip />
 
       {/* Footer */}
       <TerminalFooter />

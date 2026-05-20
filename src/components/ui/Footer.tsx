@@ -5,7 +5,7 @@ export const SovereignFooter = () => (
     <div className="flex justify-between items-center max-w-7xl mx-auto">
       <div className="flex gap-4 items-center">
         <ShieldCheck className="text-cyan-500" />
-        <span className="text-sm text-neutral-400">Sovereign Encryption Verified (SOC 2)</span>
+        <span className="text-sm text-neutral-400">AES-256 Encryption at Rest</span>
       </div>
       <div className="flex gap-8">
         <a href="https://facebook.com/your-page-slug" className="hover:text-cyan-500 transition-all">

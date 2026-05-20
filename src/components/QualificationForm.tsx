@@ -362,8 +362,8 @@ export default function QualificationForm() {
       </div>
 
       <aside className="lg:sticky lg:top-8 lg:self-start">
-        <div className="mb-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 px-4 py-3 text-sm text-cyan-100">
-          Your `₦1,000` demo will be tailored to the business type, features, and workflow you select here.
+        <div className="mb-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 px-4 py-3 text-sm text-emerald-100">
+          Your $1 demo deposit will be tailored to the business type, features, and workflow you select here.
         </div>
         <MiniAudit
           businessType={auditBusinessType}

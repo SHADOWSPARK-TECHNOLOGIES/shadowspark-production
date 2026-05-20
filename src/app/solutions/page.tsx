@@ -191,7 +191,7 @@ function SolutionsContent() {
                   </Link>
                   <Link
                     href="/contact"
-                    className="inline-flex items-center justify-center gap-2 rounded-[1.2rem] border border-white/12 bg-white/[0.03] px-7 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:border-cyan-300/25 hover:bg-white/[0.05]"
+                    className="inline-flex items-center justify-center gap-2 rounded-[1.2rem] border border-white/12 bg-white/3 px-7 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:border-cyan-300/25 hover:bg-white/5"
                   >
                     <MessageCircle className="h-4 w-4" />
                     Chat on WhatsApp
@@ -202,7 +202,7 @@ function SolutionsContent() {
                   {architectureChecks.map((check) => (
                     <div
                       key={check}
-                      className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-slate-300"
+                      className="rounded-full border border-white/10 bg-white/3 px-4 py-2 text-sm text-slate-300"
                     >
                       {check}
                     </div>
@@ -214,7 +214,7 @@ function SolutionsContent() {
                 {trustStats.map((stat) => (
                   <div
                     key={stat.label}
-                    className="rounded-[1.7rem] border border-white/10 bg-white/[0.04] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                    className="rounded-[1.7rem] border border-white/10 bg-white/4 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                   >
                     <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-cyan-100/70">
                       {stat.label}
@@ -355,7 +355,7 @@ function SolutionsContent() {
                   </div>
 
                   <div className="grid gap-4 lg:grid-cols-2">
-                    <div className="rounded-[1.6rem] border border-rose-300/10 bg-rose-300/[0.04] p-5">
+                    <div className="rounded-[1.6rem] border border-rose-300/10 bg-rose-300/4 p-5">
                       <p className="text-[11px] font-mono uppercase tracking-[0.22em] text-rose-200/80">
                         Leakage if missing
                       </p>
@@ -384,7 +384,7 @@ function SolutionsContent() {
                       {activeLayer.features.map((feature) => (
                         <div
                           key={feature}
-                          className="flex items-start gap-3 rounded-[1.4rem] border border-white/8 bg-white/[0.03] px-4 py-4"
+                          className="flex items-start gap-3 rounded-[1.4rem] border border-white/8 bg-white/3 px-4 py-4"
                         >
                           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
                           <p className="text-sm leading-6 text-slate-300">{feature}</p>
@@ -510,12 +510,12 @@ function SolutionsPageSkeleton() {
   return (
     <div className="min-h-screen bg-black">
       <div className="mx-auto max-w-7xl px-6 pt-10">
-        <div className="h-8 w-48 animate-pulse rounded-full bg-white/[0.03]" />
-        <div className="mt-6 h-16 w-3/4 animate-pulse rounded-2xl bg-white/[0.03]" />
-        <div className="mt-4 h-6 w-1/2 animate-pulse rounded-xl bg-white/[0.03]" />
+        <div className="h-8 w-48 animate-pulse rounded-full bg-white/3" />
+        <div className="mt-6 h-16 w-3/4 animate-pulse rounded-2xl bg-white/3" />
+        <div className="mt-4 h-6 w-1/2 animate-pulse rounded-xl bg-white/3" />
         <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.06fr]">
-          <div className="h-96 animate-pulse rounded-[2.4rem] bg-white/[0.03]" />
-          <div className="h-96 animate-pulse rounded-[2.4rem] bg-white/[0.03]" />
+          <div className="h-96 animate-pulse rounded-[2.4rem] bg-white/3" />
+          <div className="h-96 animate-pulse rounded-[2.4rem] bg-white/3" />
         </div>
       </div>
     </div>

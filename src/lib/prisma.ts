@@ -55,12 +55,32 @@ function createPrismaClient() {
 type ExtendedPrismaClient = ReturnType<typeof createPrismaClient>;
 const globalForPrisma = global as unknown as { prisma?: ExtendedPrismaClient };
 
-export const prisma =
+/**
+ * Lazily-initialized Prisma client.
+ *
+ * During Next.js build (collect page data), DATABASE_URL may not be set.
+ * We defer the actual connection-string check until the first query,
+ * so that API routes can be compiled without a live database.
+ */
+export const prisma: ExtendedPrismaClient =
   globalForPrisma.prisma ??
   (() => {
-    const client = createPrismaClient();
-    if (process.env.NODE_ENV !== "production") {
-      globalForPrisma.prisma = client;
+    try {
+      const client = createPrismaClient();
+      if (process.env.NODE_ENV !== "production") {
+        globalForPrisma.prisma = client;
+      }
+      return client;
+    } catch {
+      // Build-time fallback: return a proxy that throws on first actual use.
+      // This allows Next.js to compile routes that import prisma but don't
+      // execute database queries during build (e.g., POST-only API routes).
+      return new Proxy({} as ExtendedPrismaClient, {
+        get(_target: ExtendedPrismaClient, prop: string | symbol) {
+          throw new Error(
+            `DATABASE_URL is not set — cannot access prisma.${String(prop)} during build`
+          );
+        },
+      });
     }
-    return client;
   })();

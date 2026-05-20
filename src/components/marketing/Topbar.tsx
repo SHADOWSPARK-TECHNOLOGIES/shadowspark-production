@@ -5,7 +5,7 @@
  * - Minimalist Shadowspark logo
  * - SEC ARIP Badge (pulsing gold dot, clickable drawer)
  * - BVN Shield (pulsing green dot, "IDENTITY ANCHORED (May 1 Lock Compliant)")
- * - May 1st BVN Lock Countdown (shows days remaining until hard deadline)
+ * - BVN Lock Countdown (shows days remaining until hard deadline)
  *   Reactive 60-second tick; urgency styling when ≤5 days remaining.
  *
  * "use client" needed for click/hover interactions and the reactive timer.
@@ -13,14 +13,12 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { SovereignLogo } from "@/components/marketing/SovereignLogo";
 import { X, Clock, AlertTriangle } from "lucide-react";
+import { calcCountdown, type CountdownResult } from "@/lib/dashboard/countdown";
 
 // ── Constants ──────────────────────────────────────────────────────────────
-
-/** CBN BVN Phone-Lock deadline (May 1, 2026). Month is 0-indexed. */
-const BVN_LOCK_DEADLINE = new Date(2026, 4, 1);
 
 /** Urgency threshold: show alert styling when ≤ this many days remain. */
 const URGENCY_THRESHOLD_DAYS = 5;
@@ -28,40 +26,31 @@ const URGENCY_THRESHOLD_DAYS = 5;
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 /**
- * Calculate days remaining until May 1, 2026 (CBN BVN Phone-Lock deadline).
- * Returns a structured result with label, days, and urgency flag.
+ * Derive a display label and urgency flags from the shared CountdownResult.
+ * Maintains backward-compatible label format for the Topbar UI.
  */
-function calcCountdown(): {
+function deriveDisplay(result: CountdownResult): {
   label: string;
   days: number;
   isUrgent: boolean;
   isActive: boolean;
 } {
-  const now = new Date();
-  // Normalize both to midnight for day-accurate diff
-  const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const deadlineMidnight = new Date(
-    BVN_LOCK_DEADLINE.getFullYear(),
-    BVN_LOCK_DEADLINE.getMonth(),
-    BVN_LOCK_DEADLINE.getDate()
-  );
-  const diffTime = deadlineMidnight.getTime() - nowMidnight.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  const isActive = diffDays <= 0;
+  const days = result.days;
+  const isActive = !result.expired;
 
   let label: string;
-  if (isActive) {
+  if (result.expired) {
     label = "LOCK ACTIVE";
-  } else if (diffDays === 1) {
-    label = "1 DAY TO MAY 1 LOCK";
+  } else if (days === 1) {
+    label = "1 DAY TO BVN LOCK";
   } else {
-    label = `${diffDays} DAYS TO MAY 1 LOCK`;
+    label = `${days} DAYS TO BVN LOCK`;
   }
 
   return {
     label,
-    days: diffDays,
-    isUrgent: diffDays > 0 && diffDays <= URGENCY_THRESHOLD_DAYS,
+    days,
+    isUrgent: !result.expired && days <= URGENCY_THRESHOLD_DAYS,
     isActive,
   };
 }
@@ -72,12 +61,12 @@ function calcCountdown(): {
  * Uses lazy initializer to avoid cascading setState in the effect body.
  */
 function useCountdown() {
-  const [countdown, setCountdown] = useState<ReturnType<typeof calcCountdown>>(calcCountdown);
+  const [countdown, setCountdown] = useState(() => deriveDisplay(calcCountdown()));
 
   useEffect(() => {
     // Every 60 seconds, re-calculate the countdown from the interval
     const interval = setInterval(() => {
-      setCountdown(calcCountdown());
+      setCountdown(deriveDisplay(calcCountdown()));
     }, 60_000);
     return () => clearInterval(interval);
   }, []);

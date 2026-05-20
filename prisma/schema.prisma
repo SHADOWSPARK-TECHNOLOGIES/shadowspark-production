@@ -33,12 +33,48 @@ model Lead {
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String         @id @default(cuid())
   name      String?
-  email     String   @unique
+  email     String         @unique
   password  String
-  role      String?  @default("user")
+  role      String?        @default("user")
+  createdAt DateTime       @default(now())
+  passkeys  Passkey[]
+}
+
+model Passkey {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id])
+  credentialId   String   @unique // Base64-encoded WebAuthn credential ID
+  publicKey      String   // Base64-encoded COSE key
+  counter        BigInt   @default(0)
+  deviceType     String?  // "platform" | "cross-platform"
+  transports     String?  // JSON array of AuthenticatorTransportFuture
+  backedUp       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  lastUsedAt     DateTime?
+
+  @@map("passkeys")
+}
+
+/// Server-side WebAuthn challenge store.
+/// Challenges are generated during options phase, validated during
+/// verification phase, and invalidated (deleted) after single use.
+/// This prevents replay attacks where an intercepted challenge is
+/// reused for a different ceremony or by a different party.
+model WebAuthnChallenge {
+  id        String   @id @default(cuid())
+  userId    String
+  challenge String   @unique
+  type      String   // "registration" | "authentication"
+  expiresAt DateTime
   createdAt DateTime @default(now())
+  usedAt    DateTime?
+
+  @@index([userId, challenge])
+  @@index([expiresAt])
+  @@map("webauthn_challenges")
 }
 
 model TokenizedAsset {

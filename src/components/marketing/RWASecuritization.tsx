@@ -131,7 +131,7 @@ export async function RWASecuritization() {
             return (
               <div
                 key={asset.id}
-                className="glass-panel group rounded-2xl p-6 golden-transition duration-500 hover:bg-white/[0.06] hover:border-emerald-500/20"
+                className="glass-panel group rounded-2xl p-6 golden-transition duration-500 hover:bg-white/6 hover:border-emerald-500/20"
               >
                 {/* Asset type badge */}
                 <div className="mb-4 flex items-center justify-between">

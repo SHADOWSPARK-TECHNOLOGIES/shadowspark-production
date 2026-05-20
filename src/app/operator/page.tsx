@@ -23,8 +23,9 @@ function normalizeStatus(lead: {
 }) {
   if (lead.status === "REJECTED") return "Rejected" as const;
   if (lead.demo?.approved || lead.demoApproved) return "Approved" as const;
-  if (lead.demo) return "Demo Generated" as const;
+  // Show "Paid" if lead has a paymentRef (pending payment) or status is PAID
   if (lead.status === "PAID" || lead.paymentRef) return "Paid" as const;
+  if (lead.demo) return "Demo Generated" as const;
   return "New" as const;
 }
 
@@ -81,6 +82,7 @@ export default async function OperatorDashboard() {
       leadScore: lead.leadScore,
       reasoning: (audit.reasoning as string) || null,
       rootUrl,
+      paymentRef: lead.paymentRef,
     };
   });
 
@@ -149,7 +151,7 @@ export default async function OperatorDashboard() {
               </div>
               <div className="space-y-4">
                 {systemErrors.length ? systemErrors.map((err: any) => (
-                  <div key={err.id} className="group relative rounded-2xl border border-rose-500/20 bg-rose-500/[0.03] p-4 transition-colors hover:border-rose-500/40">
+                  <div key={err.id} className="group relative rounded-2xl border border-rose-500/20 bg-rose-500/3 p-4 transition-colors hover:border-rose-500/40">
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-rose-500 to-transparent rounded-l-2xl opacity-50 group-hover:opacity-100" />
                     <p className="font-mono text-xs text-rose-300 break-all">{err.digest || "ERR_UNKNOWN_DIGEST"}</p>
                     <p className="mt-2 text-sm text-zinc-300 line-clamp-2">{err.message}</p>

@@ -24,7 +24,8 @@ export async function POST(req: Request) {
     : null;
 
   // Lead context (fallbacks) — prefer values from RAG if available
-  const leadContext = (rag && (rag.leadContext || (rag as any).lead)) ? (rag.leadContext || (rag as any).lead) : { tier: 'starter', leadScore: 0, status: 'unknown' };
+  const ragAny = rag as any;
+  const leadContext = (rag && (ragAny.leadContext || ragAny.lead)) ? (ragAny.leadContext || ragAny.lead) : { tier: 'starter', leadScore: 0, status: 'unknown' };
 
   // Competitive context pulled from structured RAG store (trusted, filtered)
   const competitiveContext = retrieveCompetitiveContext(lastUserMsg || '');

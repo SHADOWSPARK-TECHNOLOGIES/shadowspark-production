@@ -48,3 +48,19 @@ codex/
 reports/firecrawl-preview/*.json
 node_modules/
 docs/research/
+
+# Security — never commit credentials or keys
+shadowspark-key*.json
+service-account*.json
+*.key
+
+# Generated Prisma client (regenerated at build time)
+/src/generated/
+
+# Logs
+*.log
+temp-proxy*
+
+# Local Claude permissions overrides
+allow_all.yaml
+global_allow.yaml

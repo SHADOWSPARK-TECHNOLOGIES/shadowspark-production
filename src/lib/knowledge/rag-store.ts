@@ -103,6 +103,12 @@ export function retrieve(query: string): Chunk[] {
     .map(item => item.chunk);
 }
 
+export function retrieveCompetitiveContext(query: string): string {
+  const chunks = retrieve(query);
+  if (chunks.length === 0) return '';
+  return chunks.map(c => `[${c.pageType}] ${c.content}`).join('\n\n');
+}
+
 /**
  * Placeholder function signature for future pgvector migration
  */

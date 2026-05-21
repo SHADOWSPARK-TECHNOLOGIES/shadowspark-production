@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { setLeadStatusAction } from '@/app/admin/leads/actions';
-import type { Lead } from '@prisma/client';
+import type { Lead } from '@/generated/prisma/client/client';
 
 export default function LeadTable({ initialLeads }: { initialLeads: Lead[] }) {
   const [filter, setFilter] = useState('all');

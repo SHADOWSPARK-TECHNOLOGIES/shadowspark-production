@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { Lead } from '@prisma/client';
+import type { Lead } from '@/generated/prisma/client/client';
 import { scheduleDemoForLead } from './demo-service';
 import { enqueueFollowUp } from './leads/queue';
 

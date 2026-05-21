@@ -1,0 +1,636 @@
+ WARN  Unsupported engine: wanted: {"node":"20.x"} (current: {"node":"v22.22.2","pnpm":"10.33.0"})
+🔍 Loading competitor knowledge base...
+   Loaded 17 chunks from 6 sources
+
+📐 Scoring each chunk for HNW market relevance...
+   Scored 17 chunks
+
+{
+  "analyzedAt": "2026-04-27T11:41:55.480Z",
+  "totalChunks": 17,
+  "totalSources": 6,
+  "topChunks": [
+    {
+      "source": "sec-nigeria",
+      "url": "https://www.sec.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 16.4,
+      "topCategories": [
+        {
+          "category": "digital_assets_crypto",
+          "label": "Digital Assets / Crypto (HNW investment class)",
+          "score": 8.4,
+          "matchedTerms": [
+            "crypto",
+            "digital asset",
+            "digital assets",
+            "exchange",
+            "custody"
+          ]
+        },
+        {
+          "category": "capital_thresholds",
+          "label": "Capital & Threshold Requirements",
+          "score": 4.5,
+          "matchedTerms": [
+            "₦500 million",
+            "minimum capital",
+            "₦500",
+            "₦5",
+            "million"
+          ]
+        },
+        {
+          "category": "security_privacy",
+          "label": "Security, Privacy & Compliance (HNW priority)",
+          "score": 1.7,
+          "matchedTerms": [
+            "kyc",
+            "aml"
+          ]
+        }
+      ],
+      "text": "Nigeria's Securities and Exchange Commission (SEC) introduced the 'Rules on Issuance, Offering and Custody of Digital Assets' in 2022, regulating cryptocurrencies and digital asset exchanges. The rule..."
+    },
+    {
+      "source": "cbn",
+      "url": "https://www.cbn.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 14.8,
+      "topCategories": [
+        {
+          "category": "capital_thresholds",
+          "label": "Capital & Threshold Requirements",
+          "score": 7.2,
+          "matchedTerms": [
+            "₦100 million",
+            "₦5 billion",
+            "minimum capital",
+            "capital requirement",
+            "₦100"
+          ]
+        },
+        {
+          "category": "enterprise_institutional",
+          "label": "Enterprise / Institutional Banking",
+          "score": 4.8,
+          "matchedTerms": [
+            "payment solution",
+            "payment service",
+            "pssp",
+            "pss"
+          ]
+        },
+        {
+          "category": "regulatory_sandbox",
+          "label": "Regulatory Innovation (Sandbox)",
+          "score": 1.5,
+          "matchedTerms": [
+            "license",
+            "licensing"
+          ]
+        }
+      ],
+      "text": "CBN revised the licensing framework for payment service providers in Nigeria, creating three tiers: Payment Service Provider (PSSP), Payment Solution Service (PSS), and Payment Terminal Service (PTS)...."
+    },
+    {
+      "source": "cbn",
+      "url": "https://www.cbn.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 11.6,
+      "topCategories": [
+        {
+          "category": "digital_lending_credit",
+          "label": "Lending & Credit for HNW",
+          "score": 10.5,
+          "matchedTerms": [
+            "loan",
+            "credit",
+            "lending",
+            "digital loan",
+            "credit risk"
+          ]
+        },
+        {
+          "category": "open_banking_api",
+          "label": "Open Banking & API Infrastructure",
+          "score": 0.6,
+          "matchedTerms": [
+            "data sharing"
+          ]
+        },
+        {
+          "category": "regulatory_sandbox",
+          "label": "Regulatory Innovation (Sandbox)",
+          "score": 0.5,
+          "matchedTerms": [
+            "regulatory approval"
+          ]
+        }
+      ],
+      "text": "CBN's Fintech Regulation 2024 shifts include increased scrutiny of digital lenders, mandatory credit reporting, and interest rate caps on digital loans. The CBN now requires all digital lenders to obt..."
+    },
+    {
+      "source": "cbn",
+      "url": "https://www.cbn.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 9.3,
+      "topCategories": [
+        {
+          "category": "capital_thresholds",
+          "label": "Capital & Threshold Requirements",
+          "score": 4.5,
+          "matchedTerms": [
+            "₦100 million",
+            "minimum capital",
+            "₦100",
+            "capital base",
+            "million"
+          ]
+        },
+        {
+          "category": "digital_lending_credit",
+          "label": "Lending & Credit for HNW",
+          "score": 4.2,
+          "matchedTerms": [
+            "loan",
+            "lending",
+            "interest rate",
+            "borrower",
+            "lender"
+          ]
+        },
+        {
+          "category": "open_banking_api",
+          "label": "Open Banking & API Infrastructure",
+          "score": 0.6,
+          "matchedTerms": [
+            "api"
+          ]
+        }
+      ],
+      "text": "The CBN's 'Guidelines for the Regulation of Digital Lending Services in Nigeria' (2024) mandate that digital lenders must have a minimum capital base of ₦100 million, maintain a complaint resolution m..."
+    },
+    {
+      "source": "nitda",
+      "url": "https://www.nitda.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 8.5,
+      "topCategories": [
+        {
+          "category": "security_privacy",
+          "label": "Security, Privacy & Compliance (HNW priority)",
+          "score": 8.5,
+          "matchedTerms": [
+            "data protection",
+            "security",
+            "compliance",
+            "ndpr",
+            "data protection impact assessment"
+          ]
+        }
+      ],
+      "text": "The Nigeria Data Protection Regulation (NDPR) issued by NITDA governs the processing of personal data in Nigeria. It requires data controllers to register with NITDA, conduct Data Protection Impact As..."
+    },
+    {
+      "source": "cbn",
+      "url": "https://www.cbn.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 8.3,
+      "topCategories": [
+        {
+          "category": "capital_thresholds",
+          "label": "Capital & Threshold Requirements",
+          "score": 3.6,
+          "matchedTerms": [
+            "₦5 billion",
+            "capital requirement",
+            "₦5",
+            "billion"
+          ]
+        },
+        {
+          "category": "security_privacy",
+          "label": "Security, Privacy & Compliance (HNW priority)",
+          "score": 3.4,
+          "matchedTerms": [
+            "data protection",
+            "kyc",
+            "aml",
+            "cft"
+          ]
+        },
+        {
+          "category": "digital_lending_credit",
+          "label": "Lending & Credit for HNW",
+          "score": 0.7,
+          "matchedTerms": [
+            "capital"
+          ]
+        }
+      ],
+      "text": "The CBN introduced the Digital Banking Guidelines in 2020, allowing fully digital banks to operate without physical branches. These digital banks must meet capital requirements of ₦5 billion and compl..."
+    },
+    {
+      "source": "cbn",
+      "url": "https://www.cbn.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 7.3,
+      "topCategories": [
+        {
+          "category": "enterprise_institutional",
+          "label": "Enterprise / Institutional Banking",
+          "score": 5.6,
+          "matchedTerms": [
+            "payment service bank",
+            "psb",
+            "payment service"
+          ]
+        },
+        {
+          "category": "regulatory_sandbox",
+          "label": "Regulatory Innovation (Sandbox)",
+          "score": 1,
+          "matchedTerms": [
+            "license",
+            "licensing"
+          ]
+        },
+        {
+          "category": "digital_lending_credit",
+          "label": "Lending & Credit for HNW",
+          "score": 0.7,
+          "matchedTerms": [
+            "loan"
+          ]
+        }
+      ],
+      "text": "CBN Payment Service Bank (PSB) licensing allows non-bank entities including fintechs and telcos to offer banking services such as deposits, transfers, and payments to underbanked populations. PSBs ope..."
+    },
+    {
+      "source": "cbn",
+      "url": "https://www.cbn.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 7.3,
+      "topCategories": [
+        {
+          "category": "security_privacy",
+          "label": "Security, Privacy & Compliance (HNW priority)",
+          "score": 6.8,
+          "matchedTerms": [
+            "cybersecurity",
+            "security",
+            "compliance",
+            "penetration testing",
+            "risk-based"
+          ]
+        },
+        {
+          "category": "regulatory_sandbox",
+          "label": "Regulatory Innovation (Sandbox)",
+          "score": 0.5,
+          "matchedTerms": [
+            "test"
+          ]
+        }
+      ],
+      "text": "CBN released the 'Risk-Based Cybersecurity Framework and Guidelines for Other Financial Institutions' mandating fintechs and OFIs to implement cybersecurity controls, incident response plans, and regu..."
+    },
+    {
+      "source": "cbn",
+      "url": "https://www.cbn.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 6.9,
+      "topCategories": [
+        {
+          "category": "forex_international",
+          "label": "Forex & International Banking",
+          "score": 3.2,
+          "matchedTerms": [
+            "forex",
+            "nafem",
+            "international money transfer"
+          ]
+        },
+        {
+          "category": "enterprise_institutional",
+          "label": "Enterprise / Institutional Banking",
+          "score": 3.2,
+          "matchedTerms": [
+            "payment service bank",
+            "psb",
+            "payment service"
+          ]
+        },
+        {
+          "category": "regulatory_sandbox",
+          "label": "Regulatory Innovation (Sandbox)",
+          "score": 0.5,
+          "matchedTerms": [
+            "license"
+          ]
+        }
+      ],
+      "text": "CBN's recent regulatory shift allows fintech-licensed Payment Service Banks (PSBs) to participate in the Nigerian forex market through official channels. Previously restricted to deposit-taking and pa..."
+    },
+    {
+      "source": "nibss",
+      "url": "https://www.nibss-plc.com.ng/",
+      "type": "regulatory",
+      "totalScore": 6.2,
+      "topCategories": [
+        {
+          "category": "open_banking_api",
+          "label": "Open Banking & API Infrastructure",
+          "score": 5.4,
+          "matchedTerms": [
+            "interoperability",
+            "nibss",
+            "national central switch",
+            "nip",
+            "neft"
+          ]
+        },
+        {
+          "category": "enterprise_institutional",
+          "label": "Enterprise / Institutional Banking",
+          "score": 0.8,
+          "matchedTerms": [
+            "payment service"
+          ]
+        }
+      ],
+      "text": "NIBSS (Nigeria Inter-Bank Settlement System) mandates that all fintechs and payment service providers connect to the National Central Switch for interoperability. The NIBSS Instant Payment (NIP) syste..."
+    },
+    {
+      "source": "nitda",
+      "url": "https://www.nitda.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 5.9,
+      "topCategories": [
+        {
+          "category": "security_privacy",
+          "label": "Security, Privacy & Compliance (HNW priority)",
+          "score": 5.1,
+          "matchedTerms": [
+            "data protection",
+            "privacy",
+            "breach notification",
+            "ndpr",
+            "ndpc"
+          ]
+        },
+        {
+          "category": "forex_international",
+          "label": "Forex & International Banking",
+          "score": 0.8,
+          "matchedTerms": [
+            "cross-border"
+          ]
+        }
+      ],
+      "text": "The Nigeria Data Protection Act 2023 replaced the NDPR as the primary data privacy legislation. It establishes the Nigeria Data Protection Commission (NDPC) as the independent regulatory authority. Fi..."
+    },
+    {
+      "source": "sec-nigeria",
+      "url": "https://www.sec.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 5.75,
+      "topCategories": [
+        {
+          "category": "digital_assets_crypto",
+          "label": "Digital Assets / Crypto (HNW investment class)",
+          "score": 4.9,
+          "matchedTerms": [
+            "crypto",
+            "cryptocurrency",
+            "digital asset",
+            "digital assets",
+            "arip"
+          ]
+        },
+        {
+          "category": "security_privacy",
+          "label": "Security, Privacy & Compliance (HNW priority)",
+          "score": 0.85,
+          "matchedTerms": [
+            "compliance"
+          ]
+        }
+      ],
+      "text": "SEC Nigeria's Accelerated Regulatory Incubation Program (ARIP) allows existing fintechs and digital asset operators to register while continuing operations. The program was introduced in 2023 followin..."
+    },
+    {
+      "source": "cbn",
+      "url": "https://www.cbn.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 5.25,
+      "topCategories": [
+        {
+          "category": "regulatory_sandbox",
+          "label": "Regulatory Innovation (Sandbox)",
+          "score": 3,
+          "matchedTerms": [
+            "regulatory sandbox",
+            "sandbox",
+            "controlled environment",
+            "test",
+            "experimentation"
+          ]
+        },
+        {
+          "category": "security_privacy",
+          "label": "Security, Privacy & Compliance (HNW priority)",
+          "score": 0.85,
+          "matchedTerms": [
+            "compliance"
+          ]
+        },
+        {
+          "category": "digital_lending_credit",
+          "label": "Lending & Credit for HNW",
+          "score": 0.7,
+          "matchedTerms": [
+            "lending"
+          ]
+        }
+      ],
+      "text": "The Central Bank of Nigeria (CBN) introduced the Regulatory Sandbox framework to allow fintech startups to test innovative financial products in a controlled environment without full regulatory compli..."
+    },
+    {
+      "source": "cbn",
+      "url": "https://www.cbn.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 3.75,
+      "topCategories": [
+        {
+          "category": "open_banking_api",
+          "label": "Open Banking & API Infrastructure",
+          "score": 2.4,
+          "matchedTerms": [
+            "open banking",
+            "api",
+            "third-party",
+            "consent"
+          ]
+        },
+        {
+          "category": "security_privacy",
+          "label": "Security, Privacy & Compliance (HNW priority)",
+          "score": 0.85,
+          "matchedTerms": [
+            "security"
+          ]
+        },
+        {
+          "category": "regulatory_sandbox",
+          "label": "Regulatory Innovation (Sandbox)",
+          "score": 0.5,
+          "matchedTerms": [
+            "innovation"
+          ]
+        }
+      ],
+      "text": "CBN Open Banking Guidelines require financial institutions and fintechs to share customer data via secure APIs with explicit customer consent. The framework covers data standardization, security proto..."
+    },
+    {
+      "source": "cbn",
+      "url": "https://www.cbn.gov.ng/",
+      "type": "regulatory",
+      "totalScore": 1.45,
+      "topCategories": [
+        {
+          "category": "security_privacy",
+          "label": "Security, Privacy & Compliance (HNW priority)",
+          "score": 0.85,
+          "matchedTerms": [
+            "security"
+          ]
+        },
+        {
+          "category": "open_banking_api",
+          "label": "Open Banking & API Infrastructure",
+          "score": 0.6,
+          "matchedTerms": [
+            "api"
+          ]
+        }
+      ],
+      "text": "CBN introduced the Contactless Payment Guidelines in 2023 requiring fintechs to implement transaction limits (daily cap of ₦25,000 for contactless payments), mandatory PIN for amounts exceeding ₦10,00..."
+    }
+  ],
+  "sourceRankings": [
+    {
+      "source": "sec-nigeria",
+      "count": 2,
+      "totalScore": 22.15,
+      "avgScore": 11.075
+    },
+    {
+      "source": "cbn",
+      "count": 10,
+      "totalScore": 75.95,
+      "avgScore": 7.595000000000001
+    },
+    {
+      "source": "nitda",
+      "count": 2,
+      "totalScore": 14.399999999999999,
+      "avgScore": 7.199999999999999
+    },
+    {
+      "source": "nibss",
+      "count": 1,
+      "totalScore": 6.199999999999999,
+      "avgScore": 6.199999999999999
+    },
+    {
+      "source": "intercom",
+      "count": 1,
+      "totalScore": 0,
+      "avgScore": 0
+    },
+    {
+      "source": "zendesk",
+      "count": 1,
+      "totalScore": 0,
+      "avgScore": 0
+    }
+  ],
+  "typeBreakdown": [
+    {
+      "type": "regulatory",
+      "count": 15,
+      "totalScore": 118.7,
+      "avgScore": 7.913333333333333
+    },
+    {
+      "type": "pricing",
+      "count": 2,
+      "totalScore": 0,
+      "avgScore": 0
+    }
+  ],
+  "categoryDistribution": [
+    {
+      "category": "security_privacy",
+      "label": "Security, Privacy & Compliance (HNW priority)",
+      "chunkCount": 9,
+      "totalScore": 28.900000000000006
+    },
+    {
+      "category": "capital_thresholds",
+      "label": "Capital & Threshold Requirements",
+      "chunkCount": 4,
+      "totalScore": 19.8
+    },
+    {
+      "category": "digital_lending_credit",
+      "label": "Lending & Credit for HNW",
+      "chunkCount": 7,
+      "totalScore": 18.2
+    },
+    {
+      "category": "enterprise_institutional",
+      "label": "Enterprise / Institutional Banking",
+      "chunkCount": 4,
+      "totalScore": 14.400000000000002
+    },
+    {
+      "category": "digital_assets_crypto",
+      "label": "Digital Assets / Crypto (HNW investment class)",
+      "chunkCount": 3,
+      "totalScore": 13.999999999999996
+    },
+    {
+      "category": "open_banking_api",
+      "label": "Open Banking & API Infrastructure",
+      "chunkCount": 8,
+      "totalScore": 11.399999999999999
+    },
+    {
+      "category": "regulatory_sandbox",
+      "label": "Regulatory Innovation (Sandbox)",
+      "chunkCount": 8,
+      "totalScore": 8
+    },
+    {
+      "category": "forex_international",
+      "label": "Forex & International Banking",
+      "chunkCount": 2,
+      "totalScore": 4
+    },
+    {
+      "category": "wealth_management",
+      "label": "Wealth & Asset Management",
+      "chunkCount": 0,
+      "totalScore": 0
+    },
+    {
+      "category": "premium_services",
+      "label": "Premium / Concierge Services",
+      "chunkCount": 0,
+      "totalScore": 0
+    }
+  ]
+}

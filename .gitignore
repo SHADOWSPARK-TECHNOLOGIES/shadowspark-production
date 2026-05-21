@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.env.production
+.env.local
+.env.bak
 
 # vercel
 .vercel
@@ -50,17 +53,23 @@ node_modules/
 docs/research/
 
 # Security — never commit credentials or keys
+sa-key.json
 shadowspark-key*.json
+*.service-account.json
 service-account*.json
+*-key.json
 *.key
 
-# Generated Prisma client (regenerated at build time)
-/src/generated/
-
-# Logs
+# Runtime logs — never commit
 *.log
 temp-proxy*
 
-# Local Claude permissions overrides
+# Prisma generated client — regenerate at build time, not in git
+/src/generated/
+
+# Production environment mirror / worktrees — not part of this repo
+shadowspark-production/
+
+# Local Claude permissions overrides — never commit
 allow_all.yaml
 global_allow.yaml

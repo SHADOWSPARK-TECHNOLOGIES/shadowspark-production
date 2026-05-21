@@ -3,16 +3,16 @@ import { ShieldCheck, Lock, Globe } from "lucide-react";
 export default function TrustBadges() {
   const badges = [
     {
+      icon: <Lock className="w-5 h-5" />,
+      text: "AES-256 Encryption at Rest",
+    },
+    {
       icon: <ShieldCheck className="w-5 h-5" />,
-      text: "SOC 2 Type II Compliant",
+      text: "TLS 1.3 in Transit",
     },
     {
       icon: <Globe className="w-5 h-5" />,
-      text: "GDPR Ready",
-    },
-    {
-      icon: <Lock className="w-5 h-5" />,
-      text: "Sovereign Vault Encryption",
+      text: "NDPR-Compliant Data Handling",
     },
   ];
 

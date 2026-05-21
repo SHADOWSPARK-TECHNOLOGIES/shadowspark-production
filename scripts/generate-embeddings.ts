@@ -1,66 +1,195 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { prisma } from '../src/lib/prisma.ts';
+import { PrismaClient } from '../src/generated/prisma/client/index.js';
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '');
-const embeddingModel = genAI.getGenerativeModel({ model: 'text-embedding-004' });
-
-interface ChunkData {
-  source: string;
-  url: string;
-  pageType: string;
-  chunkIndex: number;
-  content: string;
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not set");
 }
 
-async function generateVector(text: string): Promise<number[]> {
-  const result = await embeddingModel.embedContent(text);
+const geminiApiKey = process.env.GEMINI_API_KEY;
+if (!geminiApiKey) {
+  throw new Error("GEMINI_API_KEY is not set");
+}
+
+const pool = new pg.Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
+
+const genAI = new GoogleGenerativeAI(geminiApiKey);
+const model = genAI.getGenerativeModel({ model: 'gemini-embedding-001' });
+const MIN_CHUNK_SIZE = 400;
+const MAX_CHUNK_SIZE = 500;
+const CHUNK_OVERLAP = 100;
+
+interface Chunk {
+  chunkId: number;
+  source: string;
+  url?: string;
+  type: string;
+  text: string;
+}
+
+interface KnowledgeSegment {
+  chunkId: number;
+  source: string;
+  url?: string;
+  type: string;
+  text: string;
+}
+
+async function embed(text: string): Promise<number[]> {
+  const result = await model.embedContent(text);
   return result.embedding.values;
 }
 
-async function main() {
-  if (!process.env.GEMINI_API_KEY && !process.env.GOOGLE_API_KEY) {
-    console.warn('⚠️ GEMINI_API_KEY is not set. Looking in .env.local...');
-  }
+function splitIntoOverlappingSegments(text: string): string[] {
+  const normalized = text.trim().replace(/\s+/g, ' ');
+  if (!normalized) return [];
+  if (normalized.length <= MAX_CHUNK_SIZE) return [normalized];
 
-  console.log('🚀 Starting embedding generation with Gemini...');
-  const filePath = path.join(process.cwd(), 'data', 'firecrawl-knowledge.json');
-  const fileData = await fs.readFile(filePath, 'utf-8');
-  const chunks: ChunkData[] = JSON.parse(fileData);
-  let successCount = 0;
+  const segments: string[] = [];
+  let start = 0;
 
-  for (const chunk of chunks) {
-    try {
-      console.log(`Embedding chunk ${chunk.chunkIndex} from ${chunk.source} (${chunk.url})...`);
-      const vector = await generateVector(chunk.content);
-      const vectorString = `[${vector.join(',')}]`;
+  while (start < normalized.length) {
+    let end = Math.min(normalized.length, start + MAX_CHUNK_SIZE);
 
-      await prisma.$executeRaw`
-        INSERT INTO "KnowledgeEmbedding" (id, source, url, "pageType", "chunkIndex", content, embedding, "createdAt", "updatedAt")
-        VALUES (gen_random_uuid(), ${chunk.source}, ${chunk.url}, ${chunk.pageType}, ${chunk.chunkIndex}, ${chunk.content}, ${vectorString}::vector, NOW(), NOW())
-        ON CONFLICT (id) DO NOTHING;
-      `;
-      successCount++;
-    } catch (err: any) {
-      console.error(`❌ Failed on ${chunk.url}:`, err.message);
-      if (err.message.includes('API key')) {
-        console.error('Stoping: API key missing or invalid.');
-        process.exit(1);
+    if (end < normalized.length) {
+      const window = normalized.slice(start, end);
+      const breakIndex = Math.max(
+        window.lastIndexOf('. '),
+        window.lastIndexOf('! '),
+        window.lastIndexOf('? '),
+        window.lastIndexOf('\n'),
+        window.lastIndexOf(' ')
+      );
+
+      if (breakIndex >= MIN_CHUNK_SIZE) {
+        end = start + breakIndex + 1;
       }
     }
-    // Rate limit: 1 second between calls
-    await new Promise(r => setTimeout(r, 1000));
+
+    const segment = normalized.slice(start, end).trim();
+    if (segment) {
+      segments.push(segment);
+    }
+
+    if (end >= normalized.length) {
+      break;
+    }
+
+    start = end - CHUNK_OVERLAP;
   }
 
-  console.log(`\n✅ Migration complete. Inserted ${successCount} embeddings.`);
+  return segments;
 }
 
-main()
-  .catch(e => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+function expandChunk(chunk: Chunk): KnowledgeSegment[] {
+  return splitIntoOverlappingSegments(chunk.text).map((text, index) => ({
+    chunkId: (chunk.chunkId * 1000) + index,
+    source: chunk.source,
+    url: chunk.url,
+    type: chunk.type,
+    text,
+  }));
+}
+
+async function getKnowledgeEmbeddingColumns(): Promise<Set<string>> {
+  const columns = await prisma.$queryRaw<Array<{ column_name: string }>>`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'KnowledgeEmbedding'
+  `;
+
+  return new Set(columns.map((column) => column.column_name));
+}
+
+async function insertSegment(segment: KnowledgeSegment, vectorStr: string, columns: Set<string>, crawledAt: string) {
+  const metadata = { crawledAt };
+
+  try {
+    if (columns.has('metadata')) {
+      await prisma.$executeRaw`
+        INSERT INTO "KnowledgeEmbedding" (
+          id, "chunkId", source, url, type, text, embedding, "createdAt", "updatedAt", metadata
+        )
+        VALUES (
+          gen_random_uuid(),
+          ${segment.chunkId},
+          ${segment.source},
+          ${segment.url ?? segment.source},
+          ${segment.type},
+          ${segment.text},
+          ${vectorStr}::vector,
+          NOW(),
+          NOW(),
+          ${metadata}::jsonb
+        )
+        ON CONFLICT ("chunkId") DO NOTHING
+      `;
+      return;
+    }
+
+    await prisma.$executeRaw`
+      INSERT INTO "KnowledgeEmbedding" (
+        id, "chunkId", source, url, type, text, embedding, "createdAt", "updatedAt"
+      )
+      VALUES (
+        gen_random_uuid(),
+        ${segment.chunkId},
+        ${segment.source},
+        ${segment.url ?? segment.source},
+        ${segment.type},
+        ${segment.text},
+        ${vectorStr}::vector,
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT ("chunkId") DO NOTHING
+    `;
+  } catch (error) {
+    console.error(`Error inserting segment ${segment.chunkId}:`, error);
+    throw error;
+  }
+}
+
+async function main() {
+  const dataPath = path.join(process.cwd(), 'data', 'firecrawl-knowledge.json');
+  const raw = await fs.readFile(dataPath, 'utf-8');
+  let chunks: Chunk[] = JSON.parse(raw);
+  
+  // LIMIT for demonstration
+  
+  const segments = chunks.flatMap(expandChunk);
+  const columns = await getKnowledgeEmbeddingColumns();
+  
+  let crawledAt: string;
+  try {
+    const stats = await fs.stat(dataPath);
+    crawledAt = stats.mtime.toISOString();
+  } catch (e) {
+    crawledAt = new Date().toISOString();
+  }
+  
+  console.log(`Embedding ${segments.length} segments from ${chunks.length} source chunks...`);
+
+  let success = 0;
+  for (const segment of segments) {
+    try {
+      const vector = await embed(segment.text);
+      const vectorStr = `[${vector.join(',')}]`;
+      await insertSegment(segment, vectorStr, columns, crawledAt);
+      success++;
+      if (success % 50 === 0) console.log(`  ${success} chunks embedded`);
+    } catch (e) {
+      console.error(`Failed chunk ${segment.chunkId}:`, e);
+    }
+  }
+  console.log(`✅ Embedded ${success} chunks.`);
+}
+
+main().finally(() => prisma.$disconnect());

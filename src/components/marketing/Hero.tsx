@@ -27,13 +27,13 @@ export default function Hero() {
       <section className="relative w-full pt-32 pb-16 flex flex-col items-center text-center px-6 overflow-hidden z-10">
         
         <div className="relative max-w-4xl mt-12 mb-20">
-          <div className="inline-block mb-8 px-4 py-1.5 rounded-full border border-[color:var(--spark-cyan)]/30 bg-[color:var(--spark-cyan)]/10 text-[color:var(--spark-cyan)] text-[10px] sm:text-xs font-mono tracking-widest uppercase shadow-[0_0_15px_oklch(0.75_0.18_190/0.15)] backdrop-blur-md">
-            <span className="inline-block w-2 h-2 rounded-full bg-[color:var(--spark-cyan)] mr-2 animate-pulse" />
+          <div className="inline-block mb-8 px-4 py-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-[10px] sm:text-xs font-mono tracking-widest uppercase shadow-[0_0_15px_rgba(16,149,106,0.15)] backdrop-blur-md">
+            <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-2 animate-pulse" />
             System Live
           </div>
           
           {/* The Hook */}
-          <h1 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-8 text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-200 to-[color:var(--spark-cyan)] drop-shadow-[0_0_40px_oklch(0.75_0.18_190/0.1)]">
+          <h1 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-8 text-transparent bg-clip-text bg-gradient-to-br from-white via-zinc-200 to-emerald-400 drop-shadow-[0_0_40px_rgba(16,149,106,0.1)]">
             AUTONOMOUS REVENUE INTELLIGENCE
           </h1>
           <h2 className="text-2xl sm:text-3xl text-blue-500 font-bold mb-8">
@@ -47,7 +47,7 @@ export default function Hero() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
             {/* The Trigger */}
-            <Button size="lg" className="h-16 px-10 text-lg rounded-xl font-mono uppercase tracking-widest font-extrabold group bg-[color:var(--spark-cyan)] text-black hover:bg-[color:var(--spark-cyan)]/80 shadow-[0_0_30px_oklch(0.75_0.18_190/0.3)] transition-all" asChild>
+            <Button size="lg" className="h-16 px-10 text-lg rounded-xl font-mono uppercase tracking-widest font-extrabold group bg-emerald-500 text-black hover:bg-emerald-500/80 shadow-[0_0_30px_rgba(16,149,106,0.3)] transition-all" asChild>
               <Link href="/checkout/new" className="flex items-center gap-3">
                 [ RUN SYSTEM AUDIT — $1 ] <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
@@ -58,7 +58,7 @@ export default function Hero() {
               target="_blank"
               className="flex items-center gap-2 text-zinc-400 hover:text-white font-mono text-sm tracking-widest transition-colors uppercase mt-4 sm:mt-0"
             >
-              <MessageCircle className="w-5 h-5 text-[color:var(--spark-cyan)]" /> Consult Architect
+              <MessageCircle className="w-5 h-5 text-emerald-500" /> Consult Architect
             </Link>
           </div>
         </div>

@@ -46,6 +46,92 @@
         }
       }
     },
+    "/lead": {
+      "post": {
+        "summary": "Create or update a lead",
+        "description": "Creates or updates a lead record from submitted lead data. Rate limited to 100 requests per 10 seconds per CF-Connecting-IP.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string" }
+                },
+                "additionalProperties": true
+              },
+              "example": {
+                "email": "lead@example.com",
+                "source": "landing-page",
+                "campaign": "semantic-growth"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Lead created or updated successfully" },
+          "400": { "description": "Email is required" },
+          "429": { "description": "Too many requests from the same IP" },
+          "500": { "description": "Internal server error" }
+        }
+      }
+    },
+    "/lead/export/{leadId}": {
+      "get": {
+        "summary": "Export lead data for NDPA compliance",
+        "description": "Requires an admin session. Returns the lead together with matching SystemEvents and EmailEvents.",
+        "security": [{ "SessionAuth": [] }],
+        "parameters": [
+          {
+            "name": "leadId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Lead export returned successfully" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Lead not found" },
+          "500": { "description": "Export failed" }
+        }
+      }
+    },
+    "/lead/delete/{leadId}": {
+      "delete": {
+        "summary": "Soft delete a lead for NDPA compliance",
+        "description": "Requires an admin session. Soft deletes a lead by setting status to DELETED and clearing the email address.",
+        "security": [{ "SessionAuth": [] }],
+        "parameters": [
+          {
+            "name": "leadId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Lead soft deleted successfully" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Lead not found" },
+          "500": { "description": "Delete failed" }
+        }
+      }
+    },
+    "/webhooks/paystack": {
+      "post": {
+        "summary": "Process Paystack webhooks",
+        "description": "Verifies the HMAC-SHA512 signature, ignores duplicate references, updates the lead tier, and records a payment_received SystemEvent.",
+        "responses": {
+          "200": { "description": "Webhook accepted" },
+          "400": { "description": "Missing reference or leadId" },
+          "401": { "description": "Invalid signature" },
+          "500": { "description": "Webhook processing failed" }
+        }
+      }
+    },
     "/ai/health": {
       "get": {
         "summary": "System health check",

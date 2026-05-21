@@ -5,11 +5,11 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const dynamic = "force-dynamic";
 
-// Initialize external clients
-const firecrawl = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY || "" });
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-
 export async function POST(req: Request) {
+  // Lazily initialise external clients inside the handler so they are never
+  // constructed during `next build` when env vars may be absent.
+  const firecrawl = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY || "" });
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
   try {
     // 1. Authorization Guard
     const authHeader = req.headers.get("authorization");

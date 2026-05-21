@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         email,
-        amount: amount * 100, // Paystack uses kobo
+        amount, // Amount is already provided in kobo by checkout clients.
         callback_url: `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/checkout/success`,
         metadata: {
           custom_fields: [
@@ -75,4 +75,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Initialization failed" }, { status: 500 });
   }
 }
-

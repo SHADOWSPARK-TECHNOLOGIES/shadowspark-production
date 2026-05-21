@@ -21,19 +21,19 @@ export const SovereignFooter = () => {
   return (
     <footer className="bg-black border-t border-white/10 pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-6">
-        {/* TRUST SIGNALS (The Certificates) */}
+        {/* TRUST SIGNALS */}
         <div className="flex flex-wrap justify-center gap-8 md:gap-16 mb-16 opacity-50 grayscale hover:grayscale-0 transition-all">
           <div className="flex items-center gap-2">
             <ShieldCheck className="text-cyan-500" />
-            <span className="text-xs font-bold tracking-widest uppercase text-white">SOC 2 TYPE II COMPLIANT</span>
+            <span className="text-xs font-bold tracking-widest uppercase text-white">TLS 1.3 IN TRANSIT</span>
           </div>
           <div className="flex items-center gap-2">
             <Lock className="text-cyan-500" />
-            <span className="text-xs font-bold tracking-widest uppercase text-white">AES-256 ENCRYPTED VAULT</span>
+            <span className="text-xs font-bold tracking-widest uppercase text-white">AES-256 ENCRYPTION AT REST</span>
           </div>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="text-cyan-500" />
-            <span className="text-xs font-bold tracking-widest uppercase text-white">GDPR SOVEREIGN DATA</span>
+            <span className="text-xs font-bold tracking-widest uppercase text-white">NDPR-COMPLIANT DATA HANDLING</span>
           </div>
         </div>
 

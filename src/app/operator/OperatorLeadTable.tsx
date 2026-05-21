@@ -13,7 +13,7 @@ import {
 } from "@tanstack/react-table";
 import Link from "next/link";
 import { Table, TableBody, TableCell, TableHead, TableHeader } from "@/components/ui/table";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 export type OperatorLead = {
@@ -25,6 +25,7 @@ export type OperatorLead = {
   leadScore: number | null;
   reasoning: string | null;
   rootUrl?: string;
+  paymentRef?: string | null;
 };
 
 function statusClasses(status: OperatorLead["status"]) {
@@ -37,6 +38,8 @@ function statusClasses(status: OperatorLead["status"]) {
 
 function ActionsCell({ row, busyId, updateLead }: { row: any, busyId: string | null, updateLead: (id: string, action: "approve" | "reject") => void }) {
   const [syncing, setSyncing] = useState(false);
+  const [nudging, setNudging] = useState(false);
+  const [forcing, setForcing] = useState(false);
   const lead = row.original;
 
   const handleRefreshIntelligence = async (slug: string, rootUrl: string) => {
@@ -53,6 +56,45 @@ function ActionsCell({ row, busyId, updateLead }: { row: any, busyId: string | n
       toast.error(`Sync failed: ${error.message}`);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleSendNudge = async (leadId: string) => {
+    setNudging(true);
+    try {
+      const res = await fetch(`/api/leads/${leadId}/initialize-demo-payment`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? 'Failed to initialize payment');
+      }
+      const data = await res.json();
+      toast.success(`Payment link generated! URL: ${data.authorization_url}`);
+    } catch (error: any) {
+      toast.error(`Nudge failed: ${error.message}`);
+    } finally {
+      setNudging(false);
+    }
+  };
+
+  const handleForceApprove = async (leadId: string) => {
+    setForcing(true);
+    try {
+      const res = await fetch(`/api/operator/force-approve-payment/${leadId}`, {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error ?? 'Force approval failed');
+      }
+      toast.success(`Payment force-approved! Lead converted to PAID.`);
+      // Update local row state to reflect the new status
+      updateLead(leadId, "approve");
+    } catch (error: any) {
+      toast.error(`Force approve failed: ${error.message}`);
+    } finally {
+      setForcing(false);
     }
   };
 
@@ -79,6 +121,40 @@ function ActionsCell({ row, busyId, updateLead }: { row: any, busyId: string | n
             <RefreshCw className="h-3.5 w-3.5" />
           )}
           {syncing ? 'SYNCING...' : 'REFRESH INTELLIGENCE'}
+        </button>
+      ) : null}
+
+      {/* Payment Nudge — visible for Demo Generated leads without paymentRef */}
+      {lead.status === "Demo Generated" && !lead.paymentRef ? (
+        <button
+          type="button"
+          disabled={nudging || busyId === lead.id}
+          onClick={() => handleSendNudge(lead.id)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-950/20 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-amber-400 transition-all hover:bg-amber-950/40 disabled:opacity-50"
+        >
+          {nudging ? (
+            <RefreshCw className="h-3 w-3 animate-spin" />
+          ) : (
+            <span className="text-xs">💳</span>
+          )}
+          {nudging ? 'NUDGING...' : 'SEND NUDGE'}
+        </button>
+      ) : null}
+
+      {/* Force Approve — visible for leads with a pending paymentRef (bank transfer screenshot) */}
+      {lead.paymentRef && (lead.status === "Demo Generated" || lead.status === "Paid") ? (
+        <button
+          type="button"
+          disabled={forcing || busyId === lead.id}
+          onClick={() => handleForceApprove(lead.id)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/20 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-emerald-400 transition-all hover:bg-emerald-950/40 disabled:opacity-50"
+        >
+          {forcing ? (
+            <RefreshCw className="h-3 w-3 animate-spin" />
+          ) : (
+            <ShieldCheck className="h-3 w-3" />
+          )}
+          {forcing ? 'APPROVING...' : 'FORCE APPROVE'}
         </button>
       ) : null}
 

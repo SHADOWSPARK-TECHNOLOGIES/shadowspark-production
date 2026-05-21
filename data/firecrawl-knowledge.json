@@ -1,12 +1,138 @@
 [
   {
     "url": "https://www.intercom.com/pricing",
-    "text": "Intercom charges per seat and gets extremely expensive as your team scales. ShadowSpark offers flat-rate infrastructure.",
-    "chunkId": 1
+    "text": "Intercom pricing starts at $74/month for the Starter plan.",
+    "chunkId": 1001,
+    "source": "intercom",
+    "type": "pricing",
+    "verified": true
   },
   {
-    "url": "https://www.zendesk.com",
-    "text": "Zendesk uses legacy ticketing architectures that slow down modern AI workflows. ShadowSpark is built natively for AI and intent-scoring.",
-    "chunkId": 2
+    "url": "https://www.zendesk.com/pricing",
+    "text": "Zendesk Suite Team starts at $55 per agent per month.",
+    "chunkId": 1002,
+    "source": "zendesk",
+    "type": "pricing",
+    "verified": true
+  },
+  {
+    "url": "https://www.cbn.gov.ng/",
+    "text": "The Central Bank of Nigeria (CBN) introduced the Regulatory Sandbox framework to allow fintech startups to test innovative financial products in a controlled environment without full regulatory compliance burdens. The sandbox enables experimentation with digital banking, payments, and lending solutions under CBN supervision for a defined period.",
+    "chunkId": 2001,
+    "source": "cbn",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.cbn.gov.ng/",
+    "text": "CBN Open Banking Guidelines require financial institutions and fintechs to share customer data via secure APIs with explicit customer consent. The framework covers data standardization, security protocols, and governance structures. It aims to increase competition and innovation in Nigeria's financial services sector by enabling third-party access to banking data.",
+    "chunkId": 2002,
+    "source": "cbn",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.cbn.gov.ng/",
+    "text": "CBN Payment Service Bank (PSB) licensing allows non-bank entities including fintechs and telcos to offer banking services such as deposits, transfers, and payments to underbanked populations. PSBs operate through agent networks and digital channels but cannot grant loans. Key PSB license holders in Nigeria include Opay, PalmPay, and MoMo Payment Service Bank (MTN).",
+    "chunkId": 2003,
+    "source": "cbn",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.cbn.gov.ng/",
+    "text": "CBN revised the licensing framework for payment service providers in Nigeria, creating three tiers: Payment Service Provider (PSSP), Payment Solution Service (PSS), and Payment Terminal Service (PTS). Fintechs must obtain appropriate licenses based on their business model. The CBN also mandates minimum capital requirements ranging from ₦100 million to ₦5 billion depending on the license category.",
+    "chunkId": 2004,
+    "source": "cbn",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.cbn.gov.ng/",
+    "text": "The CBN introduced the Digital Banking Guidelines in 2020, allowing fully digital banks to operate without physical branches. These digital banks must meet capital requirements of ₦5 billion and comply with AML/CFT regulations. The guidelines cover KYC procedures, electronic transactions, data protection, and consumer grievance mechanisms for digital-only financial institutions.",
+    "chunkId": 2005,
+    "source": "cbn",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.cbn.gov.ng/",
+    "text": "CBN released the 'Risk-Based Cybersecurity Framework and Guidelines for Other Financial Institutions' mandating fintechs and OFIs to implement cybersecurity controls, incident response plans, and regular penetration testing. The framework aligns with NIST and ISO 27001 standards and requires annual compliance reporting to the CBN.",
+    "chunkId": 2006,
+    "source": "cbn",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.sec.gov.ng/",
+    "text": "Nigeria's Securities and Exchange Commission (SEC) introduced the 'Rules on Issuance, Offering and Custody of Digital Assets' in 2022, regulating cryptocurrencies and digital asset exchanges. The rules require digital asset exchanges to obtain a license, maintain minimum capital of ₦500 million, and comply with AML/KYC requirements. Exchanges must also register all digital assets listed on their platforms with the SEC.",
+    "chunkId": 3001,
+    "source": "sec-nigeria",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.sec.gov.ng/",
+    "text": "SEC Nigeria's Accelerated Regulatory Incubation Program (ARIP) allows existing fintechs and digital asset operators to register while continuing operations. The program was introduced in 2023 following the CBN's lifted ban on cryptocurrency transactions. ARIP provides a pathway for compliance while the SEC develops a more comprehensive digital assets regulatory framework.",
+    "chunkId": 3002,
+    "source": "sec-nigeria",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.nitda.gov.ng/",
+    "text": "The Nigeria Data Protection Regulation (NDPR) issued by NITDA governs the processing of personal data in Nigeria. It requires data controllers to register with NITDA, conduct Data Protection Impact Assessments (DPIA), appoint Data Protection Officers (DPOs), and implement security measures. Penalties include fines of up to 2% of annual revenue for non-compliance. The NDPR applies to all fintechs handling Nigerian citizens' data.",
+    "chunkId": 4001,
+    "source": "nitda",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.nitda.gov.ng/",
+    "text": "The Nigeria Data Protection Act 2023 replaced the NDPR as the primary data privacy legislation. It establishes the Nigeria Data Protection Commission (NDPC) as the independent regulatory authority. Fintechs must comply with principles of lawful processing, data minimization, storage limitation, and cross-border data transfer restrictions. The Act mandates breach notification within 72 hours and imposes significant penalties for violations.",
+    "chunkId": 4002,
+    "source": "nitda",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.cbn.gov.ng/",
+    "text": "CBN's Fintech Regulation 2024 shifts include increased scrutiny of digital lenders, mandatory credit reporting, and interest rate caps on digital loans. The CBN now requires all digital lenders to obtain a 'Regulatory Approval to Operate Digital Lending Services' and prohibits unfair loan recovery practices. Digital lenders must also register with the Credit Risk Management System (CRMS) for borrower data sharing.",
+    "chunkId": 2007,
+    "source": "cbn",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.cbn.gov.ng/",
+    "text": "The CBN's 'Guidelines for the Regulation of Digital Lending Services in Nigeria' (2024) mandate that digital lenders must have a minimum capital base of ₦100 million, maintain a complaint resolution mechanism, and cap annual interest rates at 30% (reducing balance). The guidelines also require transparent disclosure of all fees, penalties, and repayment terms to borrowers before loan disbursement.",
+    "chunkId": 2008,
+    "source": "cbn",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.cbn.gov.ng/",
+    "text": "CBN's recent regulatory shift allows fintech-licensed Payment Service Banks (PSBs) to participate in the Nigerian forex market through official channels. Previously restricted to deposit-taking and payments, PSBs can now facilitate international money transfers and provide access to the NAFEM forex window. This change signals a broader liberalization of Nigeria's financial services market.",
+    "chunkId": 2009,
+    "source": "cbn",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.cbn.gov.ng/",
+    "text": "CBN introduced the Contactless Payment Guidelines in 2023 requiring fintechs to implement transaction limits (daily cap of ₦25,000 for contactless payments), mandatory PIN for amounts exceeding ₦10,000, and merchant liability for fraudulent contactless transactions. The guidelines aim to balance convenience with security in Nigeria's rapidly growing digital payments ecosystem.",
+    "chunkId": 2010,
+    "source": "cbn",
+    "type": "regulatory",
+    "verified": true
+  },
+  {
+    "url": "https://www.nibss-plc.com.ng/",
+    "text": "NIBSS (Nigeria Inter-Bank Settlement System) mandates that all fintechs and payment service providers connect to the National Central Switch for interoperability. The NIBSS Instant Payment (NIP) system processes real-time interbank transfers, while the NIBSS Electronic Funds Transfer (NEFT) handles batch settlements. Fintechs must comply with NIBSS operational rules, including transaction monitoring, fraud reporting, and settlement timelines.",
+    "chunkId": 5001,
+    "source": "nibss",
+    "type": "regulatory",
+    "verified": true
   }
 ]

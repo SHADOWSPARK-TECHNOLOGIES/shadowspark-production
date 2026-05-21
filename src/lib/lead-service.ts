@@ -2,6 +2,8 @@ import { prisma } from './prisma';
 import type { Lead } from '@/generated/prisma/client/client';
 import { scheduleDemoForLead } from './demo-service';
 import { enqueueFollowUp } from './leads/queue';
+import { detectVaspInstitutionalLead } from './scoring/engine';
+import { LedgerService } from './ledger/index';
 
 export interface CreateLeadInput {
   email?: string;
@@ -53,6 +55,39 @@ export async function createLead(input: CreateLeadInput) {
         }
       }
     });
+
+    // ── SEC 26-1 VASP Institutional Lead Detection ──────────────────────
+    if (intent) {
+      const detection = detectVaspInstitutionalLead(intent, metadata);
+      if (detection.isVaspInstitutional) {
+        try {
+          const escrowAccount = await LedgerService.provisionVaspEscrowAccount(
+            lead.id,
+            lead.email ?? lead.phoneNumber ?? 'Unknown Lead',
+            detection.estimatedLiquidity ?? BigInt(0)
+          );
+          // Store escrow account reference in lead metadata
+          const updatedMetadata = {
+            ...((lead.metadata as Record<string, unknown>) ?? {}),
+            escrowAccountId: escrowAccount.id,
+            escrowProvisionedAt: new Date().toISOString(),
+            vaspDetectionReason: detection.reason,
+          };
+          await prisma.lead.update({
+            where: { id: lead.id },
+            data: { metadata: updatedMetadata as any },
+          });
+          console.log(
+            `[SEC 26-1] Escrow account ${escrowAccount.id} provisioned for lead ${lead.id}`
+          );
+        } catch (escrowErr) {
+          console.error(
+            `[SEC 26-1] Failed to provision escrow for lead ${lead.id}:`,
+            escrowErr
+          );
+        }
+      }
+    }
 
     // Enqueue 24h follow-up
     await enqueueFollowUp(lead.id).catch(err => console.error("Failed to enqueue follow-up:", err));

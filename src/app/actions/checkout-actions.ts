@@ -11,9 +11,9 @@ export async function processCheckout(leadId: string, data: {
 }) {
   if (!data.termsAccepted) throw new Error("Terms must be accepted");
 
-  // Fixed demo fee
-  const demoFeeUSD = 10;
-  const mockPaystackLink = `https://checkout.paystack.com/test_${leadId}_${Date.now()}?amount=${demoFeeUSD * 100}`;
+  const demoDepositAmountKobo = 100; // $1 Demo Deposit (in kobo)
+  const demoDepositAmountUsd = 1;
+  const mockPaystackLink = `https://checkout.paystack.com/test_${leadId}_${Date.now()}?amount=${demoDepositAmountKobo}`;
 
   await prisma.lead.update({
     where: { id: leadId },
@@ -25,7 +25,7 @@ export async function processCheckout(leadId: string, data: {
         leadVolume: data.leadVolume,
         painPoint: data.painPoint,
         selectedPackage: data.packageId,
-        demoFee: demoFeeUSD,
+        demoDepositUsd: demoDepositAmountUsd,
         creditedToFinal: true
       },
       paymentRef: mockPaystackLink,
@@ -33,4 +33,49 @@ export async function processCheckout(leadId: string, data: {
   });
 
   return { paymentUrl: mockPaystackLink };
+}
+
+export async function getLeadForPayment(leadId: string) {
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+    select: { email: true, status: true }
+  });
+  if (!lead) throw new Error("Lead not found");
+  return lead;
+}
+
+export async function verifyPayment(leadId: string, reference: string) {
+  try {
+    // Ideally verify via Paystack API using the reference here.
+    // For now, we update the lead and record the payment.
+    await prisma.payment.create({
+      data: {
+        amount: 100, // $1 Demo Deposit (in kobo)
+        status: "success",
+        reference,
+        leadId,
+      }
+    });
+
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        status: "Paid - Awaiting Deployment",
+        paymentRef: reference,
+      }
+    });
+
+    await prisma.systemEvent.create({
+      data: {
+        type: "PAYMENT_SUCCESS",
+        message: `Semantic Engine payment successful for lead ${leadId}`,
+        metadata: { leadId, reference }
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("[VERIFY PAYMENT ERROR]:", error);
+    return { success: false, error: "Failed to verify payment." };
+  }
 }

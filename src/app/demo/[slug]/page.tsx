@@ -99,7 +99,7 @@ function MarkdownShell({ markdown }: { markdown: string }) {
 function scoreBadgeTone(score: number) {
   if (score >= 14) return "border-cyan-300/25 bg-cyan-300/12 text-cyan-100";
   if (score >= 10) return "border-amber-300/20 bg-amber-300/10 text-amber-100";
-  return "border-white/10 bg-white/[0.04] text-slate-200";
+  return "border-white/10 bg-white/4 text-slate-200";
 }
 
 function shrinkExcerpt(text: string) {
@@ -207,7 +207,7 @@ function confidenceTone(confidence: "high" | "medium" | "low") {
     return "border-amber-300/25 bg-amber-300/10 text-amber-100";
   }
 
-  return "border-white/10 bg-white/[0.04] text-slate-200";
+  return "border-white/10 bg-white/4 text-slate-200";
 }
 
 export default async function DemoPreviewPage({ params }: DemoPageProps) {
@@ -270,7 +270,7 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
     "The default friction pattern is slow follow-up, unclear CTA pathways, and operator lag.";
 
   return (
-    <Vortex className="min-h-screen selection:bg-cyan-500/30">
+    <Vortex className="min-h-screen selection:bg-emerald-500/30">
       <main className="relative mx-auto max-w-7xl px-6 py-10 sm:py-14">
         <Spotlight
             className="-top-36 left-0 md:left-60 md:-top-20"
@@ -296,7 +296,7 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
                 sales surface for <span className="text-white">{slug}</span>, so the client sees
                 what is broken, why it matters, and which action to take next.
               </p>
-              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-slate-200">
+              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/4 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-slate-200">
                 <span className="h-2 w-2 rounded-full bg-cyan-300" />
                 {layoutBrief.badge}
               </div>
@@ -309,7 +309,7 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
                 Confidence {signalBrief.confidence}
               </div>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300">{heroSupportLine}</p>
-              <div className="mt-6 rounded-[1.4rem] border border-white/10 bg-white/[0.04] px-5 py-4 text-sm leading-7 text-slate-300">
+              <div className="mt-6 rounded-[1.4rem] border border-white/10 bg-white/4 px-5 py-4 text-sm leading-7 text-slate-300">
                 <span className="font-semibold text-white">Proof line:</span> {proofLine}
               </div>
             </div>
@@ -322,7 +322,7 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
               ].map((item) => (
                 <div
                   key={item.label}
-                  className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                  className="rounded-[1.5rem] border border-white/10 bg-white/3 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                 >
                   <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-cyan-200/70">
                     {item.label}
@@ -342,7 +342,7 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
                   </div>
                 </div>
               ))}
-              <div className="rounded-[1.5rem] border border-cyan-300/15 bg-cyan-300/[0.06] p-5">
+              <div className="rounded-[1.5rem] border border-cyan-300/15 bg-cyan-300/6 p-5">
                 <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-cyan-100/80">
                   Next Move
                 </p>
@@ -356,7 +356,7 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
                   </Link>
                   <Link
                     href="/contact"
-                    className="inline-flex items-center justify-center rounded-[1.2rem] border border-white/10 bg-white/[0.03] px-5 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-white/[0.05]"
+                    className="inline-flex items-center justify-center rounded-[1.2rem] border border-white/10 bg-white/3 px-5 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-white/5"
                   >
                     Chat on WhatsApp
                   </Link>
@@ -378,7 +378,7 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
                   Infrastructure audit, leakage analysis, and AI proposals.
                 </h2>
               </div>
-              <div className="hidden rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-slate-300 sm:block">
+              <div className="hidden rounded-full border border-white/10 bg-white/3 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-slate-300 sm:block">
                 Source: vault markdown
               </div>
             </div>
@@ -400,7 +400,7 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
                 Keep the business relevance explicit: the left column proves the diagnosis, and
                 this right rail turns those signals into proof, objections, and close-ready next steps.
               </p>
-              <div className="mt-5 rounded-[1.4rem] border border-white/10 bg-white/[0.03] px-4 py-4">
+              <div className="mt-5 rounded-[1.4rem] border border-white/10 bg-white/3 px-4 py-4">
                 <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-cyan-200/75">
                   Recommended framing
                 </p>
@@ -433,11 +433,11 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
                   {indexedInsights.map((insight) => (
                     <div
                       key={insight.id}
-                      className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-5"
+                      className="rounded-[1.4rem] border border-white/10 bg-white/3 p-5"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-slate-300">
+                          <span className="rounded-full border border-white/10 bg-white/3 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-slate-300">
                             {signalLabel(insight.title, insight.excerpt)}
                           </span>
                           <p className="text-sm font-semibold text-white">{insight.title}</p>
@@ -480,9 +480,9 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
               <div className="mt-5 space-y-4">
                 {intelligenceNotes.length > 0 ? (
                   intelligenceNotes.map((note) => (
-                    <div key={note.title} className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
+                    <div key={note.title} className="rounded-[1.4rem] border border-white/10 bg-white/3 p-4">
                       <div className="flex items-center gap-2">
-                        <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-slate-300">
+                        <span className="rounded-full border border-white/10 bg-white/4 px-3 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-slate-300">
                           {toSentenceCase(note.kind)}
                         </span>
                         <p className="text-sm font-semibold text-white">{note.title}</p>
@@ -499,23 +499,23 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-cyan-300/10 bg-cyan-300/[0.05] p-6">
+            <div className="rounded-[2rem] border border-cyan-300/10 bg-cyan-300/5 p-6">
               <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-cyan-200/80">
                 What We Would Build Next
               </p>
               <div className="mt-5 space-y-4">
-                <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.4rem] border border-white/10 bg-white/3 p-4">
                   <p className="text-sm font-semibold text-white">Why this matters</p>
                   <p className="mt-2 text-sm leading-7 text-slate-300">{objectionLine}</p>
                 </div>
-                <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.4rem] border border-white/10 bg-white/3 p-4">
                   <p className="text-sm font-semibold text-white">What gets deployed</p>
                   <p className="mt-2 text-sm leading-7 text-slate-300">
                     We would package the {displayTier(recommendedTier).toLowerCase()} layer set around
                     qualification speed, cleaner CTA routing, and a tighter operator handoff for {businessName}.
                   </p>
                 </div>
-                <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4">
+                <div className="rounded-[1.4rem] border border-white/10 bg-white/3 p-4">
                   <p className="text-sm font-semibold text-white">Next commercial step</p>
                   <p className="mt-2 text-sm leading-7 text-slate-300">{ctaSupportLine}</p>
                 </div>
@@ -529,7 +529,7 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
                 </Link>
                 <Link
                   href="/contact"
-                  className="inline-flex items-center justify-center rounded-[1.2rem] border border-white/10 bg-white/[0.03] px-5 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-white/[0.05]"
+                  className="inline-flex items-center justify-center rounded-[1.2rem] border border-white/10 bg-white/3 px-5 py-4 text-sm font-semibold uppercase tracking-[0.16em] text-white transition hover:bg-white/5"
                 >
                   Chat on WhatsApp
                 </Link>
@@ -537,7 +537,7 @@ export default async function DemoPreviewPage({ params }: DemoPageProps) {
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-cyan-300/10 bg-cyan-300/[0.05] p-6">
+            <div className="rounded-[2rem] border border-cyan-300/10 bg-cyan-300/5 p-6">
               <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-cyan-200/80">
                 GCS Bridge
               </p>

@@ -19,9 +19,9 @@ export default async function CheckoutSuccessPage({
 
   return (
     <main className="min-h-screen bg-[#0A0A0A] flex items-center justify-center p-6">
-      <section className="max-w-md w-full rounded-[2.5rem] border border-zinc-800 bg-zinc-950/90 p-10 text-center shadow-[0_0_80px_rgba(0,229,255,0.1)]">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-cyan-400 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(0,255,255,0.4)]">
-          <span className="text-black font-black text-3xl">✓</span>
+      <section className="max-w-md w-full rounded-[2.5rem] border border-zinc-800 bg-zinc-950/90 p-10 text-center shadow-[0_0_80px_rgba(16,149,106,0.1)]">
+        <div className="mx-auto w-16 h-16 rounded-2xl bg-emerald-600 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(16,149,106,0.4)]">
+          <span className="text-white font-black text-3xl">✓</span>
         </div>
         <h1 className="text-3xl font-black text-white mb-4">Payment Verified</h1>
         <p className="text-zinc-400 mb-10 leading-relaxed">
@@ -34,20 +34,20 @@ export default async function CheckoutSuccessPage({
           {demoSlug ? (
             <Link 
               href={`/demo/${demoSlug}`}
-              className="inline-flex w-full items-center justify-center rounded-full bg-[#00E5FF] px-6 py-4 text-lg font-bold text-black transition hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(0,255,255,0.3)]"
+              className="inline-flex w-full items-center justify-center rounded-full bg-emerald-600 px-6 py-4 text-lg font-bold text-white transition hover:bg-emerald-500 active:scale-95 shadow-[0_0_20px_rgba(16,149,106,0.3)]"
             >
               Launch Demo Surface
             </Link>
           ) : (
             <Link 
               href="/"
-              className="inline-flex w-full items-center justify-center rounded-full bg-[#00E5FF] px-6 py-4 text-lg font-bold text-black transition hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(0,255,255,0.3)]"
+              className="inline-flex w-full items-center justify-center rounded-full bg-emerald-600 px-6 py-4 text-lg font-bold text-white transition hover:bg-emerald-500 active:scale-95 shadow-[0_0_20px_rgba(16,149,106,0.3)]"
             >
               Return to Hub
             </Link>
           )}
           
-          <Link href="/contact" className="text-sm font-mono uppercase tracking-widest text-zinc-500 hover:text-cyan-400 transition">
+          <Link href="/contact" className="text-sm font-mono uppercase tracking-widest text-zinc-500 hover:text-emerald-400 transition">
             Need Support?
           </Link>
         </div>
@@ -55,4 +55,3 @@ export default async function CheckoutSuccessPage({
     </main>
   );
 }
-

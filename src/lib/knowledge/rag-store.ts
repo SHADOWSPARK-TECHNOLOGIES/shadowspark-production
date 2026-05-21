@@ -1,144 +1,253 @@
-/**
- * Usage:
- * Import retrieve or retrieveWithEmbeddings to query the local knowledge base.
- * 
- * Description:
- * In-memory RAG store that loads chunks at startup. Provides keyword-based
- * retrieval with intent detection (pricing) and boosting (case studies).
- * Includes scaffolding for a future pgvector transition.
- */
-
+import { prisma } from '../prisma';
+import { getEmbedding } from '../ai/embed';
 import fs from 'fs';
 import path from 'path';
 
+import { competitiveContextCache } from './cache';
+
+export const COMPETITIVE_CONTEXT_THRESHOLD = 0.6;
+export const HYBRID_SEARCH_LIMIT = 20;
+export const SIMILARITY_WEIGHT = 0.7;
+export const KEYWORD_WEIGHT = 0.3;
+export const INTENT_BOOST_MULTIPLIER = 1.5;
+export const TOP_RESULTS_COUNT = 5;
+
 export interface Chunk {
+  chunkId?: number;
   source: string;
-  url: string;
-  pageType: string;
-  chunkIndex: number;
-  content: string;
+  url?: string;
+  type?: string;
+  text?: string;
+  pageType?: string;
+  chunkIndex?: number;
+  content?: string;
+  verified?: boolean;
 }
 
-export interface RAGStore {
-  retrieve(query: string): Chunk[];
-  retrieveWithEmbeddings(query: string): Promise<Chunk[]>;
+type RetrievalRow = {
+  chunkId: number | null;
+  source: string;
+  url: string | null;
+  type: string;
+  text: string;
+  similarity: number;
 }
 
 let knowledgeBase: Chunk[] = [];
 
-// Load chunks from data/firecrawl-knowledge.json at startup
+// Initialize memory-based cross-reference store
 function initStore() {
   try {
     const filePath = path.join(process.cwd(), 'data', 'firecrawl-knowledge.json');
     if (fs.existsSync(filePath)) {
-      const fileData = fs.readFileSync(filePath, 'utf-8');
-      knowledgeBase = JSON.parse(fileData) as Chunk[];
-      console.log(`[RAG Store] Loaded ${knowledgeBase.length} chunks into memory.`);
-    } else {
-      console.warn('[RAG Store] data/firecrawl-knowledge.json not found. Run the crawler script first.');
+      knowledgeBase = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Chunk[];
     }
   } catch (error) {
-    console.error('[RAG Store] Failed to load knowledge base:', error);
+    console.error('[RAG Store] Failed to load knowledge base for cross-referencing:', error);
   }
 }
-
-// Run initialization synchronously at module load
 initStore();
 
-function calculateRelevanceScore(query: string, chunk: Chunk): number {
-  const queryLower = query.toLowerCase();
-  const contentLower = chunk.content.toLowerCase();
-  const queryWords = queryLower.match(/\b\w+\b/g) || [];
-  
-  let score = 0;
+function normalizeChunkText(chunk: Chunk): string {
+  return chunk.text ?? chunk.content ?? '';
+}
 
-  // Basic keyword matching
-  for (const word of queryWords) {
-    if (word.length > 2 && contentLower.includes(word)) {
-      score += 0.1;
+function normalizeChunkType(chunk: Chunk): string {
+  return chunk.type ?? chunk.pageType ?? 'unknown';
+}
+
+function detectIntent(query: string): 'pricing' | 'general' {
+  const normalized = query.toLowerCase();
+  if (
+    normalized.includes('price') ||
+    normalized.includes('cost') ||
+    normalized.includes('how much')
+  ) {
+    return 'pricing';
+  }
+  return 'general';
+}
+
+function tokenize(text: string): string[] {
+  return text
+    .toLowerCase()
+    .split(/[^a-z0-9]+/i)
+    .map((term) => term.trim())
+    .filter((term) => term.length > 1);
+}
+
+function keywordMatchScore(queryTerms: string[], text: string): number {
+  if (queryTerms.length === 0) return 0;
+
+  const haystackTerms = new Set(tokenize(text));
+  if (haystackTerms.size === 0) return 0;
+
+  const uniqueQueryTerms = [...new Set(queryTerms)];
+  let hits = 0;
+
+  for (const queryTerm of uniqueQueryTerms) {
+    if (haystackTerms.has(queryTerm)) {
+      hits += 1;
     }
   }
 
-  // Case-study boosting
-  const isCaseStudyType = chunk.pageType === 'case-study';
-  const caseStudyKeywords = ['roi', 'results', 'revenue', 'growth', '%'];
-  const hasCaseStudyKeywords = caseStudyKeywords.some(kw => contentLower.includes(kw));
-  
-  if (isCaseStudyType || hasCaseStudyKeywords) {
-    score += 0.3;
-  }
+  return hits / uniqueQueryTerms.length;
+}
 
-  // Intent detection: Pricing
-  const pricingIntentKeywords = ['price', 'cost', 'plan', '₦', 'naira'];
-  const hasPricingIntent = pricingIntentKeywords.some(kw => queryLower.includes(kw));
-  
-  if (hasPricingIntent && chunk.pageType === 'pricing') {
-    score += 0.2;
-  }
+async function getKnowledgeEmbeddingColumns(): Promise<Set<string>> {
+  const columns = await prisma.$queryRaw<Array<{ column_name: string }>>`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'KnowledgeEmbedding'
+  `;
 
-  return score;
+  return new Set(columns.map((column) => column.column_name));
+}
+
+async function fetchKnowledgeEmbeddingRows(queryVector: number[], queryText: string): Promise<RetrievalRow[]> {
+  const columns = await getKnowledgeEmbeddingColumns();
+  const chunkIdColumn = columns.has('chunkId') ? '"chunkId"' : '"chunkIndex"';
+  const textColumn = columns.has('text') ? 'text' : 'content';
+  const typeColumn = columns.has('type') ? 'type' : 'pageType';
+  const urlSelect = columns.has('url') ? 'url' : 'NULL::text AS url';
+  const vectorStr = `[${queryVector.join(',')}]`;
+
+  // Database-level Hybrid Search: pgvector + Full-Text Search
+  return prisma.$queryRawUnsafe<RetrievalRow[]>(
+    `WITH semantic_search AS (
+       SELECT ${chunkIdColumn} AS "chunkId",
+              source,
+              ${urlSelect},
+              "${typeColumn}" AS type,
+              ${textColumn} AS text,
+              (1 - (embedding <=> $1::vector)) AS vector_score,
+              ts_rank_cd(to_tsvector('english', ${textColumn}), plainto_tsquery('english', $3)) AS fts_score
+       FROM "KnowledgeEmbedding"
+     )
+     SELECT "chunkId", source, url, type, text,
+            ((vector_score * 0.7) + (fts_score * 0.3)) AS similarity
+     FROM semantic_search
+     ORDER BY similarity DESC
+     LIMIT $2`,
+    vectorStr,
+    HYBRID_SEARCH_LIMIT,
+    queryText
+  );
+}
+
+function resolveSourceUrl(row: RetrievalRow): string {
+  if (row.url) return row.url;
+
+  const matchingChunk = knowledgeBase.find((chunk) => {
+    const chunkText = normalizeChunkText(chunk);
+    return (
+      (typeof chunk.chunkId === 'number' && chunk.chunkId === row.chunkId) ||
+      chunkText === row.text ||
+      (chunk.source === row.source && normalizeChunkType(chunk) === row.type)
+    );
+  });
+
+  return matchingChunk?.url ?? row.source;
 }
 
 /**
- * Implement keyword-based retrieval (no embeddings yet)
- * Return top 5 most relevant chunks
+ * Hybrid Retrieval: Combines pgvector semantic similarity + keyword matching + intent detection
+ * Returns top 5 most relevant competitive intelligence results
  */
-export function retrieve(query: string): Chunk[] {
-  if (!query || !query.trim()) {
-    return [];
+export async function retrieveCompetitiveContext(query: string): Promise<string> {
+  if (!query || !query.trim()) return "";
+
+  const cached = competitiveContextCache.get(query);
+  if (cached !== null) {
+    return cached;
   }
 
-  const scoredChunks = knowledgeBase.map(chunk => ({
-    chunk,
-    score: calculateRelevanceScore(query, chunk)
-  }));
-
-  // Sort by descending score
-  scoredChunks.sort((a, b) => b.score - a.score);
-
-  // Return top 5 chunks that have at least some relevance (score > 0)
-  return scoredChunks
-    .filter(item => item.score > 0)
-    .slice(0, 5)
-    .map(item => item.chunk);
-}
-
-export function retrieveCompetitiveContext(query: string): string {
-  const chunks = retrieve(query);
-  if (chunks.length === 0) return '';
-  return chunks.map(c => `[${c.pageType}] ${c.content}`).join('\n\n');
-}
-
-/**
- * Placeholder function signature for future pgvector migration
- */
-import { semanticSearch } from './embedding-store';
-
-export async function retrieveWithEmbeddings(query: string): Promise<Chunk[]> {
   try {
-    const results = await semanticSearch(query, 5);
-    if (!results || results.length === 0) return [];
+    // Phase 1: Get embedding and fetch semantically similar rows
+    const queryVector = await getEmbedding(query);
+    const rows = await fetchKnowledgeEmbeddingRows(queryVector, query);
 
-    // semanticSearch returns strings like: "[Source: src | type]\ntext"
-    const parsed: Chunk[] = results.map((r) => {
-      const parts = r.split('\n');
-      const meta = parts[0] || '';
-      const text = parts.slice(1).join('\n') || '';
-      const m = /\[Source:\s*(.*?)\s*\|\s*(.*?)\]/.exec(meta);
-      const source = m ? m[1] : 'unknown';
-      const type = m ? m[2] : 'limitations';
+    if (!rows || rows.length === 0) {
+      competitiveContextCache.set(query, "");
+      return "";
+    }
+
+    // Phase 2: Analyze query intent
+    const queryTerms = tokenize(query);
+    const intent = detectIntent(query);
+    const maxSimilarity = Math.max(...rows.map((row) => Number(row.similarity) || 0));
+    const useKeywordFallback = maxSimilarity < COMPETITIVE_CONTEXT_THRESHOLD;
+
+    // Phase 3: Hybrid scoring - combine semantic + keyword + intent signals
+    const scoredRows = rows.map((row) => {
+      const similarity = Number(row.similarity) || 0;
+      const keywordScore = keywordMatchScore(queryTerms, row.text);
+      const contentTypeMatch = intent === 'pricing' && row.type === 'pricing' ? INTENT_BOOST_MULTIPLIER : 1;
+      
+      // Hybrid score: weighted combination of semantic and keyword signals
+      let hybridScore = (SIMILARITY_WEIGHT * similarity) + (KEYWORD_WEIGHT * keywordScore);
+      
+      // Apply intent-based boosting if content type matches query intent
+      hybridScore *= contentTypeMatch;
+
       return {
-        source,
-        url: text.slice(0, 120), // best-effort placeholder
-        pageType: type.replace(/[^a-zA-Z0-9\-]/g, '-'),
-        chunkIndex: -1,
-        content: text,
-      } as Chunk;
+        ...row,
+        similarity,
+        keywordScore,
+        hybridScore,
+      };
     });
 
-    return parsed;
-  } catch (e) {
-    console.warn('[RAG] retrieveWithEmbeddings failed, falling back to keyword retrieval', e);
-    return retrieve(query);
+    // Phase 4: Ranking strategy based on confidence level
+    let finalRanked = scoredRows;
+    
+    if (useKeywordFallback) {
+      // Low confidence: rely more on keyword matching
+      finalRanked = scoredRows
+        .map((row) => {
+          let keywordBoost = row.keywordScore;
+          if (intent === 'pricing' && row.type === 'pricing') {
+            keywordBoost *= INTENT_BOOST_MULTIPLIER;
+          }
+          return { ...row, finalScore: keywordBoost };
+        })
+        .filter((row) => row.finalScore > 0)
+        .sort((a, b) => b.finalScore - a.finalScore);
+    } else {
+      // Good confidence: use hybrid score
+      finalRanked = scoredRows
+        .filter((row) => row.hybridScore > 0)
+        .sort((a, b) => b.hybridScore - a.hybridScore);
+    }
+
+    // Phase 5: Return top 5 results
+    const ranked = finalRanked.slice(0, TOP_RESULTS_COUNT);
+
+    if (ranked.length === 0) {
+      competitiveContextCache.set(query, "");
+      return "";
+    }
+
+    // Phase 6: Determine confidence label for transparency
+    const confidenceLabel =
+      !useKeywordFallback && maxSimilarity >= 0.85
+        ? "High Confidence Competitive Intelligence"
+        : useKeywordFallback || maxSimilarity < 0.6
+        ? "Low Confidence Context"
+        : "Context";
+
+    // Phase 7: Format results with source attribution
+    const contexts = ranked.map((row) => {
+      const sourceUrl = resolveSourceUrl(row);
+      return `[Source: ${sourceUrl} | ${row.type}]\n${row.text}`;
+    });
+
+    const result = `[${confidenceLabel}]\n\n${contexts.join("\n\n")}`;
+    competitiveContextCache.set(query, result);
+    return result;
+  } catch (error) {
+    console.error("[RAG STORE HYBRID RETRIEVAL ERROR]", error);
+    return "";
   }
 }

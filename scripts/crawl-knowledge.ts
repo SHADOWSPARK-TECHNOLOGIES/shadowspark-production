@@ -1,4 +1,3 @@
-import FirecrawlApp from '@mendable/firecrawl-js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,9 +11,6 @@ const TARGET_URLS = [
   'https://shadowspark.ai/features',
 ];
 const MAX_CHUNK_SIZE = 500; // words
-
-// Firecrawl client
-const app = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY! });
 
 interface Document {
   url: string;
@@ -52,62 +48,37 @@ function chunkText(text: string, maxWords: number): string[] {
 }
 
 export async function crawlAndProcess(): Promise<void> {
-  console.log(`Starting crawl of ${TARGET_URLS.length} URLs...`);
+  console.log(`Starting Jina scrape of ${TARGET_URLS.length} target URLs...`);
   
-  // Step 1: Map URLs (get all pages under each target)
-  const allUrls: string[] = [];
-  for (const baseUrl of TARGET_URLS) {
-    try {
-      const mapResult = await app.mapUrl(baseUrl);
-      if (mapResult.success && mapResult.links) {
-        allUrls.push(...mapResult.links);
-        console.log(`Mapped ${baseUrl}: found ${mapResult.links.length} links`);
-      }
-    } catch (err) {
-      console.warn(`Map failed for ${baseUrl}:`, err);
-      allUrls.push(baseUrl); // fallback to just the base
-    }
-  }
-
-  // Deduplicate
-  const uniqueUrls = [...new Set(allUrls)];
-  console.log(`Total unique URLs to scrape: ${uniqueUrls.length}`);
-
-  // Step 2: Scrape each URL
   const documents: Document[] = [];
-  for (const url of uniqueUrls) {
+  for (const url of TARGET_URLS) {
     try {
-      const scrapeResult = await app.scrapeUrl(url, { formats: ['markdown', 'html'] });
-      if (!scrapeResult.success) {
-        console.warn(`Scrape failed for ${url}:`, scrapeResult.error);
-        continue;
-      }
+      console.log(`Scraping ${url} via Jina...`);
+      const response = await fetch(`https://r.jina.ai/${url}`, {
+        headers: { 'Accept': 'text/plain' }
+      });
+      const markdown = await response.text();
 
-      const rawContent = scrapeResult.markdown || scrapeResult.html || '';
-      const cleaned = cleanHtml(rawContent);
-      const chunks = chunkText(cleaned, MAX_CHUNK_SIZE);
+      // Split by headers to create your chunks
+      const chunks = markdown.split(/\n(?=# )/g);
+      const processedChunks = chunks
+        .map(c => c.trim())
+        .filter(Boolean);
       
-      // Extract title from HTML if available
-      let title = url;
-      if (scrapeResult.html) {
-        const titleMatch = scrapeResult.html.match(/<title[^>]*>([^<]+)<\/title>/i);
-        if (titleMatch) title = titleMatch[1].trim();
-      }
-
       documents.push({
         url,
-        title,
-        chunks,
+        title: url,
+        chunks: processedChunks,
         metadata: {
-          source: 'firecrawl',
+          source: 'jina',
           crawledAt: new Date().toISOString(),
         },
       });
 
-      console.log(`✓ Scraped ${url} – ${chunks.length} chunks`);
+      console.log(`✓ Scraped ${url} – ${processedChunks.length} chunks`);
       
       // Polite delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 500));
     } catch (err) {
       console.error(`Error processing ${url}:`, err);
     }

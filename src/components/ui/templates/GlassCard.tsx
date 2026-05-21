@@ -29,13 +29,13 @@ export function GlassCard({
       className={cn(
         "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 text-zinc-100 backdrop-blur-xl",
         "shadow-[0_12px_40px_rgba(2,8,23,0.3)]",
-        highlighted && "border-cyan-400/40 bg-cyan-400/[0.08]",
+        highlighted && "border-cyan-400/40 bg-cyan-400/8",
         className
       )}
       {...props}
     >
       <div className="pointer-events-none absolute inset-0 rounded-3xl bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_55%)] opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100" />
-      <div className="pointer-events-none absolute inset-[1px] rounded-[calc(1.5rem-1px)] bg-white/[0.02]" />
+      <div className="pointer-events-none absolute inset-[1px] rounded-[calc(1.5rem-1px)] bg-white/2" />
 
       <div className="flex items-start gap-4">
         {icon ? (

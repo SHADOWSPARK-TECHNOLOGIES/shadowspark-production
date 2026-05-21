@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma/client"
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma/client"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [vector]
 }
 
 model Lead {
@@ -31,12 +33,80 @@ model Lead {
 }
 
 model User {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   name      String?
-  email     String   @unique
+  email     String    @unique
   password  String
-  role      String?  @default("user")
-  createdAt DateTime @default(now())
+  role      String?   @default("user")
+  createdAt DateTime  @default(now())
+  passkeys  Passkey[]
+}
+
+model Passkey {
+  id           String    @id @default(cuid())
+  userId       String
+  credentialId String    @unique
+  publicKey    String
+  counter      BigInt    @default(0)
+  deviceType   String?
+  transports   String?
+  backedUp     Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+  user         User      @relation(fields: [userId], references: [id])
+
+  @@map("passkeys")
+}
+
+/// Server-side WebAuthn challenge store.
+/// Challenges are generated during options phase, validated during
+/// verification phase, and invalidated (deleted) after single use.
+/// This prevents replay attacks where an intercepted challenge is
+/// reused for a different ceremony or by a different party.
+model WebAuthnChallenge {
+  id        String    @id @default(cuid())
+  userId    String
+  challenge String    @unique
+  type      String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  @@index([userId, challenge])
+  @@index([expiresAt])
+  @@map("webauthn_challenges")
+}
+
+model TokenizedAsset {
+  id              String        @id @default(cuid())
+  assetType       String
+  name            String
+  location        String?
+  totalShares     Int
+  availableShares Int
+  pricePerShare   Decimal       @db.Decimal(19, 4)
+  currency        String        @default("NGN")
+  metadata        Json?
+  status          String        @default("ACTIVE")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  tokenHolders    TokenHolder[]
+
+  @@map("tokenized_assets")
+}
+
+model TokenHolder {
+  id               String         @id @default(cuid())
+  tokenizedAssetId String
+  leadId           String?
+  shares           Int
+  purchasePrice    Decimal        @db.Decimal(19, 4)
+  totalPaid        Decimal        @db.Decimal(19, 4)
+  transactionId    String?
+  purchasedAt      DateTime       @default(now())
+  tokenizedAsset   TokenizedAsset @relation(fields: [tokenizedAssetId], references: [id])
+
+  @@map("token_holders")
 }
 
 model Payment {
@@ -99,4 +169,80 @@ model EmailEvent {
   metadata  Json?
   createdAt DateTime @default(now())
   lead      Lead     @relation(fields: [leadId], references: [id])
+}
+
+model KnowledgeEmbedding {
+  id        String                @id @default(cuid())
+  source    String
+  url       String?
+  embedding Unsupported("vector")
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  chunkId   Int                   @unique
+  text      String
+  type      String
+  metadata  Json?
+}
+
+model Embedding {
+  id        String   @id @default(cuid())
+  content   String
+  embedding Float[]
+  source    String
+  type      String
+  createdAt DateTime @default(now())
+}
+
+/// Chart of Accounts — types: WALLET (asset), CLEARING (liability),
+/// INCOME (revenue), EXPENSE (cost), EQUITY (capital).
+model Account {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  currency  String   @default("NGN")
+  createdAt DateTime @default(now())
+  entries   Entry[]
+}
+
+/// A single double-entry transaction. Every transaction
+/// must have balanced entries (sum debits = sum credits).
+/// State machine: PENDING → POSTED, PENDING → REVERSED, POSTED → REVERSED.
+model LedgerTransaction {
+  id             String             @id @default(cuid())
+  userId         String
+  reference      String             @unique
+  idempotencyKey String             @unique
+  createdAt      DateTime           @default(now())
+  postedAt       DateTime?
+  description    String?
+  state          String             @default("PENDING")
+  updatedAt      DateTime           @updatedAt
+  entries        Entry[]
+  idempotency    LedgerIdempotency?
+}
+
+/// Individual entry leg. Each entry carries either a debit
+/// amount (positive) or a credit amount (positive). For any
+/// transaction, Σ(debits) must equal Σ(credits).
+model Entry {
+  id            String            @id @default(cuid())
+  transactionId String
+  accountId     String
+  createdAt     DateTime          @default(now())
+  credit        BigInt            @default(0)
+  currency      String            @default("NGN")
+  debit         BigInt            @default(0)
+  description   String?
+  account       Account           @relation(fields: [accountId], references: [id])
+  transaction   LedgerTransaction @relation(fields: [transactionId], references: [id])
+}
+
+/// Optional dedicated table for idempotency lookups.
+/// Avoids scanning LedgerTransaction for retried operations.
+model LedgerIdempotency {
+  id             String            @id @default(cuid())
+  idempotencyKey String            @unique
+  transactionId  String            @unique
+  createdAt      DateTime          @default(now())
+  transaction    LedgerTransaction @relation(fields: [transactionId], references: [id])
 }

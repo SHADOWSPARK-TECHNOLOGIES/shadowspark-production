@@ -44,7 +44,7 @@ export default function ErrorBoundary({
               The application encountered an unexpected state. Telemetry has automatically logged this digest to the Operator Dashboard for repair.
             </p>
 
-            <div className="rounded-[1.4rem] border border-rose-500/10 bg-rose-500/[0.02] p-5">
+            <div className="rounded-[1.4rem] border border-rose-500/10 bg-rose-500/2 p-5">
               <p className="font-mono text-xs uppercase tracking-widest text-rose-400/80">
                 Digest Signature
               </p>

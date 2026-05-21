@@ -6,13 +6,15 @@ import { Storage } from "@google-cloud/storage";
 import { embedMany } from "ai";
 
 import { requireEnv } from "@/lib/env";
-import { getFirecrawlClient } from "@/lib/firecrawl";
 import {
   buildNextBullets,
+  cleanSignalText,
   deriveSignalConfidence,
   deriveVaultSignalBrief,
   rankSignalChunks,
 } from "@/lib/gcs/fetch-audit";
+import { getFirecrawlClient } from "@/lib/firecrawl";
+import type { FirecrawlDocument } from "@/lib/firecrawl";
 import type { RagEmbeddingChunk, RagEmbeddingIndex } from "@/lib/rag/types";
 
 const storage = new Storage();
@@ -298,43 +300,162 @@ function buildAuditMarkdown(args: {
   ].join("\n");
 }
 
+/**
+ * Split a Firecrawl document's markdown into semantic chunks.
+ * Uses heading-based splitting for headings 1-3, with a paragraph-based
+ * fallback when no headings are present. This fixes the "1-chunk" issue
+ * where pages without H1 tags produced only a single chunk.
+ */
+function splitDocIntoChunks(
+  doc: FirecrawlDocument,
+  docIndex: number,
+  maxChunkChars: number,
+): Array<{ url?: string; title?: string; text: string }> {
+  const markdown = doc.markdown?.trim();
+  if (!markdown) return [];
+
+  const baseTitle: string =
+    doc.metadata?.title ??
+    doc.metadata?.ogTitle ??
+    doc.metadata?.url ??
+    `Document ${docIndex + 1}`;
+  const url = doc.metadata?.url ?? doc.metadata?.ogUrl;
+
+  // Primary split: headings 1-3
+  const headingChunks = markdown
+    .split(/\n(?=#{1,3}\s)/g)
+    .map((s) => cleanSignalText(s))
+    .filter((s) => s.length > 80);
+
+  // If heading split produced nothing useful, fall back to paragraph-based chunking
+  if (headingChunks.length === 0) {
+    // Split by double-newline paragraphs, merge up to maxChunkChars
+    const paragraphs = markdown
+      .split(/\n{2,}/g)
+      .map((p) => cleanSignalText(p))
+      .filter((p) => p.length > 80);
+
+    if (paragraphs.length === 0) {
+      // Last resort: use the full text truncated
+      return [
+        {
+          url,
+          title: baseTitle,
+          text: cleanSignalText(markdown).slice(0, maxChunkChars),
+        },
+      ];
+    }
+
+    const merged: Array<{ url?: string; title?: string; text: string }> = [];
+    let current = "";
+    for (const p of paragraphs) {
+      if (!current) {
+        current = p;
+        continue;
+      }
+      if (current.length + 2 + p.length <= maxChunkChars) {
+        current += "\n\n" + p;
+        continue;
+      }
+      merged.push({ url, title: baseTitle, text: current });
+      current = p;
+    }
+    if (current) merged.push({ url, title: baseTitle, text: current });
+    return merged;
+  }
+
+  // Heading-based chunks succeeded
+  return headingChunks.map((text, sectionIndex) => {
+    const lines = text.split(". ").map((l) => l.trim()).filter(Boolean);
+    const title = lines[0]?.slice(0, 80) || `${baseTitle} section ${sectionIndex + 1}`;
+    return { url, title, text };
+  });
+}
+
 export async function runRagSync(args: {
   rootUrl: string;
   slug?: string;
   limit: number;
   maxChunkChars: number;
 }): Promise<{ outPath: string; chunks: number; documents: number; bucketName?: string; runId: string }> {
-  const firecrawl = getFirecrawlClient();
   const runId = buildVaultRunId();
 
-  const crawlJob = await firecrawl.crawl(args.rootUrl, {
-    limit: args.limit,
-    scrapeOptions: {
-      formats: ["markdown"],
-      onlyMainContent: true,
-    },
-    pollInterval: 2,
-    timeout: 10 * 60,
-  });
+  // Primary: Firecrawl full crawl (multi-page, proper chunking)
+  // Fallback: Jina single-page scrape with improved chunking (when credits exhausted or API unavailable)
+  let docs: FirecrawlDocument[] = [];
+  let usedFirecrawl = false;
 
-  if (crawlJob.status !== "completed") {
-    throw new Error(`[rag:sync] crawl failed: status=${crawlJob.status}`);
-  }
+  try {
+    console.log(`[rag:sync] Running full Firecrawl crawl for ${args.rootUrl}`);
+    const client = getFirecrawlClient();
+    const crawl = await client.crawl(args.rootUrl, {
+      limit: args.limit,
+      maxDiscoveryDepth: 1,
+      deduplicateSimilarURLs: true,
+      sitemap: "include",
+      scrapeOptions: {
+        formats: ["markdown"],
+        onlyMainContent: true,
+      },
+      timeout: 120,
+      pollInterval: 2,
+    });
 
-  const docs = crawlJob.data
-    .map((d) => ({
-      url: d.metadata?.url ?? d.metadata?.ogUrl ?? undefined,
-      title: d.metadata?.title ?? d.metadata?.ogTitle ?? undefined,
-      markdown: d.markdown ?? "",
-    }))
-    .filter((d) => d.markdown.trim().length > 0);
+    docs = crawl.data.filter(
+      (doc): doc is FirecrawlDocument =>
+        typeof doc.markdown === "string" && doc.markdown.trim().length > 80,
+    );
 
-  const chunkInputs: Array<{ url?: string; title?: string; text: string }> = [];
-  for (const doc of docs) {
-    for (const text of chunkMarkdown(doc.markdown, args.maxChunkChars)) {
-      chunkInputs.push({ url: doc.url, title: doc.title, text });
+    console.log(
+      `[rag:sync] Firecrawl returned ${crawl.data.length} documents, ${docs.length} with substantial markdown`,
+    );
+    usedFirecrawl = true;
+  } catch (firecrawlError) {
+    const msg = firecrawlError instanceof Error ? firecrawlError.message : String(firecrawlError);
+    console.warn(`[rag:sync] Firecrawl failed (${msg}), falling back to Jina single-page scrape`);
+    console.warn(`[rag:sync] To fix: top up Firecrawl credits or set a lower --limit`);
+
+    try {
+      const response = await fetch(`https://r.jina.ai/${args.rootUrl}`, {
+        headers: { 'Accept': 'text/plain' }
+      });
+      const markdown = await response.text();
+      docs = [{
+        markdown,
+        metadata: { url: args.rootUrl, title: args.slug ?? args.rootUrl },
+      }];
+      console.log(`[rag:sync] Jina fallback returned ${markdown.length} chars`);
+    } catch (jinaError) {
+      console.error(`[rag:sync] Jina fallback also failed:`, jinaError);
+      // Write empty index so the system doesn't hang
+      const outDir = path.join(process.cwd(), "data", "rag");
+      await fs.mkdir(outDir, { recursive: true });
+      const outPath = path.join(outDir, "index.json");
+      await fs.writeFile(outPath, JSON.stringify({
+        version: 1, createdAt: new Date().toISOString(),
+        embeddingModel: "gemini-embedding-001", source: { rootUrl: args.rootUrl }, chunks: [],
+      }, null, 2) + "\n", "utf8");
+      return { outPath, chunks: 0, documents: 0, bucketName: undefined, runId };
     }
   }
+
+  // Split each document into semantic chunks, fixing the "1-chunk" issue
+  const chunkInputs: Array<{ url?: string; title?: string; text: string }> = [];
+  for (let docIndex = 0; docIndex < docs.length; docIndex++) {
+    const docChunks = splitDocIntoChunks(docs[docIndex], docIndex, args.maxChunkChars);
+    chunkInputs.push(...docChunks);
+  }
+
+  if (chunkInputs.length === 0) {
+    console.warn(`[rag:sync] No chunks extracted from any document for ${args.rootUrl}`);
+    const outDir = path.join(process.cwd(), "data", "rag");
+    await fs.mkdir(outDir, { recursive: true });
+    const outPath = path.join(outDir, "index.json");
+    await fs.writeFile(outPath, JSON.stringify({ version: 1, createdAt: new Date().toISOString(), embeddingModel: "gemini-embedding-001", source: { rootUrl: args.rootUrl }, chunks: [] }, null, 2) + "\n", "utf8");
+    return { outPath, chunks: 0, documents: 0, bucketName: undefined, runId };
+  }
+
+  console.log(`[rag:sync] Generated ${chunkInputs.length} chunks from ${docs.length} documents`);
 
   const google = createGoogleGenerativeAI({ apiKey: requireEnv("GEMINI_API_KEY") });
   const embeddingModel = "gemini-embedding-001";
@@ -368,7 +489,11 @@ export async function runRagSync(args: {
     slug: normalizedSlug,
     runId,
     rootUrl: args.rootUrl,
-    docs,
+    docs: docs.map((d) => ({
+      url: d.metadata?.url ?? args.rootUrl,
+      title: d.metadata?.title ?? d.metadata?.ogTitle ?? args.slug ?? args.rootUrl,
+      markdown: d.markdown ?? "",
+    })),
     chunks,
   });
 
@@ -384,7 +509,11 @@ export async function runRagSync(args: {
       runId,
       rootUrl: args.rootUrl,
       slug: normalizedSlug,
-      docs,
+      docs: docs.map((d) => ({
+        url: d.metadata?.url ?? args.rootUrl,
+        title: d.metadata?.title ?? d.metadata?.ogTitle ?? args.slug ?? args.rootUrl,
+        markdown: d.markdown ?? "",
+      })),
       index,
       auditMarkdown,
     });

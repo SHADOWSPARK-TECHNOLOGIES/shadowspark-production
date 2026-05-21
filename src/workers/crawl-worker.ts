@@ -23,13 +23,15 @@ export const crawlWorker = new Worker<CrawlJobData>(
 
     return { ok: true, ...res };
   },
-  { 
+  {
     connection: redis,
     concurrency: 3,
     limiter: {
       max: 5,
       duration: 1000,
-    }
+    },
+    // Firecrawl crawls can take up to 120s; extend lock duration to match
+    lockDuration: 180_000,
   }
 );
 

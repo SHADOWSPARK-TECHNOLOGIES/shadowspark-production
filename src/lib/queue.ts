@@ -11,3 +11,10 @@ export {
   addLeadToSyncQueue,
 } from "@/lib/leads/queue";
 
+export {
+  WHATSAPP_NUDGE_QUEUE,
+  whatsappNudgeQueue,
+  enqueuePaymentNudge,
+  type NudgeJobData,
+} from "@/lib/whatsapp/nudge-queue";
+

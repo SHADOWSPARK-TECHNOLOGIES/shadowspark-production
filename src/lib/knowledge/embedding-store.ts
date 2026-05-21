@@ -1,15 +1,24 @@
-import { prisma } from '@/lib/prisma';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { prisma } from "@/lib/prisma";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
-const model = genAI ? genAI.getGenerativeModel({ model: 'text-embedding-004' }) : null;
+import { semanticSearchCache } from "@/lib/knowledge/cache";
 
-export async function semanticSearch(query: string, limit: number = 5): Promise<string[]> {
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+
+export async function semanticSearch(
+  query: string,
+  limit: number = 5
+): Promise<string[]> {
+  const cached = semanticSearchCache.get(query);
+  if (cached && cached.limit >= limit) {
+    return cached.results.slice(0, limit);
+  }
+
   try {
-    if (!model) throw new Error('No embedding model available');
     const embedResult = await model.embedContent(query);
     const vector = embedResult.embedding.values;
-    const vectorStr = `[${vector.join(',')}]`;
+    const vectorStr = `[${vector.join(",")}]`;
 
     const results = await prisma.$queryRaw<any[]>`
       SELECT text, source, type,
@@ -18,9 +27,11 @@ export async function semanticSearch(query: string, limit: number = 5): Promise<
       ORDER BY similarity DESC
       LIMIT ${limit}
     `;
-    return results.map(r => `[Source: ${r.source} | ${r.type}]\n${r.text}`);
+    const formattedResults = results.map((r) => `[Source: ${r.source} | ${r.type}]\n${r.text}`);
+    semanticSearchCache.set(query, { results: formattedResults, limit });
+    return formattedResults;
   } catch (e) {
-    console.error('[Semantic search error]', e);
+    console.error("[Semantic search error]", e);
     return [];
   }
 }

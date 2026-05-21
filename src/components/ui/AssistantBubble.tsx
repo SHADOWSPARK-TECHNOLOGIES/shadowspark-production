@@ -7,6 +7,23 @@ import { useChat } from "@ai-sdk/react";
 
 export default function AssistantBubble({ slug }: { slug?: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [greeting, setGreeting] = useState("Hello");
+
+  useEffect(() => {
+    // Attempt to fetch the appropriate greeting based on browser language on load
+    const userLang = navigator.language || navigator.languages?.[0] || 'en';
+    if (userLang.toLowerCase().startsWith('yo')) {
+      setGreeting("Ẹ káàbọ̀");
+    } else if (userLang.toLowerCase().startsWith('ha')) {
+      setGreeting("Sannu");
+    } else if (userLang.toLowerCase().startsWith('ig')) {
+      setGreeting("Nnọọ");
+    } else {
+      // Defaulting to "Ẹ káàbọ̀" as requested by user override for demonstration
+      setGreeting("Ẹ káàbọ̀"); 
+    }
+  }, []);
+
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: "/api/assistant",
     body: { slug },
@@ -46,7 +63,7 @@ export default function AssistantBubble({ slug }: { slug?: string }) {
             <div ref={scrollRef} className="flex-1 p-6 overflow-y-auto space-y-4 scroll-smooth">
               {messages.length === 0 && (
                 <div className="bg-zinc-900/50 p-4 rounded-2xl border border-zinc-800 text-sm text-zinc-300 leading-relaxed">
-                  I'm the ShadowSpark System Assistant. Ask me about deployment, pricing, or how our infrastructure works.
+                  {greeting}, I'm the ShadowSpark System Assistant. Ask me about deployment, pricing, or how our infrastructure works.
                 </div>
               )}
               {messages.map((m: any) => (

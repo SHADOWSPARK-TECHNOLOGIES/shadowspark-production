@@ -2,7 +2,6 @@ import { prisma } from "../prisma";
 import { sendWelcomeEmail, sendEmail } from "../email";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function startNurtureSequence(leadId: string) {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } }) as any;

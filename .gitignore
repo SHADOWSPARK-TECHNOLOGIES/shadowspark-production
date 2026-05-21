@@ -51,22 +51,25 @@ codex/
 reports/firecrawl-preview/*.json
 node_modules/
 docs/research/
+
+# Security — never commit credentials or keys
 sa-key.json
-shadowspark-key.json
+shadowspark-key*.json
 *.service-account.json
+service-account*.json
 *-key.json
-*.json
+*.key
 
 # Runtime logs — never commit
-temp-proxy.log
 *.log
+temp-proxy*
 
-# Prisma generated client — generate at build time, not in git
-src/generated/
+# Prisma generated client — regenerate at build time, not in git
+/src/generated/
 
 # Production environment mirror / worktrees — not part of this repo
 shadowspark-production/
 
-# GCP IAM policy files — never commit org-level security configs
+# Local Claude permissions overrides — never commit
 allow_all.yaml
 global_allow.yaml

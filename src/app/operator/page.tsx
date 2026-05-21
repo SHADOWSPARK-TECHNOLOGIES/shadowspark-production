@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import type { Prisma } from "@/generated/prisma/client/index.js";
+import type { Prisma } from "@/generated/prisma/client/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { Button } from "@/components/ui/button";

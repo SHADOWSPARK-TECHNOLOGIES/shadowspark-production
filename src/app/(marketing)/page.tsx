@@ -3,6 +3,7 @@ import { Hero } from "@/components/landing/Hero";
 import { WhatWeDo } from "@/components/landing/WhatWeDo";
 import { Flagship } from "@/components/landing/Flagship";
 import { HowWeWork } from "@/components/landing/HowWeWork";
+import { LiveDeployment } from "@/components/landing/LiveDeployment";
 import { WhyShadowspark } from "@/components/landing/WhyShadowspark";
 import { Services } from "@/components/landing/Services";
 import { Stack } from "@/components/landing/Stack";
@@ -22,6 +23,7 @@ export default function HomePage() {
       <WhatWeDo />
       <Flagship />
       <HowWeWork />
+      <LiveDeployment />
       <WhyShadowspark />
       <Services />
       <Stack />

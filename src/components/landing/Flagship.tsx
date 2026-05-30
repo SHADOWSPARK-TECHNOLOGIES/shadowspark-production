@@ -33,8 +33,9 @@ export function Flagship() {
             </p>
             <div className="w-8 h-px bg-[#94A3B8] mb-6" aria-hidden="true" />
             <p className="text-base text-[#94A3B8] leading-relaxed">
-              Every September, Nigerian students lose hundreds of millions to fake
-              agents, ghost landlords, and bait-and-switch property scams.
+              Based on industry research and our own deployments, businesses lose
+              40–70% of leads to slow response. ShadowSpark closes that gap with
+              autonomous infrastructure.
             </p>
             <p className="mt-4 text-base text-[#94A3B8] leading-relaxed">
               Fraud is so common it&apos;s considered normal. No platform actually

@@ -42,6 +42,13 @@ export function Hero() {
         <p className="mt-10 text-xs text-[#94A3B8] tracking-wide">
           Built in Nigeria&nbsp;&nbsp;·&nbsp;&nbsp;Production systems, not slides&nbsp;&nbsp;·&nbsp;&nbsp;You talk to the builder
         </p>
+
+        <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-[#94A3B8]">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="shrink-0 text-[#1ABC9C]">
+            <path d="M12 2L3 7v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Built to SOC 2 Principles
+        </div>
       </div>
     </section>
   );

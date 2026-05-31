@@ -64,7 +64,7 @@ const MARKUP = String.raw`
   <!-- ═══════════════ HERO ═══════════════ -->
   <section class="hero" aria-label="Introduction">
     <div class="hero-bg">
-      <img src="https://user-gen-media-assets.s3.amazonaws.com/gpt4o_images/1167be24-7e7a-4482-a9c7-ceeca5429ae7.png"
+      <img src="/hero/hero-bg.png"
            alt="Dark neural network tech visualization" width="1920" height="1080" />
     </div>
     <div class="hero-grid-overlay" aria-hidden="true"></div>
@@ -319,7 +319,7 @@ const MARKUP = String.raw`
     <div class="container">
       <div class="about-grid">
         <div class="about-visual fade-in">
-          <img src="https://user-gen-media-assets.s3.amazonaws.com/gpt4o_images/f2097d31-53f0-4490-82cc-3fdb920946ac.png"
+          <img src="/hero/about-visual.png"
                alt="Software architect working with cloud infrastructure and AI systems visualization"
                width="800" height="600" loading="lazy" />
           <div class="about-badge" aria-label="Currently available for projects">

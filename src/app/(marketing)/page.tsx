@@ -5,9 +5,9 @@ import "./home.css";
 
 export const metadata: Metadata = {
   ...canonical("/"),
-  title: "ShadowSpark Technologies — AI-Powered Software Architecture",
+  title: "Stephen Okoronkwo — Founder, ShadowSpark Technologies",
   description:
-    "ShadowSpark Technologies builds production-grade AI systems, fintech infrastructure, and cloud-native platforms. Expert software architecture from Port Harcourt to the world.",
+    "ShadowSpark Technologies builds production-grade AI systems, fintech infrastructure, and cloud-native platforms. Expert software architecture from Owerri to the world.",
   openGraph: {
     title: "ShadowSpark Technologies",
     description: "AI-powered software architecture & fintech engineering",

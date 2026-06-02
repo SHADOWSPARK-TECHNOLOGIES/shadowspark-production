@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendTextWhatsApp } from "@/lib/whatsapp/send-payment-link";
+import { getBotReply } from "@/lib/ai/whatsapp-bot";
 
 /**
  * WhatsApp Meta Cloud API Webhook
@@ -51,37 +52,29 @@ export async function GET(request: NextRequest) {
 /**
  * Routes an incoming WhatsApp message to the appropriate handler.
  *
- * Currently supports:
- * - Text messages: Logged and acknowledged; auto-reply with a brief greeting.
- * - Future: Will route to chatbot intent classifier, payment link flow, etc.
+ * Text messages are answered conversationally by Claude (Anthropic SDK). If the
+ * model call fails (missing key, rate limit, API error), we fall back to a safe
+ * static acknowledgment so the sender always gets a reply.
  */
 async function handleIncomingMessage(from: string, text: string, msgType: string) {
   console.log(`[WhatsApp Handler] Routing message from ${redactPhone(from)}: type=${msgType}, text=${redactText(text)}`);
 
-  // For text messages, send a simple acknowledgment reply
-  if (msgType === "text" && text.trim()) {
-    const lower = text.trim().toLowerCase();
+  if (msgType !== "text" || !text.trim()) {
+    return;
+  }
 
-    // Simple keyword-based routing
-    if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
-      await sendTextWhatsApp(from, "👋 Welcome to ShadowSpark! How can we assist you today?");
-    } else if (lower.includes("payment") || lower.includes("pay")) {
-      await sendTextWhatsApp(
-        from,
-        "To complete your payment, please check your email for the secure payment link. If you need help, reply with *help*."
-      );
-    } else if (lower.includes("help") || lower.includes("support")) {
-      await sendTextWhatsApp(
-        from,
-        "Our support team is available to assist you. Please email support@shadowspark.tech or call our helpline. We'll get back to you within 24 hours."
-      );
-    } else {
-      // Default: acknowledge and log
-      await sendTextWhatsApp(
-        from,
-        "Thank you for reaching out to ShadowSpark. Your message has been received. A team member will respond shortly."
-      );
-    }
+  try {
+    const reply = await getBotReply(text.trim());
+    await sendTextWhatsApp(
+      from,
+      reply || "Thank you for reaching out to ShadowSpark. A team member will respond shortly."
+    );
+  } catch (err) {
+    console.error(`[WhatsApp Handler] Claude reply failed for ${redactPhone(from)}:`, err);
+    await sendTextWhatsApp(
+      from,
+      "Thank you for reaching out to ShadowSpark. Your message has been received and a team member will respond shortly."
+    );
   }
 }
 

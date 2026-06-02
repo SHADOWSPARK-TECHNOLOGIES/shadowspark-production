@@ -71,7 +71,7 @@ const MARKUP = String.raw`
     <div class="hero-content">
       <div class="hero-eyebrow">
         <span class="dot" aria-hidden="true"></span>
-        Available for new projects · Port Harcourt, Nigeria
+        Available for new projects · Owerri, Imo State, Nigeria
       </div>
       <h1 class="hero-title display">
         Building the<br/>
@@ -79,9 +79,9 @@ const MARKUP = String.raw`
         of Tomorrow.
       </h1>
       <p class="hero-desc">
-        I'm a software architect &amp; founder building production-grade AI systems,
-        fintech platforms, and cloud-native infrastructure. Founder of ShadowSpark Technologies
-        and Lodgist — shipping code that scales.
+        I'm Stephen Okoronkwo — Founder of ShadowSpark Technologies, building AI-powered
+        WhatsApp chatbots, fintech platforms, and cloud-native infrastructure for Nigerian
+        businesses and beyond.
       </p>
       <div class="hero-actions">
         <a href="#projects" class="btn-primary">
@@ -331,11 +331,15 @@ const MARKUP = String.raw`
           <p class="section-eyebrow">// Who I Am</p>
           <h2 class="about-title display" id="about-heading">Architect.<br/>Founder.<br/>Builder.</h2>
           <p class="about-desc">
-            I'm a full-stack software architect and serial founder based in Port Harcourt, Nigeria — building the technical layer of the African digital economy. I founded ShadowSpark Technologies as my vehicle to ship world-class engineering across AI, fintech, and PropTech.
+            I'm Stephen Okoronkwo — a self-made software architect and serial founder based in Owerri, Imo State. A graduate of Federal Polytechnic Nekede (Government College Umuahia alumnus) who went from Public Administration to building AI-powered systems, cloud infrastructure, and fintech platforms that compete globally. I founded ShadowSpark Technologies as my vehicle to ship world-class engineering across AI, fintech, and PropTech.
           </p>
           <p class="about-desc">
             I work across the entire stack — from AWS infrastructure and Docker containers to Next.js frontends and Prisma-backed APIs. My edge is at the intersection of AI and production systems: autonomous agents, intelligent pipelines, and platforms that solve real African market problems.
           </p>
+          <div class="service-tags" aria-label="Affiliations">
+            <span class="tag">Google Developer</span>
+            <span class="tag">Founder, ShadowSpark Technologies</span>
+          </div>
           <div class="about-skills" aria-label="Technical proficiency">
             <div class="skill-row">
               <div class="skill-header">
@@ -567,13 +571,13 @@ const MARKUP = String.raw`
               <span class="contact-item-value">Connect on LinkedIn</span>
             </div>
           </a>
-          <div class="contact-item" style="cursor:default;" aria-label="Location: Port Harcourt, Nigeria">
+          <div class="contact-item" style="cursor:default;" aria-label="Location: Owerri, Imo State, Nigeria">
             <div class="contact-item-icon" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
             </div>
             <div class="contact-item-info">
               <span class="contact-item-label">Location</span>
-              <span class="contact-item-value">Port Harcourt, Nigeria · Remote-friendly</span>
+              <span class="contact-item-value">Owerri, Imo State, Nigeria · Remote-friendly</span>
             </div>
           </div>
         </div>

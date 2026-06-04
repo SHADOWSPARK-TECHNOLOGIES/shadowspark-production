@@ -98,7 +98,7 @@ function Topbar({
         </button>
         <div>
           <div className="page-title" id="page-title">{currentLabel}</div>
-          <div className="page-subtitle">Friday, 1 May 2026 · Port Harcourt, NG</div>
+          <div className="page-subtitle">Friday, 1 May 2026 · Owerri, NG</div>
         </div>
       </div>
       <div className="topbar-right">

@@ -1,0 +1,253 @@
+# CONTEXT CARRIER — ShadowSpark Build Fix
+# Paste into Claude Code (CLI) inside the ShadowSpark project folder.
+# Claude Code: read this entire file BEFORE running anything.
+
+---
+
+## YOUR IDENTITY & MISSION
+
+You are the execution agent for ShadowSpark Technologies — a registered Nigerian
+AI agency. The ShadowSpark marketing/operator website has been broken on Vercel
+for 5+ days. Your single mission in this session is to get it building cleanly
+locally, then deploying cleanly to Vercel.
+
+You are not building features. You are not refactoring. You are fixing one
+specific, fully-diagnosed bug. Stay in scope.
+
+---
+
+## CURRENT WORKING DIRECTORY
+
+You should be running from: `~/shadowspark-clean`
+
+This is a FRESH clone of `github.com/Shadow7user/shadowspark-production`.
+It is NOT to be confused with:
+- `~/shadowspark-v1-work/` (OLD swamp folder, wrong git remote — IGNORE)
+- `~/Desktop/shadowspark-production/` (empty placeholder — IGNORE)
+
+Confirm working directory first:
+```bash
+pwd
+# MUST output: /home/shadowweaver/shadowspark-clean
+```
+
+If you are not in this folder, stop and tell the operator.
+
+---
+
+## THE BUG — ALREADY DIAGNOSED, DO NOT REDIAGNOSE
+
+**Root cause:** Local Node version is 22.22.2. The project requires 20.x.
+On Node 22, Prisma 7's TypeScript config loader fails to parse
+`prisma.config.ts`, which causes `prisma generate` (the postinstall step) to
+fail silently. Because Prisma client is never generated into
+`src/generated/prisma/client/`, the next build fails with:
+
+```
+./src/lib/prisma.ts
+Module not found: Can't resolve '@/generated/prisma/client'
+```
+
+**The Prisma generator path in `prisma/schema.prisma` is CORRECT:**
+```
+output = "../src/generated/prisma/client"
+```
+
+**`src/lib/prisma.ts` import is CORRECT:**
+```typescript
+import { PrismaClient } from "@/generated/prisma/client"
+```
+
+Do NOT change either of those. They are aligned. The problem is purely that
+`prisma generate` is not running successfully, and that's caused by the
+Node version mismatch.
+
+---
+
+## EXECUTION PLAN — RUN IN STRICT ORDER
+
+### PHASE 1 — Confirm Environment
+
+Run these commands and report each output before proceeding:
+
+```bash
+pwd
+node --version
+command -v nvm && echo "nvm available" || echo "nvm NOT available"
+cat package.json | grep -A2 '"engines"'
+```
+
+If `node --version` already shows `v20.x.x` → skip to Phase 3.
+If `node --version` shows anything else → proceed to Phase 2.
+
+### PHASE 2 — Install or Activate Node 20
+
+**If nvm is available:**
+```bash
+nvm install 20
+nvm use 20
+node --version
+```
+
+**If nvm is NOT available, install it:**
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+nvm install 20
+nvm use 20
+node --version
+```
+
+`node --version` MUST output `v20.x.x` before proceeding.
+If it does not, STOP and report to operator. Do not attempt workarounds.
+
+### PHASE 3 — Clean Install on Node 20
+
+```bash
+cd ~/shadowspark-clean
+
+# Remove all build artifacts that may have been generated under Node 22
+rm -rf node_modules src/generated .next
+
+# Reinstall — this will trigger postinstall (prisma generate) under Node 20
+pnpm install
+```
+
+Watch the install output. The critical line to confirm success is:
+```
+. postinstall$ prisma generate
+[...should show successful generation, NOT "Failed to load config file"]
+```
+
+If `prisma generate` still fails on Node 20, STOP and report the EXACT
+error message. Do not attempt to bypass or skip prisma generate.
+
+### PHASE 4 — Verify Prisma Client Generation
+
+```bash
+ls -la src/generated/prisma/client/
+```
+
+Expected output: a directory listing showing `index.js`, `index.d.ts`,
+`schema.prisma`, and various runtime files.
+
+If the directory does not exist or is empty, STOP and report.
+
+### PHASE 5 — Local Build
+
+```bash
+pnpm build
+```
+
+Expected: clean Next.js production build with no "Module not found" errors.
+
+If the build fails:
+- Capture the full error output
+- Do NOT make code changes to fix new errors without operator approval
+- Report and wait
+
+If the build succeeds, proceed to Phase 6.
+
+### PHASE 6 — Pin Node Version for Reproducibility
+
+Check if `.nvmrc` exists:
+```bash
+cat .nvmrc 2>/dev/null || echo "MISSING"
+```
+
+If missing, create it so future sessions and Vercel use the right Node:
+```bash
+echo "20" > .nvmrc
+```
+
+Also check `package.json` engines field is `"20.x"` — if it's set to a more
+restrictive version like `"20.18.0"`, leave it alone. The current `"20.x"` is fine.
+
+### PHASE 7 — Commit & Push (only if all previous phases succeeded)
+
+```bash
+git status
+git diff --stat
+```
+
+Show the operator what changed. Wait for operator approval before:
+- `git add`
+- `git commit`
+- `git push`
+
+DO NOT auto-commit. The operator must approve.
+
+---
+
+## CONSTRAINTS — DO NOT VIOLATE
+
+1. **DO NOT** edit `src/lib/prisma.ts` — the import path is correct.
+2. **DO NOT** edit `prisma/schema.prisma` — the generator output is correct.
+3. **DO NOT** edit `prisma.config.ts` — its only problem was the Node version.
+4. **DO NOT** delete `pnpm-lock.yaml` unless the operator explicitly requests it.
+5. **DO NOT** run `npm install` — this is a pnpm project. Use pnpm only.
+6. **DO NOT** push to GitHub without operator approval.
+7. **DO NOT** touch the `.env` file (or create one) without operator approval.
+   This project may have credentials that must not be regenerated.
+8. **DO NOT** run `prisma migrate dev` or `prisma db push` — schema management
+   is out of scope for this session.
+9. **DO NOT** modify `next.config.ts`, `tsconfig.json`, or `vercel.json` unless
+   the build error explicitly points to them and you have operator approval.
+10. **DO NOT** start the dev server (`pnpm dev`). Build only.
+
+---
+
+## WHAT TO REPORT BACK
+
+After each phase, report in this exact structure:
+
+```
+## Phase N Complete
+- Command run: <command>
+- Output (relevant lines only): <output>
+- Result: ✅ success / ❌ failure
+- Next phase or blocker: <one line>
+```
+
+At the end, produce a final summary:
+
+```
+## SESSION SUMMARY
+- Final Node version: vX.X.X
+- Prisma client generated: yes/no
+- Build result: success / failed (with error)
+- Files changed: <list or "none">
+- Ready to push: yes / no / blocked
+- Blockers: <list or "none">
+- Recommended next action: <one line>
+```
+
+---
+
+## IF YOU GET STUCK
+
+You are allowed to be stuck. The right action when stuck is to STOP and report,
+not to improvise. The operator (Stephen) is available and will guide.
+
+Specifically STOP and ask if you encounter:
+- `prisma generate` still failing after Node 20 switch
+- A new build error not mentioned above
+- Any missing environment variable that you'd need to "guess"
+- Any TypeScript error
+- Any file the project depends on that is not present in the repo
+
+---
+
+## CONTEXT YOU MAY NEED LATER (BUT NOT NOW)
+
+After this fix is complete and ShadowSpark is deploying:
+- Lodgist (the flagship product) is on Vercel project `prj_2c1PS87YcBeUJiQO4DmDL6HgM5Dx`, healthy, on the `dev` branch at `~/Des/lodgist`
+- ShadowSpark Vercel project ID: `prj_taT6aPqeQ6MSZnMWN0lZ0aTSfPtl`
+- ShadowSpark Vercel project may also need its Node version set to 20.x in
+  Settings → General → Node.js Version, but that is a separate web-based action
+  the operator will perform, not you
+
+---
+
+START WITH PHASE 1. REPORT BEFORE MOVING TO PHASE 2.

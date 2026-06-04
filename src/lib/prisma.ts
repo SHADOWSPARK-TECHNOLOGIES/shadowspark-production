@@ -52,7 +52,7 @@ function createPrismaClient() {
   });
 }
 
-type ExtendedPrismaClient = ReturnType<typeof createPrismaClient>;
+export type ExtendedPrismaClient = ReturnType<typeof createPrismaClient>;
 const globalForPrisma = global as unknown as { prisma?: ExtendedPrismaClient };
 
 /**

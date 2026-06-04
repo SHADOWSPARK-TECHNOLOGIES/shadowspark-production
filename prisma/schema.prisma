@@ -33,13 +33,21 @@ model Lead {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  name      String?
-  email     String    @unique
-  password  String
-  role      String?   @default("user")
-  createdAt DateTime  @default(now())
-  passkeys  Passkey[]
+  id                   String                @id @default(cuid())
+  name                 String?
+  email                String                @unique
+  password             String
+  role                 String?               @default("user")
+  createdAt            DateTime              @default(now())
+  verificationLevel    String                @default("NONE")
+  referralCode         String?               @unique
+  referredBy           String?
+  suspended            Boolean               @default(false)
+  suspendedAt          DateTime?
+  passkeys             Passkey[]
+  verificationRequests VerificationRequest[]
+  referralsGiven       Referral[]            @relation("referralsGiven")
+  referralsReceived    Referral[]            @relation("referralsReceived")
 }
 
 model Passkey {
@@ -221,6 +229,53 @@ model LedgerTransaction {
   idempotency    LedgerIdempotency?
 }
 
+/// Real-estate listing / property record with trust verification.
+model Listing {
+  id                 String           @id @default(cuid())
+  title              String
+  description        String?
+  price              Decimal          @db.Decimal(19, 4)
+  currency           String           @default("NGN")
+  location           String?
+  propertyType       String?
+  status             String           @default("ACTIVE")
+  riskState          String           @default("UNVERIFIED")
+  truthIndex         Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  verificationStatus String           @default("PENDING_VERIFICATION")
+  verifiedAt         DateTime?
+  verifiedBy         String?
+  active             Boolean          @default(true)
+  suspendedAt        DateTime?
+  suspendReason      String?
+  expiresAt          DateTime?
+  reminderSent       Boolean          @default(false)
+  ownerId            String?
+  trustComponents    TrustComponent[]
+  fraudFlags         FraudFlag[]      @relation("listingFlags")
+
+  @@map("listings")
+}
+
+/// Individual trust verification component for a listing.
+/// Each component is a verifiable fact (e.g. title document verified).
+model TrustComponent {
+  id           String   @id @default(cuid())
+  listingId    String
+  componentKey String
+  label        String
+  weight       Int      @default(0)
+  passed       Boolean  @default(false)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  listing      Listing  @relation(fields: [listingId], references: [id])
+
+  @@unique([listingId, componentKey])
+  @@map("trust_components")
+}
+
 /// Individual entry leg. Each entry carries either a debit
 /// amount (positive) or a credit amount (positive). For any
 /// transaction, Σ(debits) must equal Σ(credits).
@@ -245,4 +300,80 @@ model LedgerIdempotency {
   transactionId  String            @unique
   createdAt      DateTime          @default(now())
   transaction    LedgerTransaction @relation(fields: [transactionId], references: [id])
+}
+
+/// KYC / identity verification request submitted by a landlord or agent.
+/// type values: NIN | BVN | CAC | UTILITY_BILL
+/// status values: PENDING | APPROVED | REJECTED
+model VerificationRequest {
+  id              String    @id @default(cuid())
+  userId          String
+  type            String
+  documentUrl     String?
+  status          String    @default("PENDING")
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  rejectionReason String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@index([status])
+  @@map("verification_requests")
+}
+
+/// Immutable audit log for all admin state-change actions.
+model AdminAction {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetType String
+  targetId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([targetType, targetId])
+  @@map("admin_actions")
+}
+
+/// Fraud flag — created by admin or by user report.
+/// targetType values: LISTING | USER
+/// severity values: LOW | MEDIUM | HIGH | CRITICAL
+/// status values: OPEN | INVESTIGATING | RESOLVED | DISMISSED
+model FraudFlag {
+  id         String    @id @default(cuid())
+  targetType String
+  targetId   String
+  severity   String    @default("MEDIUM")
+  reason     String
+  reportedBy String?
+  status     String    @default("OPEN")
+  resolution String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  listing    Listing?  @relation("listingFlags", fields: [targetId], references: [id], map: "fraud_flag_listing_fk")
+
+  @@index([targetType, targetId])
+  @@index([status])
+  @@map("fraud_flags")
+}
+
+/// Referral tracking — one record per successful referral pair.
+/// status values: PENDING | COMPLETED
+model Referral {
+  id             String    @id @default(cuid())
+  referrerId     String
+  referredUserId String
+  status         String    @default("PENDING")
+  reward         Int?
+  createdAt      DateTime  @default(now())
+  referrer       User      @relation("referralsGiven", fields: [referrerId], references: [id])
+  referred       User      @relation("referralsReceived", fields: [referredUserId], references: [id])
+
+  @@unique([referrerId, referredUserId])
+  @@index([referrerId])
+  @@map("referrals")
 }

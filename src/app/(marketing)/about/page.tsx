@@ -143,7 +143,7 @@ export default function AboutPage() {
                     Our Story
                   </h2>
                   <p className="mt-4 text-sm leading-7 text-zinc-400">
-                    Founded in Port Harcourt, Nigeria. Born from the reality
+                    Founded in Owerri, Imo State, Nigeria. Born from the reality
                     that African businesses deserve infrastructure built for
                     African regulations — not adapted from foreign systems.
                     ShadowSpark combines deep expertise in Nigerian regulatory
@@ -226,7 +226,7 @@ export default function AboutPage() {
                     Our Presence
                   </h2>
                   <p className="mt-4 text-sm leading-7 text-zinc-400">
-                    Based in Port Harcourt, serving clients across Lagos,
+                    Based in Owerri, serving clients across Lagos,
                     Abuja, and emerging tech hubs nationwide.
                   </p>
                 </div>

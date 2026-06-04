@@ -26,14 +26,15 @@ import { signIn } from "@/auth";
 import { z } from "zod";
 import { rateLimit } from "@/lib/rate-limit";
 
-/** Hardcoded allowed origins */
-const ALLOWED_ORIGINS = [
+const WEBAUTHN_ORIGIN = process.env.WEBAUTHN_ORIGIN || "https://shadowspark-tech.org";
+const ALLOWED_ORIGINS = Array.from(new Set([
   "http://localhost:3000",
   "https://shadowspark-tech.org",
   "https://shadowspark.com",
   "https://www.shadowspark-tech.org",
   "https://www.shadowspark.com",
-];
+  WEBAUTHN_ORIGIN,
+]));
 
 const verifyLoginSchema = z.object({
   email: z.string().email("Invalid email format"),

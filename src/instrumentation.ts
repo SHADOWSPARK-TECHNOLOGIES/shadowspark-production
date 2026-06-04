@@ -1,5 +1,7 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { validateEnv } = await import("./lib/config/validateEnv");
+    validateEnv();
     console.log("Registered instrumentation, loading workers...");
     // Dynamic import to avoid edge runtime issues
     const { crawlWorker } = await import("./workers/crawl-worker");

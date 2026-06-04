@@ -1,4 +1,5 @@
-import { PrismaClient, TrustComponent } from "@/generated/prisma/client"
+import { TrustComponent } from "@/generated/prisma/client"
+import type { ExtendedPrismaClient } from "@/lib/prisma"
 
 export const DEFAULT_TRUST_COMPONENTS = [
   { key: 'title_document',       label: 'Title Document Verified',     weight: 30 },
@@ -20,7 +21,7 @@ export function computeTruthIndex(components: TrustComponent[]): number {
 
 export async function syncTruthIndex(
   listingId: string,
-  prisma: PrismaClient
+  prisma: ExtendedPrismaClient
 ): Promise<number> {
   const components = await prisma.trustComponent.findMany({
     where: { listingId }
@@ -35,7 +36,7 @@ export async function syncTruthIndex(
 
 export async function initializeTrustComponents(
   listingId: string,
-  prisma: PrismaClient
+  prisma: ExtendedPrismaClient
 ): Promise<void> {
   const existing = await prisma.trustComponent.count({
     where: { listingId }

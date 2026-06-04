@@ -1,28 +1,34 @@
 import type { Metadata } from "next";
-import { canonical } from "@/lib/seo";
-import HomeClient from "./HomeClient";
-import "./home.css";
+import { Hero } from "@/components/landing/Hero";
+import { WhatWeDo } from "@/components/landing/WhatWeDo";
+import { Flagship } from "@/components/landing/Flagship";
+import { HowWeWork } from "@/components/landing/HowWeWork";
+import { LiveDeployment } from "@/components/landing/LiveDeployment";
+import { WhyShadowspark } from "@/components/landing/WhyShadowspark";
+import { Services } from "@/components/landing/Services";
+import { Stack } from "@/components/landing/Stack";
+import { Contact } from "@/components/landing/Contact";
+import { Footer } from "@/components/landing/Footer";
 
 export const metadata: Metadata = {
-  ...canonical("/"),
-  title: "Stephen Okoronkwo — Founder, ShadowSpark Technologies",
+  title: "ShadowSpark Technologies — Nigerian AI Agency",
   description:
-    "ShadowSpark Technologies builds production-grade AI systems, fintech infrastructure, and cloud-native platforms. Expert software architecture from Owerri to the world.",
-  openGraph: {
-    title: "ShadowSpark Technologies",
-    description: "AI-powered software architecture & fintech engineering",
-    type: "website",
-  },
+    "We design and build AI-powered products for Nigerian businesses. From identity verification to automation. Our flagship product, Lodgist, is live and protecting students today.",
 };
 
-/**
- * ShadowSpark Technologies marketing homepage.
- *
- * Ported 1:1 from the static design in Downloads/shadowspark.html. The full
- * markup + behaviour lives in the HomeClient island; styling is in home.css.
- * This server component only owns the route's metadata. The previous
- * "Sovereign Financial Node" terminal is preserved in page.tsx.sovereign.bak.
- */
 export default function HomePage() {
-  return <HomeClient />;
+  return (
+    <main>
+      <Hero />
+      <WhatWeDo />
+      <Flagship />
+      <HowWeWork />
+      <LiveDeployment />
+      <WhyShadowspark />
+      <Services />
+      <Stack />
+      <Contact />
+      <Footer />
+    </main>
+  );
 }

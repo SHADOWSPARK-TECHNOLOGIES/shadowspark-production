@@ -6,11 +6,11 @@ import type { Metadata } from "next";
  */
 export const metadata: Metadata = {
   title: {
-    default: "Shadowspark — Sovereign Financial Node",
-    template: "%s | Shadowspark",
+    default: "ShadowSpark Technologies — Nigerian AI Agency",
+    template: "%s | ShadowSpark",
   },
   description:
-    "Institutional-grade financial infrastructure for High-Net-Worth liquidity movers in the 2026 Lagos market.",
+    "We design and build AI-powered products for Nigerian businesses. Production systems, not slides.",
 };
 
 export default function MarketingLayout({

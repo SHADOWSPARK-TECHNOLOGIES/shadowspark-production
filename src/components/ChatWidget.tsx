@@ -1,233 +1,206 @@
+// components/ChatWidget.tsx
+// Floating chat bubble for the ShadowSpark site. Drop into your layout.
+// Styled to match the dark "shadow-and-spark" aesthetic (#050505 bg, accent glow).
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
-const featureOptions = ["Website", "Chatbot", "Payments", "CRM", "Custom"];
-const chatbotEmbedUrl = process.env.NEXT_PUBLIC_CHATBOT_URL;
+interface Message {
+  role: "user" | "assistant";
+  content: string;
+}
 
-type ChatLeadData = {
-  businessType: string;
-  goals: string;
-  features: string[];
-  name: string;
-  email: string;
-};
-
-const initialData: ChatLeadData = {
-  businessType: "",
-  goals: "",
-  features: [],
-  name: "",
-  email: "",
+const GREETING: Message = {
+  role: "assistant",
+  content:
+    "Hi 👋 I'm the ShadowSpark assistant. Ask me about our services, how we build, or the Lodgist platform.",
 };
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [formData, setFormData] = useState<ChatLeadData>(initialData);
+  const [messages, setMessages] = useState<Message[]>([GREETING]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const hasEmbed = useMemo(() => Boolean(chatbotEmbedUrl), []);
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, loading]);
 
-  function setField<K extends keyof ChatLeadData>(key: K, value: ChatLeadData[K]) {
-    setFormData((current) => ({ ...current, [key]: value }));
-  }
+  async function send() {
+    const text = input.trim();
+    if (!text || loading) return;
 
-  function toggleFeature(feature: string) {
-    setFormData((current) => ({
-      ...current,
-      features: current.features.includes(feature)
-        ? current.features.filter((item) => item !== feature)
-        : [...current.features, feature],
-    }));
-  }
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    setSuccess("");
-
-    if (!formData.businessType || !formData.goals.trim() || !formData.email.trim()) {
-      setError("Business type, goals, and email are required.");
-      return;
-    }
-
-    setSubmitting(true);
+    const next = [...messages, { role: "user" as const, content: text }];
+    setMessages(next);
+    setInput("");
+    setLoading(true);
 
     try {
-      const response = await fetch("/api/qualify", {
+      const res = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          businessType: formData.businessType,
-          businessGoals: formData.goals,
-          featuresNeeded: formData.features,
-          name: formData.name,
-          email: formData.email,
-        }),
+        headers: { "Content-Type": "application/json" },
+        // Don't send the canned greeting to the API
+        body: JSON.stringify({ messages: next.filter((m) => m !== GREETING) }),
       });
-
-      const result = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(result?.error || "Unable to start qualification.");
-      }
-
-      setSuccess("Qualification started. A tailored demo flow is being prepared.");
-      setFormData(initialData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to start qualification.");
+      const data = await res.json();
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content: data.reply ?? "Sorry, something went wrong. Try the contact form?",
+        },
+      ]);
+    } catch {
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: "Connection issue — please try again in a moment." },
+      ]);
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   }
 
   return (
     <>
+      {/* Floating button */}
       <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="fixed bottom-6 right-6 z-50 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#00E5FF] text-[#050505] shadow-[0_0_30px_rgba(0,229,255,0.45)] transition hover:scale-105 hover:brightness-110 animate-pulse"
-        aria-label="Open chat"
+        aria-label={open ? "Close chat" : "Open chat"}
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          position: "fixed",
+          bottom: 24,
+          right: 24,
+          width: 56,
+          height: 56,
+          borderRadius: "50%",
+          border: "none",
+          cursor: "pointer",
+          background: "linear-gradient(135deg, #FF6F3C 0%, #FF8A5C 100%)",
+          boxShadow: "0 8px 32px rgba(255,111,60,0.4)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 9999,
+          transition: "transform 0.2s",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.08)")}
+        onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
       >
-        <svg className="h-7 w-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M8 10h8M8 14h5" />
-          <path d="M17 20l-3.5-2H7a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v6a4 4 0 0 1-4 4Z" />
-        </svg>
+        <span style={{ fontSize: 24 }}>{open ? "✕" : "💬"}</span>
       </button>
 
-      {open ? (
-        <div className="fixed inset-0 z-50">
-          <button
-            type="button"
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
-            aria-label="Close chat"
-          />
-
-          <aside className="absolute bottom-0 right-0 h-[88vh] w-full max-w-md rounded-t-[2rem] border border-zinc-800 bg-[#050505] p-5 text-zinc-100 shadow-[0_0_50px_rgba(0,229,255,0.15)] sm:bottom-6 sm:right-6 sm:h-[78vh] sm:rounded-[2rem]">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-300">
-                  ShadowSpark Chat
-                </p>
-                <h2 className="mt-1 text-xl font-bold text-white">Start a tailored qualification</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="rounded-full border border-zinc-700 px-3 py-2 text-sm text-zinc-300 transition hover:border-cyan-400/50 hover:text-cyan-300"
-              >
-                Close
-              </button>
+      {/* Chat panel */}
+      {open && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 92,
+            right: 24,
+            width: "min(380px, calc(100vw - 48px))",
+            height: "min(540px, calc(100vh - 140px))",
+            background: "#0A0A0A",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 16,
+            boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            zIndex: 9999,
+            fontFamily: "system-ui, -apple-system, sans-serif",
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              padding: "16px 20px",
+              background: "#050505",
+              borderBottom: "1px solid rgba(255,255,255,0.08)",
+            }}
+          >
+            <div style={{ color: "#fff", fontWeight: 600, fontSize: 15 }}>
+              ShadowSpark Assistant
             </div>
+            <div style={{ color: "#FF6F3C", fontSize: 12, marginTop: 2 }}>
+              ● Online · usually replies instantly
+            </div>
+          </div>
 
-            {hasEmbed ? (
-              <div className="mt-4 h-[calc(100%-5rem)] overflow-hidden rounded-[1.5rem] border border-zinc-800 bg-zinc-950">
-                <iframe
-                  src={chatbotEmbedUrl}
-                  title="ShadowSpark chatbot"
-                  className="h-full w-full"
-                />
+          {/* Messages */}
+          <div
+            ref={scrollRef}
+            style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}
+          >
+            {messages.map((m, i) => (
+              <div
+                key={i}
+                style={{
+                  alignSelf: m.role === "user" ? "flex-end" : "flex-start",
+                  maxWidth: "85%",
+                  padding: "10px 14px",
+                  borderRadius: 14,
+                  fontSize: 14,
+                  lineHeight: 1.5,
+                  background: m.role === "user" ? "#FF6F3C" : "rgba(255,255,255,0.06)",
+                  color: m.role === "user" ? "#fff" : "#E5E5E5",
+                  borderBottomRightRadius: m.role === "user" ? 4 : 14,
+                  borderBottomLeftRadius: m.role === "assistant" ? 4 : 14,
+                }}
+              >
+                {m.content}
               </div>
-            ) : (
-              <div className="mt-4 h-[calc(100%-5rem)] overflow-y-auto pr-1">
-                <div className="rounded-[1.5rem] border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm leading-6 text-zinc-200">
-                  No embed URL is configured yet, so this panel uses the same qualification backend as the main form.
-                </div>
-
-                <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-zinc-200">Business Type</label>
-                    <select
-                      value={formData.businessType}
-                      onChange={(event) => setField("businessType", event.target.value)}
-                      className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none transition focus:border-[#00E5FF]"
-                    >
-                      <option value="">Select your industry</option>
-                      <option value="Logistics">Logistics</option>
-                      <option value="Real Estate">Real Estate</option>
-                      <option value="Restaurant">Restaurant</option>
-                      <option value="Salon">Salon</option>
-                      <option value="Agency">Agency</option>
-                      <option value="Clinic">Clinic</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-zinc-200">Goals</label>
-                    <textarea
-                      value={formData.goals}
-                      onChange={(event) => setField("goals", event.target.value)}
-                      rows={4}
-                      placeholder="Get more leads, automate follow-ups, improve conversion..."
-                      className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none transition focus:border-[#00E5FF]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-zinc-200">Features Needed</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {featureOptions.map((feature) => {
-                        const active = formData.features.includes(feature);
-                        return (
-                          <button
-                            key={feature}
-                            type="button"
-                            onClick={() => toggleFeature(feature)}
-                            className={[
-                              "rounded-xl border px-3 py-3 text-sm transition",
-                              active
-                                ? "border-cyan-400 bg-cyan-400/10 text-white"
-                                : "border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-cyan-400/40",
-                            ].join(" ")}
-                          >
-                            {feature}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-zinc-200">Name</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(event) => setField("name", event.target.value)}
-                      className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none transition focus:border-[#00E5FF]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-zinc-200">Email</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(event) => setField("email", event.target.value)}
-                      className="w-full rounded-2xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none transition focus:border-[#00E5FF]"
-                    />
-                  </div>
-
-                  {error ? <p className="text-sm text-red-400">{error}</p> : null}
-                  {success ? <p className="text-sm text-emerald-400">{success}</p> : null}
-
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="inline-flex w-full items-center justify-center rounded-full bg-[#00E5FF] px-6 py-3 text-sm font-bold text-[#050505] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {submitting ? "Starting..." : "Start Qualification"}
-                  </button>
-                </form>
+            ))}
+            {loading && (
+              <div style={{ alignSelf: "flex-start", color: "#888", fontSize: 13, padding: "4px 8px" }}>
+                ShadowSpark is typing…
               </div>
             )}
-          </aside>
+          </div>
+
+          {/* Input */}
+          <div
+            style={{
+              padding: 12,
+              borderTop: "1px solid rgba(255,255,255,0.08)",
+              display: "flex",
+              gap: 8,
+            }}
+          >
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && send()}
+              placeholder="Ask about our services…"
+              style={{
+                flex: 1,
+                padding: "10px 14px",
+                borderRadius: 10,
+                border: "1px solid rgba(255,255,255,0.12)",
+                background: "rgba(255,255,255,0.04)",
+                color: "#fff",
+                fontSize: 14,
+                outline: "none",
+              }}
+            />
+            <button
+              onClick={send}
+              disabled={loading || !input.trim()}
+              style={{
+                padding: "10px 16px",
+                borderRadius: 10,
+                border: "none",
+                background: input.trim() ? "#FF6F3C" : "rgba(255,255,255,0.1)",
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: input.trim() ? "pointer" : "default",
+              }}
+            >
+              Send
+            </button>
+          </div>
         </div>
-      ) : null}
+      )}
     </>
   );
 }

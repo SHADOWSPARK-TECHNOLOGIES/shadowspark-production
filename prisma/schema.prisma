@@ -48,6 +48,7 @@ model User {
   verificationRequests VerificationRequest[]
   referralsGiven       Referral[]            @relation("referralsGiven")
   referralsReceived    Referral[]            @relation("referralsReceived")
+  oauthAccounts        OAuthAccount[]
 }
 
 model Passkey {
@@ -376,4 +377,20 @@ model Referral {
   @@unique([referrerId, referredUserId])
   @@index([referrerId])
   @@map("referrals")
+}
+
+/// OAuth provider account linked to a User.
+/// Allows the same user to sign in with GitHub, Google, and WebAuthn/password.
+/// provider values: "github" | "google"
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
 }

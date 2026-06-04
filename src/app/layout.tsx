@@ -6,6 +6,7 @@ import {
 } from "next/font/google";
 import { Toaster } from "sonner";
 import { organizationJsonLd } from "@/lib/seo";
+import ChatWidget from "@/components/ChatWidget";
 import "./globals.css";
 
 const ibmPlexSans = IBM_Plex_Sans({
@@ -92,6 +93,7 @@ export default function RootLayout({
           {children}
         </main>
         <Toaster theme="dark" position="bottom-right" />
+        <ChatWidget />
       </body>
     </html>
   );

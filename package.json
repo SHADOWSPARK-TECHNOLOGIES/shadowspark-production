@@ -76,6 +76,17 @@
   "pnpm": {
     "overrides": {
       "@auth/core": "0.41.0"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@firebase/util",
+      "@openrouter/sdk",
+      "@prisma/client",
+      "@prisma/engines",
+      "@sentry/cli",
+      "esbuild",
+      "prisma",
+      "protobufjs",
+      "workerd"
+    ]
   }
 }

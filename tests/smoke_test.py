@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from urllib.parse import urlparse
 
 from spade.browser_manager import BrowserManager
 from spade.config import SpadeSettings
@@ -11,7 +12,7 @@ async def _smoke() -> None:
     await manager.start()
     try:
         final_url = await manager.navigate("https://example.com")
-        assert "example.com" in final_url
+        assert urlparse(final_url).netloc == "example.com"
 
         image_base64 = await manager.screenshot_base64()
         assert len(image_base64) > 100

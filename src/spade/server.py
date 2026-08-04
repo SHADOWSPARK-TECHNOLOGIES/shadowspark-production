@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 from dotenv import load_dotenv
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from pydantic import AnyUrl, BaseModel, Field, ValidationError
 
 from .browser_manager import BrowserManager, BrowserManagerError
@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 
 settings = SpadeSettings()
 browser_manager = BrowserManager(settings)
-mcp = FastMCP("Spade")
+mcp = MCPServer(name="spade", title="Spade", description="Playwright browser automation MCP server")
 
 
 class NavigateInput(BaseModel):
@@ -120,7 +120,7 @@ async def browser_execute(script: str) -> dict[str, Any]:
 async def _run() -> None:
     await browser_manager.start()
     try:
-        await mcp.run_async()
+        await mcp.run_stdio_async()
     finally:
         await browser_manager.stop()
 

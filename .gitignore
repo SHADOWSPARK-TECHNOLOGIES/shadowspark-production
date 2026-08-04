@@ -73,3 +73,9 @@ shadowspark-production/
 # Local Claude permissions overrides — never commit
 allow_all.yaml
 global_allow.yaml
+# Python / Spade
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/

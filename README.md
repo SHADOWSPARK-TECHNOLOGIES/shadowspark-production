@@ -1,38 +1,74 @@
-ShadowSpark production app (Next.js App Router + Prisma + BullMQ + Firecrawl RAG).
+# ShadowSpark Production
 
-Architecture: see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+This repository primarily contains the ShadowSpark production web application, and now also includes **Spade**: a self-contained Python MCP server for Playwright-based browser automation.
 
-## Getting Started
+## Spade
 
-First, run the development server:
+Spade is a production-grade MCP server built with:
+- Python 3.11+
+- FastMCP from the `mcp` package
+- Playwright async API with Chromium
+- Pydantic v2 + `pydantic-settings`
+- `python-dotenv` configuration
+
+### Files
+
+- `pyproject.toml`
+- `run.py`
+- `src/spade/`
+- `tests/smoke_test.py`
+- `.env.example`
+
+### Configuration
+
+Add these variables to your local `.env` file as needed:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+SPADE_HEADLESS=true
+SPADE_TIMEOUT_MS=30000
+SPADE_SCREENSHOT_QUALITY=90
+SPADE_START_URL=about:blank
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Install
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+playwright install chromium
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Run
 
-## Learn More
+```bash
+python run.py
+```
 
-To learn more about Next.js, take a look at the following resources:
+or via the console script:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+spade
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### MCP Inspector
 
-## Deploy on Vercel
+```bash
+npx @modelcontextprotocol/inspector python run.py
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+If your inspector expects a command/args configuration, point it at either `python run.py` or the installed `spade` executable.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Smoke test
+
+```bash
+python tests/smoke_test.py
+```
+
+### Exposed MCP tools
+
+- `browser_navigate(url)`
+- `browser_click(selector)`
+- `browser_type(selector, text)`
+- `browser_screenshot(full_page=False)`
+- `browser_execute(script)`

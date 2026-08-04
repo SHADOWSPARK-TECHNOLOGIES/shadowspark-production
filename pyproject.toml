@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling>=1.24.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "spade-mcp"
+version = "0.1.0"
+description = "Spade MCP server for browser automation with Playwright and FastMCP"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Shadowspark Engineering" }
+]
+dependencies = [
+  "mcp>=1.13.0",
+  "playwright>=1.55.0",
+  "pydantic>=2.11.0",
+  "pydantic-settings>=2.10.0",
+  "python-dotenv>=1.1.1"
+]
+
+[project.scripts]
+spade = "spade.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spade"]

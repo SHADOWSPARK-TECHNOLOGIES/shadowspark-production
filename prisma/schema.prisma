@@ -394,3 +394,87 @@ model OAuthAccount {
   @@index([userId])
   @@map("oauth_accounts")
 }
+
+// ─── Fintech OS ──────────────────────────────────────────────────────────────
+
+/// Loan application submitted via WhatsApp bot or admin portal.
+/// status values: PENDING | UNDER_REVIEW | KYC_REQUIRED | APPROVED | REJECTED | DISBURSED | DEFAULTED
+model LoanApplication {
+  id              String         @id @default(cuid())
+  applicantName   String
+  phoneNumber     String
+  email           String?
+  loanAmountKobo  BigInt
+  purpose         String
+  status          String         @default("PENDING")
+  notes           String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  disbursedAt     DateTime?
+  rejectionReason String?
+  /// Conversation session ID used by the WhatsApp loan bot state machine
+  botSessionId    String?        @unique
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  documents       LoanDocument[]
+  kycRecord       KycRecord?
+  reminders       LoanReminder[]
+
+  @@index([status])
+  @@index([phoneNumber])
+  @@map("loan_applications")
+}
+
+/// Documents uploaded by the applicant during the WhatsApp intake flow.
+/// docType values: NATIONAL_ID | BANK_STATEMENT | PASSPORT | OTHER
+model LoanDocument {
+  id            String          @id @default(cuid())
+  applicationId String
+  docType       String
+  fileUrl       String
+  fileName      String?
+  mimeType      String?
+  uploadedAt    DateTime        @default(now())
+  application   LoanApplication @relation(fields: [applicationId], references: [id])
+
+  @@index([applicationId])
+  @@map("loan_documents")
+}
+
+/// KYC record produced after BVN/identity verification.
+/// status values: PENDING | VERIFIED | FAILED | MANUAL_REVIEW
+model KycRecord {
+  id              String          @id @default(cuid())
+  applicationId   String          @unique
+  bvnNumber       String
+  status          String          @default("PENDING")
+  verifiedName    String?
+  dateOfBirth     String?
+  providerRef     String?
+  /// Raw provider response for audit trail
+  providerPayload Json?
+  verifiedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  application     LoanApplication @relation(fields: [applicationId], references: [id])
+
+  @@map("kyc_records")
+}
+
+/// Scheduled recovery/reminder message for an active or overdue loan.
+/// type values: PAYMENT_DUE | OVERDUE | FINAL_NOTICE
+model LoanReminder {
+  id            String          @id @default(cuid())
+  applicationId String
+  type          String
+  scheduledAt   DateTime
+  sentAt        DateTime?
+  message       String?
+  jobId         String?
+  createdAt     DateTime        @default(now())
+  application   LoanApplication @relation(fields: [applicationId], references: [id])
+
+  @@index([applicationId])
+  @@index([scheduledAt, sentAt])
+  @@map("loan_reminders")
+}

@@ -18,3 +18,10 @@ export {
   type NudgeJobData,
 } from "@/lib/whatsapp/nudge-queue";
 
+export {
+  LOAN_REMINDER_QUEUE,
+  getLoanReminderQueue,
+  enqueueLoanReminder,
+  type LoanReminderJobData,
+} from "@/lib/whatsapp/loan-reminder-queue";
+

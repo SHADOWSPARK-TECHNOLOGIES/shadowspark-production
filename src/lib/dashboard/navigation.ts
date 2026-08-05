@@ -7,6 +7,7 @@ import {
   MessageCircle,
   Crosshair,
   Settings,
+  Banknote,
 } from 'lucide-react';
 
 export interface NavItem {
@@ -20,6 +21,7 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Command Centre', href: '/dashboard', icon: LayoutDashboard, section: 'Core' },
   { label: 'Leads', href: '/dashboard/leads', icon: Users, badge: 12, section: 'Core' },
+  { label: 'Loans', href: '/dashboard/loans', icon: Banknote, section: 'Core' },
   { label: 'Audit Engine', href: '/dashboard/audit', icon: ShieldCheck, section: 'Compliance' },
   { label: 'Watchtower', href: '/dashboard/watchtower', icon: Eye, badge: 3, section: 'Compliance' },
   { label: 'Lead Scoring', href: '/dashboard/scoring', icon: Gauge, section: 'AI & Ops' },

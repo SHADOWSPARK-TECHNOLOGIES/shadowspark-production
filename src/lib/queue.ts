@@ -25,3 +25,10 @@ export {
   type LoanReminderJobData,
 } from "@/lib/whatsapp/loan-reminder-queue";
 
+
+export {
+  WORKFLOW_EXECUTION_QUEUE,
+  getWorkflowExecutionQueue,
+  enqueueWorkflowExecution,
+  type WorkflowExecutionJobData,
+} from "@/lib/workflows/queue";

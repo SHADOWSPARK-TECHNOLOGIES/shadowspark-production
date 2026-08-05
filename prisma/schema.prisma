@@ -716,6 +716,7 @@ model WorkflowTrigger {
   receivedAt      DateTime        @default(now())
   workflowVersion WorkflowVersion @relation(fields: [workflowVersionId], references: [id])
   application     LoanApplication? @relation(fields: [loanApplicationId], references: [id])
+  executions      WorkflowExecution[]
 
   @@unique([tenantId, workflowVersionId, source, externalRef])
   @@index([tenantId, source, receivedAt])
@@ -778,7 +779,6 @@ model WorkflowEvent {
   payload         Json?
   createdAt       DateTime            @default(now())
   execution       WorkflowExecution   @relation(fields: [workflowExecutionId], references: [id])
-  nodeExecution   WorkflowNodeExecution? @relation(fields: [workflowNodeExecutionId], references: [id])
 
   @@index([workflowExecutionId, createdAt])
   @@map("workflow_events")

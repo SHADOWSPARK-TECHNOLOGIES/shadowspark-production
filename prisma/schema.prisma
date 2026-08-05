@@ -399,8 +399,58 @@ model OAuthAccount {
 
 /// Loan application submitted via WhatsApp bot or admin portal.
 /// status values: PENDING | UNDER_REVIEW | KYC_REQUIRED | APPROVED | REJECTED | DISBURSED | DEFAULTED
+model Tenant {
+  id                String                @id @default(cuid())
+  slug              String                @unique
+  name              String
+  status            String                @default("ACTIVE")
+  defaultLocale     String                @default("en-NG")
+  defaultCurrency   String                @default("NGN")
+  primaryDomain     String?               @unique
+  branding          Json?
+  settings          Json?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  customers         Customer[]
+  loanApplications  LoanApplication[]
+  workflowDefinitions WorkflowDefinition[]
+  workflowExecutions WorkflowExecution[]
+  auditLogs         AuditLog[]
+
+  @@index([status])
+  @@map("tenants")
+}
+
+model Customer {
+  id                String                @id @default(cuid())
+  tenantId          String
+  externalRef       String?
+  fullName          String
+  phoneNumber       String
+  email             String?
+  bvnNumber         String?
+  ninNumber         String?
+  dateOfBirth       DateTime?
+  metadata          Json?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  tenant            Tenant                @relation(fields: [tenantId], references: [id])
+  loanApplications  LoanApplication[]
+  kycRecords        KycRecord[]
+  creditBureauPulls CreditBureauPull[]
+  repaymentPlans    RepaymentPlan[]
+
+  @@unique([tenantId, phoneNumber])
+  @@index([tenantId, email])
+  @@index([tenantId, fullName])
+  @@map("customers")
+}
+
 model LoanApplication {
   id              String         @id @default(cuid())
+  tenantId        String
+  customerId      String?
+  externalRef     String?
   applicantName   String
   phoneNumber     String
   email           String?
@@ -416,12 +466,20 @@ model LoanApplication {
   botSessionId    String?        @unique
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  tenant          Tenant         @relation(fields: [tenantId], references: [id])
+  customer        Customer?      @relation(fields: [customerId], references: [id])
   documents       LoanDocument[]
   kycRecord       KycRecord?
   reminders       LoanReminder[]
+  creditBureauPulls CreditBureauPull[]
+  decisions       LoanDecision[]
+  disbursements   DisbursementEvent[]
+  repaymentPlan   RepaymentPlan?
+  workflowTriggers WorkflowTrigger[]
+  auditLogs       AuditLog[]
 
-  @@index([status])
-  @@index([phoneNumber])
+  @@index([tenantId, status, createdAt])
+  @@index([tenantId, phoneNumber])
   @@map("loan_applications")
 }
 
@@ -429,7 +487,11 @@ model LoanApplication {
 /// docType values: NATIONAL_ID | BANK_STATEMENT | PASSPORT | OTHER
 model LoanDocument {
   id            String          @id @default(cuid())
+  tenantId      String
   applicationId String
+  storageKey    String?
+  checksum      String?
+  metadata      Json?
   docType       String
   fileUrl       String
   fileName      String?
@@ -437,7 +499,7 @@ model LoanDocument {
   uploadedAt    DateTime        @default(now())
   application   LoanApplication @relation(fields: [applicationId], references: [id])
 
-  @@index([applicationId])
+  @@index([tenantId, applicationId])
   @@map("loan_documents")
 }
 
@@ -445,7 +507,11 @@ model LoanDocument {
 /// status values: PENDING | VERIFIED | FAILED | MANUAL_REVIEW
 model KycRecord {
   id              String          @id @default(cuid())
+  tenantId        String
+  customerId      String?
   applicationId   String          @unique
+  provider        String          @default("VERIFYME")
+  verificationType String         @default("BVN")
   bvnNumber       String
   status          String          @default("PENDING")
   verifiedName    String?
@@ -457,15 +523,307 @@ model KycRecord {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
   application     LoanApplication @relation(fields: [applicationId], references: [id])
+  customer        Customer?       @relation(fields: [customerId], references: [id])
 
+  @@index([tenantId, status, createdAt])
   @@map("kyc_records")
 }
+
+model CreditBureauPull {
+  id              String    @id @default(cuid())
+  tenantId        String
+  customerId      String
+  loanApplicationId String?
+  bureau          String
+  status          String    @default("PENDING")
+  score           Int?
+  providerRef     String?
+  payload         Json?
+  pulledAt        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  customer        Customer  @relation(fields: [customerId], references: [id])
+  application     LoanApplication? @relation(fields: [loanApplicationId], references: [id])
+
+  @@index([tenantId, bureau, status])
+  @@index([loanApplicationId])
+  @@map("credit_bureau_pulls")
+}
+
+model LoanDecision {
+  id              String          @id @default(cuid())
+  tenantId        String
+  loanApplicationId String
+  decision        String
+  reasonCode      String?
+  notes           String?
+  policyVersion   String?
+  decidedBy       String?
+  decidedAt       DateTime        @default(now())
+  metadata        Json?
+  application     LoanApplication @relation(fields: [loanApplicationId], references: [id])
+
+  @@index([tenantId, decision, decidedAt])
+  @@index([loanApplicationId, decidedAt])
+  @@map("loan_decisions")
+}
+
+model DisbursementEvent {
+  id              String          @id @default(cuid())
+  tenantId        String
+  loanApplicationId String
+  provider        String          @default("WHATSAPP")
+  status          String          @default("PENDING")
+  reference       String?
+  amountKobo      BigInt
+  payload         Json?
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  createdAt       DateTime        @default(now())
+  application     LoanApplication @relation(fields: [loanApplicationId], references: [id])
+
+  @@index([tenantId, status, createdAt])
+  @@index([loanApplicationId, createdAt])
+  @@map("disbursement_events")
+}
+
+model RepaymentPlan {
+  id              String          @id @default(cuid())
+  tenantId        String
+  customerId      String
+  loanApplicationId String        @unique
+  totalAmountKobo BigInt
+  outstandingKobo BigInt
+  installmentCount Int            @default(1)
+  frequency       String          @default("MONTHLY")
+  startsAt        DateTime
+  endsAt          DateTime?
+  status          String          @default("ACTIVE")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  customer        Customer        @relation(fields: [customerId], references: [id])
+  application     LoanApplication @relation(fields: [loanApplicationId], references: [id])
+  repaymentEvents RepaymentEvent[]
+  reminderSequences ReminderSequence[]
+  reminders       LoanReminder[]
+
+  @@index([tenantId, status, startsAt])
+  @@index([customerId, status])
+  @@map("repayment_plans")
+}
+
+model RepaymentEvent {
+  id              String        @id @default(cuid())
+  tenantId        String
+  repaymentPlanId String
+  amountKobo      BigInt
+  status          String        @default("PENDING")
+  channel         String        @default("WHATSAPP")
+  dueAt           DateTime
+  paidAt          DateTime?
+  reference       String?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+  repaymentPlan   RepaymentPlan @relation(fields: [repaymentPlanId], references: [id])
+
+  @@unique([tenantId, reference])
+  @@index([tenantId, status, dueAt])
+  @@index([repaymentPlanId, dueAt])
+  @@map("repayment_events")
+}
+
+model ReminderSequence {
+  id              String        @id @default(cuid())
+  tenantId        String
+  repaymentPlanId String
+  status          String        @default("ACTIVE")
+  escalationLevel Int           @default(0)
+  rules           Json
+  lastTriggeredAt DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  repaymentPlan   RepaymentPlan @relation(fields: [repaymentPlanId], references: [id])
+  reminders       LoanReminder[]
+
+  @@index([tenantId, status, escalationLevel])
+  @@map("reminder_sequences")
+}
+
+model AuditLog {
+  id              String          @id @default(cuid())
+  tenantId        String
+  loanApplicationId String?
+  actorId         String?
+  actorType       String
+  entityType      String
+  entityId        String
+  action          String
+  payload         Json?
+  createdAt       DateTime        @default(now())
+  tenant          Tenant          @relation(fields: [tenantId], references: [id])
+  application     LoanApplication? @relation(fields: [loanApplicationId], references: [id])
+
+  @@index([tenantId, entityType, entityId, createdAt])
+  @@index([loanApplicationId, createdAt])
+  @@map("audit_logs")
+}
+
+model WorkflowDefinition {
+  id              String               @id @default(cuid())
+  tenantId        String
+  key             String
+  name            String
+  description     String?
+  status          String               @default("DRAFT")
+  createdBy       String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  tenant          Tenant               @relation(fields: [tenantId], references: [id])
+  versions        WorkflowVersion[]
+
+  @@unique([tenantId, key])
+  @@index([tenantId, status])
+  @@map("workflow_definitions")
+}
+
+model WorkflowVersion {
+  id              String               @id @default(cuid())
+  workflowDefinitionId String
+  version         Int
+  schema          Json
+  triggerType     String
+  status          String               @default("DRAFT")
+  publishedAt     DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  definition      WorkflowDefinition   @relation(fields: [workflowDefinitionId], references: [id])
+  triggers        WorkflowTrigger[]
+  executions      WorkflowExecution[]
+
+  @@unique([workflowDefinitionId, version])
+  @@index([status, publishedAt])
+  @@map("workflow_versions")
+}
+
+model WorkflowTrigger {
+  id              String          @id @default(cuid())
+  tenantId        String
+  workflowVersionId String
+  loanApplicationId String?
+  source          String
+  externalRef     String
+  payload         Json
+  receivedAt      DateTime        @default(now())
+  workflowVersion WorkflowVersion @relation(fields: [workflowVersionId], references: [id])
+  application     LoanApplication? @relation(fields: [loanApplicationId], references: [id])
+
+  @@unique([tenantId, workflowVersionId, source, externalRef])
+  @@index([tenantId, source, receivedAt])
+  @@map("workflow_triggers")
+}
+
+model WorkflowExecution {
+  id              String                @id @default(cuid())
+  tenantId        String
+  workflowVersionId String
+  triggerId       String
+  status          String                @default("PENDING")
+  idempotencyKey  String                @unique
+  startedAt       DateTime?
+  completedAt     DateTime?
+  lastError       String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  tenant          Tenant                @relation(fields: [tenantId], references: [id])
+  workflowVersion WorkflowVersion       @relation(fields: [workflowVersionId], references: [id])
+  trigger         WorkflowTrigger       @relation(fields: [triggerId], references: [id])
+  nodeExecutions  WorkflowNodeExecution[]
+  events          WorkflowEvent[]
+  deadLetters     WorkflowDeadLetter[]
+
+  @@index([tenantId, status, createdAt])
+  @@index([workflowVersionId, createdAt])
+  @@map("workflow_executions")
+}
+
+model WorkflowNodeExecution {
+  id              String              @id @default(cuid())
+  workflowExecutionId String
+  nodeKey         String
+  nodeType        String
+  status          String              @default("PENDING")
+  attemptCount    Int                 @default(0)
+  idempotencyKey  String              @unique
+  input           Json?
+  output          Json?
+  error           String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  execution       WorkflowExecution   @relation(fields: [workflowExecutionId], references: [id])
+  deadLetters     WorkflowDeadLetter[]
+
+  @@unique([workflowExecutionId, nodeKey])
+  @@index([status, createdAt])
+  @@map("workflow_node_executions")
+}
+
+model WorkflowEvent {
+  id              String              @id @default(cuid())
+  workflowExecutionId String
+  level           String              @default("INFO")
+  eventType       String
+  message         String
+  payload         Json?
+  createdAt       DateTime            @default(now())
+  execution       WorkflowExecution   @relation(fields: [workflowExecutionId], references: [id])
+  nodeExecution   WorkflowNodeExecution? @relation(fields: [workflowNodeExecutionId], references: [id])
+
+  @@index([workflowExecutionId, createdAt])
+  @@map("workflow_events")
+}
+
+model WorkflowDeadLetter {
+  id              String              @id @default(cuid())
+  workflowExecutionId String
+  workflowNodeExecutionId String?
+  reason          String
+  payload         Json?
+  replayCount     Int                 @default(0)
+  createdAt       DateTime            @default(now())
+  resolvedAt      DateTime?
+  execution       WorkflowExecution   @relation(fields: [workflowExecutionId], references: [id])
+  nodeExecution   WorkflowNodeExecution? @relation(fields: [workflowNodeExecutionId], references: [id])
+
+  @@index([workflowExecutionId, createdAt])
+  @@index([resolvedAt])
+  @@map("workflow_dead_letters")
+}
+
+model WorkflowCredentialRef {
+  id              String    @id @default(cuid())
+  tenantId        String
+  key             String
+  provider        String
+  secretRef       String
+  metadata        Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([tenantId, key])
+  @@map("workflow_credential_refs")
+}
+
 
 /// Scheduled recovery/reminder message for an active or overdue loan.
 /// type values: PAYMENT_DUE | OVERDUE | FINAL_NOTICE
 model LoanReminder {
   id            String          @id @default(cuid())
+  tenantId      String
   applicationId String
+  repaymentPlanId String?
+  reminderSequenceId String?
   type          String
   scheduledAt   DateTime
   sentAt        DateTime?
@@ -474,7 +832,7 @@ model LoanReminder {
   createdAt     DateTime        @default(now())
   application   LoanApplication @relation(fields: [applicationId], references: [id])
 
-  @@index([applicationId])
+  @@index([tenantId, applicationId])
   @@index([scheduledAt, sentAt])
   @@map("loan_reminders")
 }

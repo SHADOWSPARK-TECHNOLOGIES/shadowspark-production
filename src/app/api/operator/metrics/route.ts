@@ -28,6 +28,9 @@ export async function GET(request: Request) {
 
   if (format === 'json') {
     const authHeader = request.headers.get('authorization');
+    if (!authHeader || authHeader === "Bearer undefined" || authHeader === "Bearer null") {
+      return NextResponse.json({ error: "Unauthorized mobile request" }, { status: 401 });
+    }
     if (authHeader !== `Bearer ${process.env.MOBILE_OPERATOR_KEY}`) {
       return NextResponse.json({ error: "Unauthorized mobile request" }, { status: 401 });
     }

@@ -1,0 +1,58 @@
+Shadowweaver, the Lead Ingestion Gateway is live and the BullMQ lead-enrichment worker is consuming jobs but currently assigns a dummy score. We now activate **Sovereign Lead Scoring** using the Johannesburg node's hybrid search intelligence.
+
+IMMUTABLE POLICIES IN EFFECT:
+- Nigerian phone validation is already enforced at the API gateway; the worker does not re-validate.
+- All DB operations must use Prisma with strict TypeScript types.
+- The worker must be resilient: never crash the Node process, handle dead letters, and use BullMQ's built-in retry with exponential backoff.
+- The scoring logic must use the same PostgreSQL CTE that powers our RAG: 70% semantic (pgvector) and 30% full-text search (tsvector) weighted via RRF.
+- Do NOT hardcode any secrets; use environment variables.
+
+CONTEXT:
+- The lead-enrichment queue receives jobs with payload `{ leadId: string }`.
+- We have a materialized knowledge base in `KnowledgeEmbedding` table with columns: `id`, `text`, `embedding` (vector(1536)), and `source`.
+- The relevant competitor URLs and knowledge were re-ingested with clean `text/plain` headers; the vectors are pure.
+- A PostgreSQL function already exists (created in earlier missions) for hybrid search: `search_knowledge(query_text text, semantic_weight real DEFAULT 0.7, fts_weight real DEFAULT 0.3) RETURNS TABLE(content text, score real)`. It combines pgvector cosine similarity with tsvector FTS and RRF merging.
+- The `Lead` schema contains fields: `id`, `name`, `email`, `phone`, `source`, `score` (Float, nullable), `createdAt`, `updatedAt`.
+
+TASK:
+Modify the existing worker file `~/shadowspark-v1-work/src/lib/workers/lead-enrichment.worker.ts` (or create a new version) to implement the following:
+
+1. When a job is received, fetch the Lead from Prisma by `leadId`.
+2. If the lead is not found, log an error and acknowledge the job without retry (no need to retry missing data).
+3. If found, construct a search query from the lead's `source` and the lead's `name` (e.g., combine "landing_page" + "John Doe") – but truly we want to map the lead's interest to our competitor knowledge. For now, use the `source` field and a generic string like "pricing features" as the query text. Later we can expand, but the worker must be designed to accept a dynamic query.
+4. Call the PostgreSQL function `search_knowledge` with the query text. Use Prisma's `$queryRaw` to execute:
+   `SELECT * FROM search_knowledge($1, 0.7, 0.3)` where `$1` is the query text.
+5. The function returns rows with `content` (text) and `score` (real). Aggregate the scores: compute the average score of the top-5 results (or all if fewer) and that becomes the lead's score.
+6. Update the lead's `score` field in the database with this aggregated value.
+7. Log the enrichment completion with the lead ID and the assigned score.
+8. Handle errors gracefully: if the SQL function fails, log the error, and optionally retry once after 5 seconds, then fail the job permanently. Use BullMQ's job retry mechanism via `throw` to trigger a retry with backoff.
+
+ADDITIONAL:
+- Ensure the worker initializes a Prisma client and the Redis connection properly. (We already have queue.ts exporting the queue; the worker can import the same connection.)
+- Use TypeScript generics for the job type: `Job<{ leadId: string }>`.
+- After updating the score, optionally emit a system event (if the SystemEvent model exists – check schema; if not, just log).
+
+OUTPUT FORMAT:
+Provide a <sovereign_reasoning> block (your private analytical chain), then the final code in a <typescript_code> block with the file path commented at the top. Only output the worker file; assume the queue and other infrastructure are already in place.
+    1 Shadowweaver, the authentication and payment pipelines are cryptographically secure. We must now optimize the operator's time by implementing automated
+      triage for the HNW Nigerian market.
+    2
+    3 Write the 'Sovereign Lead Scoring Engine' in ~/shadowspark-v1-work/src/lib/scoring.ts.
+    4
+    5 Requirements:
+    6 1. Export an async function `calculateLeadScore(leadId: string)` that retrieves a Lead from Prisma.
+    7 2. Implement a scoring matrix (0-100 scale):
+    8    - +20 points for any valid email.
+    9    - +30 points if the email domain is corporate (exclude free providers like gmail.com, yahoo.com, hotmail.com).
+   10    - +35 points if the `phoneNumber` perfectly matches our immutable regex: /^(\+234|0)[789]\d{9}$/.
+   11    - +15 points if the lead has filled out `metadata.businessGoals` with more than 50 characters.
+   12 3. Based on the total score, assign a tier:
+   13    - 0-49: 'STARTER'
+   14    - 50-84: 'GROWTH'
+   15    - 85-100: 'ENTERPRISE'
+   16 4. Atomically update the Lead record in Prisma with the new `leadScore` and `tier`.
+   17 5. Return the updated Lead.
+   18
+   19 Output ONLY the final `scoring.ts` file in a <typescript_code> block. Maintain strict TypeScript and handle null/undefined fields gracefully.
+
+

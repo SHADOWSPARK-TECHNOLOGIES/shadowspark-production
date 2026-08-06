@@ -1,0 +1,159 @@
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { streamText, tool } from "ai";
+import { z } from "zod";
+import { retrieveRagContext } from "@/lib/rag/retrieve";
+import { createLead } from "@/lib/lead-service";
+import { scheduleDemoForLead } from "@/lib/demo-service";
+
+import { prisma } from "@/lib/prisma";
+
+export const runtime = "nodejs";
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
+
+export const maxDuration = 30;
+
+function extractLeadFromMessages(messages: any[]) {
+  const text = messages.map((m: any) => m.content || "").join(" ");
+  const emailMatch = text.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i);
+  if (!emailMatch) return null;
+  return {
+    email: emailMatch[0],
+    intent: text.slice(0, 200)
+  };
+}
+
+export async function POST(req: Request) {
+  const { messages, slug } = await req.json();
+
+  const lastUserMessage =
+    Array.isArray(messages) ? [...messages].reverse().find((m) => m?.role === "user")?.content : undefined;
+  const query = typeof lastUserMessage === "string" ? lastUserMessage : "";
+
+  const rag = query
+    ? await retrieveRagContext({ query, slug }).catch(() => null)
+    : null;
+
+  // 1. DYNAMIC LEAD LOOKUP
+  const extracted = extractLeadFromMessages(messages);
+  let leadContext = "";
+  
+  if (extracted?.email) {
+    const lead = await prisma.lead.findUnique({ where: { email: extracted.email } });
+    if (lead) {
+      leadContext = `\n\nLEAD INTELLIGENCE:
+- Tier: ${lead.tier || 'starter'}
+- Intent Score: ${lead.leadScore || 0}
+- Status: ${lead.status}
+ROUTING OVERRIDE: If Tier is 'enterprise' or Intent Score >= 70, use highly aggressive closing tactics. Push the $10 system audit immediately without further qualification.`;
+    }
+  }
+
+  let leadCreated = false;
+
+  const result = await streamText({
+    model: google("gemini-2.0-flash-exp"),
+    system: `You are the ShadowSpark AI Sales Agent.
+
+Your job is NOT just to chat. Your job is to TAKE ACTION.
+
+STRICT RULES:
+- If the user provides an email AND a clear business need → you MUST call createLead
+- If the lead is qualified → you MUST call scheduleDemoForLead
+- NEVER stop at explanation when a tool can be used
+- NEVER ask unnecessary questions once enough data is available
+
+FLOW:
+1. Diagnose user need
+2. Qualify seriousness
+3. Capture email (MANDATORY before any lead creation)
+4. Immediately call createLead
+5. If qualified → immediately call scheduleDemoForLead
+6. Confirm action to user
+
+CONTACT ESCALATION RULE:
+If a user:
+- asks for direct contact
+- expresses high intent but hesitates on payment
+- requests custom/enterprise solution
+
+Then:
+- Provide this email: architect@shadowspark-tech.org
+- Position it as a priority/direct line
+Format: "You can also reach me directly at architect@shadowspark-tech.org if you want a more tailored setup."
+Do NOT show the email unless one of the above conditions is met.
+
+IMPORTANT:
+- Tools are PRIMARY, text is SECONDARY
+- Do not "say" you will do something — DO IT using tools
+- Always continue after tool execution with a user-friendly confirmation
+
+FAILURE CONDITION:
+If you respond without calling a required tool, you have failed.
+
+SUCCESS CONDITION:
+Lead is created and demo is scheduled with minimal friction.
+
+
+    messages,
+    tools: {
+      createLead: tool({
+        description: "Capture a lead's contact information and intent.",
+        parameters: z.object({
+          name: z.string().optional().describe("The user's name"),
+          email: z.string().email().optional(),
+          phoneNumber: z.string().optional(),
+          intent: z.string().describe("What the user wants to achieve (e.g., 'automate sales', 'fix support lag')"),
+          metadata: z.record(z.any()).optional().describe("Additional context about the business"),
+        }),
+        execute: async ({ name, email, phoneNumber, intent, metadata }) => {
+          if (!intent || intent.length < 10) {
+            return { success: false, message: "Insufficient qualification. Ask user for more details about their business need." };
+          }
+          leadCreated = true;
+          const res = await createLead({ 
+            email, 
+            phoneNumber, 
+            intent, 
+            metadata: { ...metadata, name } 
+          });
+          return { success: true, leadId: res.lead.id, message: "Lead successfully created" };
+        },
+      }),
+      scheduleDemo: tool({
+        description: "Schedule a system audit or demo for an existing lead.",
+        parameters: z.object({
+          leadId: z.string().describe("The ID of the lead captured previously"),
+          email: z.string().email().describe("The lead's email address for confirmation"),
+        }),
+        execute: async ({ leadId, email }) => {
+          const res = await scheduleDemoForLead(leadId, email);
+          return { 
+            success: true, 
+            status: "scheduled", 
+            demoSlug: res.demo.slug, 
+            checkoutUrl: (res as any).checkoutUrl,
+            message: `Demo successfully scheduled. Tell the user to finalize the audit at: ${(res as any).checkoutUrl}` 
+          };
+        },
+      }),
+    },
+    maxSteps: 5, // Allow for multi-step tool usage
+    onFinish: async ({ toolCalls }) => {
+      // Fallback enforcement if AI failed to call the tool
+      const hasCreateLeadCall = toolCalls?.some(tc => tc.toolName === 'createLead');
+      
+      if (!hasCreateLeadCall && !leadCreated) {
+        const extracted = extractLeadFromMessages(messages);
+        if (extracted?.email && extracted?.intent && extracted.intent.length >= 10) {
+          console.log("Fallback execution guard triggered. Creating lead manually.");
+          await createLead(extracted).catch(console.error);
+        }
+      }
+    }
+  });
+
+  return result.toTextStreamResponse();
+}

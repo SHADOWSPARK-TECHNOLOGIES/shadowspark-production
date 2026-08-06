@@ -1,0 +1,8 @@
+name = "shadowspark-production"
+main = "cloudflare/worker.ts"
+compatibility_date = "2026-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 220" width="960" height="220" role="img" aria-labelledby="wordmarkTitle wordmarkDesc">
+  <title id="wordmarkTitle">ShadowSpark wordmark</title>
+  <desc id="wordmarkDesc">ShadowSpark wordmark in spark cyan with a subtle technical glow.</desc>
+  <rect width="960" height="220" rx="32" fill="#0A0A0A" />
+  <g opacity="0.28">
+    <path d="M72 74H888" stroke="#16323A" stroke-width="1" />
+    <path d="M72 146H888" stroke="#16323A" stroke-width="1" />
+    <path d="M248 40V180" stroke="#16323A" stroke-width="1" />
+    <path d="M480 40V180" stroke="#16323A" stroke-width="1" />
+    <path d="M712 40V180" stroke="#16323A" stroke-width="1" />
+  </g>
+  <defs>
+    <filter id="cyanGlow" x="-20%" y="-80%" width="140%" height="260%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0 0 0 0 0 0.898 0 0 0 0 1 0 0 0 0.55 0" />
+      <feMerge>
+        <feMergeNode />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  <text x="76" y="132" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="88" font-weight="700" letter-spacing="1.8" fill="#00E5FF" filter="url(#cyanGlow)">
+    ShadowSpark
+  </text>
+  <text x="80" y="168" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="600" letter-spacing="6" fill="#00E5FF" opacity="0.72">
+    AUTONOMOUS REVENUE INFRASTRUCTURE
+  </text>
+</svg>

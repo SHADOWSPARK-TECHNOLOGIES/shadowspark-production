@@ -1,0 +1,48 @@
+name: Firecrawl Nightly RAG Sync
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm i --frozen-lockfile
+
+      - name: RAG sync (crawl -> embed -> data/rag/index.json)
+        env:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RAG_CRAWL_ROOT_URL: https://shadowspark-tech.org/blog
+          RAG_CRAWL_LIMIT: "25"
+        run: pnpm rag:sync
+
+      - name: Commit updated embeddings (if changed)
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/rag/index.json
+          git commit -m "chore(rag): nightly sync"
+          git push

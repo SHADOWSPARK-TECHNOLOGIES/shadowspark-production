@@ -1,0 +1,142 @@
+{
+  "generatedAt": "2026-04-16T09:53:37.565Z",
+  "cases": [
+    {
+      "url": "https://www.1800gotjunk.com/us_en",
+      "slug": "got-junk",
+      "businessName": "1-800-GOT-JUNK?",
+      "industry": "Junk removal service",
+      "topSignals": [],
+      "recommendedLayoutMode": "audit-summary",
+      "recommendedBlocks": [
+        "audit-summary",
+        "ranked-signals",
+        "build-next-cta"
+      ],
+      "heroSupportLine": null,
+      "proofLine": null,
+      "ctaSupportLine": null,
+      "buildNextBullets": [],
+      "confidence": "low",
+      "notes": [
+        "preview failed: Firecrawl crawl timeout after 90s (jobId=019d95b3-4567-7130-8686-af9ea8f41558)"
+      ]
+    },
+    {
+      "url": "https://linear.app",
+      "slug": "linear",
+      "businessName": "Linear",
+      "industry": "Software product",
+      "topSignals": [
+        {
+          "title": "The productdevelopmentsystem for teamsand agentsThe product development system f",
+          "score": 9,
+          "url": "https://linear.app/",
+          "excerpt": "The productdevelopmentsystem for teamsand agentsThe product development system for teams and agentsThe product development system for teams and agents Purpose built for planning and building products. Designed for the..."
+        },
+        {
+          "title": "A new species of product tool",
+          "score": 9,
+          "url": "https://linear.app/",
+          "excerpt": "A new species of product tool. Purpose built for modern teams with AI workflows at its core, Linear sets a new standard for planning and building products. Built for purpose Linear is shaped by the practices and princ..."
+        },
+        {
+          "title": "Make product operations self driving Turn conversations and customer feedback in",
+          "score": 9,
+          "url": "https://linear.app/",
+          "excerpt": "Make product operations self driving Turn conversations and customer feedback into actionable issues that are routed, labeled, and prioritized for the right team. 1.0Intake→ Backlog8 ENG 2085 Reduce UI flicker during ..."
+        },
+        {
+          "title": "Changelog Multi level sub teams\\\\ \\\\ Structure your teams in Linear to match how",
+          "score": 9,
+          "url": "https://linear.app/",
+          "excerpt": "Changelog Multi level sub teams\\\\ \\\\ Structure your teams in Linear to match how your organization works.\\\\ \\\\ Apr 8, 2026 Web forms for Linear Asks\\\\ \\\\ Linear Asks allows you to capture internal requests and bring t..."
+        },
+        {
+          "title": "Reawaken your product velocity Where legacy tools add process, Linear creates pr",
+          "score": 9,
+          "url": "https://linear.app/enterprise",
+          "excerpt": "Reawaken your product velocity Where legacy tools add process, Linear creates progress. Purpose built workflows keep product teams lean and focused, replacing coordination overhead with fast execution. 4.5x Increase i..."
+        }
+      ],
+      "recommendedLayoutMode": "audit-summary",
+      "recommendedBlocks": [
+        "audit-summary",
+        "ranked-signals",
+        "build-next-cta"
+      ],
+      "heroSupportLine": "The strongest live signal for Linear is the productdevelopmentsystem for teamsand agentsthe product development system for teams and agentsthe product development system for teams and agents purpose built for planning and building products. designed for the...",
+      "proofLine": "Linear has a clear proof angle: The productdevelopmentsystem for teamsand agentsThe product development system for teams and agentsThe product development system for teams and agents Purpose built for planning and building products. Designed for the...",
+      "ctaSupportLine": "Best close path: use autonomous as the next step because The productdevelopmentsystem for teamsand agentsThe product development system for teams and agentsThe product development system for teams and agents Purpose built for planning and building products. Designed for the...",
+      "buildNextBullets": [
+        "Lead with proof for Linear: The productdevelopmentsystem for teamsand agentsThe product development system for teams and agentsThe product development system for teams and agents Purpose built for planning and building products. Designed for the...",
+        "Neutralize the main friction point: The productdevelopmentsystem for teamsand agentsThe product development system for teams and agentsThe product development system for teams and agents Purpose built for planning and building products. Designed for the...",
+        "Use the autonomous path as the close because The productdevelopmentsystem for teamsand agentsThe product development system for teams and agentsThe product development system for teams and agents Purpose built for planning and building products. Designed for the..."
+      ],
+      "confidence": "medium",
+      "notes": [
+        "crawl status: completed",
+        "documents analyzed: 3",
+        "chunks ranked: 23"
+      ]
+    },
+    {
+      "url": "https://www.charitywater.org",
+      "slug": "charity-water",
+      "businessName": "charity: water",
+      "industry": "Institution / nonprofit",
+      "topSignals": [
+        {
+          "title": "Other Ways to Give Donate by Check Make checks payable to charity: water",
+          "score": 5,
+          "url": "https://www.charitywater.org/",
+          "excerpt": "Other Ways to Give Donate by Check Make checks payable to charity: water. If you're donating in honor of someone, sponsoring a water project or want to direct your donation to our operating costs, please write that in..."
+        },
+        {
+          "title": "Know that your donation is making a difference charity: water uses 100% of your",
+          "score": 5,
+          "url": "https://www.charitywater.org/",
+          "excerpt": "Know that your donation is making a difference charity: water uses 100% of your donation to fund clean water around the world and then proves every single project you fund, complete with GPS coordinates and photos. Gi..."
+        },
+        {
+          "title": "Ready to take action? There are lots of great ways to help us end the global wat",
+          "score": 5,
+          "url": "https://www.charitywater.org/",
+          "excerpt": "Ready to take action? There are lots of great ways to help us end the global water crisis. Take action today, and change lives. Give clean water every month A gift of just $20 a month is enough to bring 6 people — an ..."
+        },
+        {
+          "title": "Together, we can end the water crisis Since charity: water was founded in 2006,",
+          "score": 5,
+          "url": "https://www.charitywater.org/about",
+          "excerpt": "Together, we can end the water crisis Since charity: water was founded in 2006, we’ve been chasing one ambitious goal: ending the global water crisis. And while the water crisis is huge, we’re optimistic. We know how ..."
+        },
+        {
+          "title": "You have our word—and more When charity: water began, we made a bold promise: 10",
+          "score": 5,
+          "url": "https://www.charitywater.org/about",
+          "excerpt": "You have our word—and more When charity: water began, we made a bold promise: 100% of public donations would go directly to fund clean water projects. Private donors cover our operating costs so 100% of your money can..."
+        }
+      ],
+      "recommendedLayoutMode": "audit-summary",
+      "recommendedBlocks": [
+        "audit-summary",
+        "ranked-signals",
+        "build-next-cta"
+      ],
+      "heroSupportLine": "The strongest live signal for charity: water is other ways to give donate by check make checks payable to charity: water. if you're donating in honor of someone, sponsoring a water project or want to direct your donation to our operating costs, please write that in...",
+      "proofLine": "charity: water has a clear proof angle: Other Ways to Give Donate by Check Make checks payable to charity: water. If you're donating in honor of someone, sponsoring a water project or want to direct your donation to our operating costs, please write that in...",
+      "ctaSupportLine": "Best close path: use autonomous as the next step because Other Ways to Give Donate by Check Make checks payable to charity: water. If you're donating in honor of someone, sponsoring a water project or want to direct your donation to our operating costs, please write that in...",
+      "buildNextBullets": [
+        "Lead with proof for charity: water: Other Ways to Give Donate by Check Make checks payable to charity: water. If you're donating in honor of someone, sponsoring a water project or want to direct your donation to our operating costs, please write that in...",
+        "Neutralize the main friction point: Other Ways to Give Donate by Check Make checks payable to charity: water. If you're donating in honor of someone, sponsoring a water project or want to direct your donation to our operating costs, please write that in...",
+        "Use the autonomous path as the close because Other Ways to Give Donate by Check Make checks payable to charity: water. If you're donating in honor of someone, sponsoring a water project or want to direct your donation to our operating costs, please write that in..."
+      ],
+      "confidence": "low",
+      "notes": [
+        "crawl status: completed",
+        "documents analyzed: 3",
+        "chunks ranked: 17"
+      ]
+    }
+  ]
+}

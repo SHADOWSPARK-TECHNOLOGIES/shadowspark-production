@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Lead {
+  id             String    @id @default(cuid())
+  phoneNumber    String    @unique
+  intent         String?
+  status         String
+  leadScore      Int?
+  lastMessage    String?
+  nextFollowUpAt DateTime?
+  metadata       Json?
+  termsAccepted  Boolean   @default(false)
+  miniAuditData  Json?
+  paymentRef     String?
+  demoApproved   Boolean   @default(false)
+  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime  @default(now())
+  payments       Payment[]
+  demo           Demo?
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  password  String
+  role      String?  @default("user")
+  createdAt DateTime @default(now())
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  amount        Int
+  status        String   @default("pending")
+  reference     String   @unique
+  leadId        String
+  lead          Lead     @relation(fields: [leadId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Demo {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  leadId        String   @unique
+  lead          Lead     @relation(fields: [leadId], references: [id])
+  config        Json?
+  approved      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SystemEvent {
+  id        String   @id @default(cuid())
+  type      String
+  message   String
+  digest    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
+
+model SniperTarget {
+  id              String   @id @default(cuid())
+  source          String   // 'apollo', 'builtwith', 'linkedin', 'local', 'manual'
+  domain          String
+  companyName     String
+  firstName       String?
+  email           String?
+  linkedinUrl     String?
+  signal          String?
+  status          String   @default("new") // 'new', 'analyzing', 'draft_ready', 'fired', 'dead_link'
+  generatedDraft  String?  @db.Text
+  draftEmail      String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([domain])
+  @@index([status])
+}

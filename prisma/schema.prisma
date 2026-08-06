@@ -1,0 +1,396 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma/client"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [vector]
+}
+
+model Lead {
+  id             String       @id @default(cuid())
+  phoneNumber    String?      @unique
+  email          String?      @unique
+  intent         String?
+  status         String
+  leadScore      Int?
+  tier           String?
+  lastMessage    String?
+  nextFollowUpAt DateTime?
+  metadata       Json?
+  termsAccepted  Boolean      @default(false)
+  miniAuditData  Json?
+  paymentRef     String?
+  demoApproved   Boolean      @default(false)
+  demoScheduled  Boolean      @default(false)
+  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime     @default(now())
+  demo           Demo?
+  emailEvents    EmailEvent[]
+  payments       Payment[]
+}
+
+model User {
+  id                   String                @id @default(cuid())
+  name                 String?
+  email                String                @unique
+  password             String
+  role                 String?               @default("user")
+  createdAt            DateTime              @default(now())
+  verificationLevel    String                @default("NONE")
+  referralCode         String?               @unique
+  referredBy           String?
+  suspended            Boolean               @default(false)
+  suspendedAt          DateTime?
+  passkeys             Passkey[]
+  verificationRequests VerificationRequest[]
+  referralsGiven       Referral[]            @relation("referralsGiven")
+  referralsReceived    Referral[]            @relation("referralsReceived")
+  oauthAccounts        OAuthAccount[]
+}
+
+model Passkey {
+  id           String    @id @default(cuid())
+  userId       String
+  credentialId String    @unique
+  publicKey    String
+  counter      BigInt    @default(0)
+  deviceType   String?
+  transports   String?
+  backedUp     Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+  user         User      @relation(fields: [userId], references: [id])
+
+  @@map("passkeys")
+}
+
+/// Server-side WebAuthn challenge store.
+/// Challenges are generated during options phase, validated during
+/// verification phase, and invalidated (deleted) after single use.
+/// This prevents replay attacks where an intercepted challenge is
+/// reused for a different ceremony or by a different party.
+model WebAuthnChallenge {
+  id        String    @id @default(cuid())
+  userId    String
+  challenge String    @unique
+  type      String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  usedAt    DateTime?
+
+  @@index([userId, challenge])
+  @@index([expiresAt])
+  @@map("webauthn_challenges")
+}
+
+model TokenizedAsset {
+  id              String        @id @default(cuid())
+  assetType       String
+  name            String
+  location        String?
+  totalShares     Int
+  availableShares Int
+  pricePerShare   Decimal       @db.Decimal(19, 4)
+  currency        String        @default("NGN")
+  metadata        Json?
+  status          String        @default("ACTIVE")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  tokenHolders    TokenHolder[]
+
+  @@map("tokenized_assets")
+}
+
+model TokenHolder {
+  id               String         @id @default(cuid())
+  tokenizedAssetId String
+  leadId           String?
+  shares           Int
+  purchasePrice    Decimal        @db.Decimal(19, 4)
+  totalPaid        Decimal        @db.Decimal(19, 4)
+  transactionId    String?
+  purchasedAt      DateTime       @default(now())
+  tokenizedAsset   TokenizedAsset @relation(fields: [tokenizedAssetId], references: [id])
+
+  @@map("token_holders")
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  amount    Int
+  status    String   @default("pending")
+  reference String   @unique
+  leadId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lead      Lead     @relation(fields: [leadId], references: [id])
+}
+
+model Demo {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  leadId    String   @unique
+  config    Json?
+  approved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lead      Lead     @relation(fields: [leadId], references: [id])
+}
+
+model SystemEvent {
+  id        String   @id @default(cuid())
+  type      String
+  message   String
+  digest    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
+
+model SniperTarget {
+  id             String    @id @default(cuid())
+  source         String
+  domain         String
+  companyName    String
+  firstName      String?
+  email          String?
+  linkedinUrl    String?
+  signal         String?
+  status         String    @default("new")
+  generatedDraft String?
+  draftEmail     String?
+  sentAt         DateTime?
+  lastAttemptAt  DateTime?
+  attemptCount   Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([domain])
+  @@index([status])
+}
+
+model EmailEvent {
+  id        String   @id @default(cuid())
+  leadId    String
+  type      String
+  metadata  Json?
+  createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id])
+}
+
+model KnowledgeEmbedding {
+  id        String                @id @default(cuid())
+  source    String
+  url       String?
+  embedding Unsupported("vector")
+  createdAt DateTime              @default(now())
+  updatedAt DateTime              @updatedAt
+  chunkId   Int                   @unique
+  text      String
+  type      String
+  metadata  Json?
+}
+
+model Embedding {
+  id        String   @id @default(cuid())
+  content   String
+  embedding Float[]
+  source    String
+  type      String
+  createdAt DateTime @default(now())
+}
+
+/// Chart of Accounts — types: WALLET (asset), CLEARING (liability),
+/// INCOME (revenue), EXPENSE (cost), EQUITY (capital).
+model Account {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  currency  String   @default("NGN")
+  createdAt DateTime @default(now())
+  entries   Entry[]
+}
+
+/// A single double-entry transaction. Every transaction
+/// must have balanced entries (sum debits = sum credits).
+/// State machine: PENDING → POSTED, PENDING → REVERSED, POSTED → REVERSED.
+model LedgerTransaction {
+  id             String             @id @default(cuid())
+  userId         String
+  reference      String             @unique
+  idempotencyKey String             @unique
+  createdAt      DateTime           @default(now())
+  postedAt       DateTime?
+  description    String?
+  state          String             @default("PENDING")
+  updatedAt      DateTime           @updatedAt
+  entries        Entry[]
+  idempotency    LedgerIdempotency?
+}
+
+/// Real-estate listing / property record with trust verification.
+model Listing {
+  id                 String           @id @default(cuid())
+  title              String
+  description        String?
+  price              Decimal          @db.Decimal(19, 4)
+  currency           String           @default("NGN")
+  location           String?
+  propertyType       String?
+  status             String           @default("ACTIVE")
+  riskState          String           @default("UNVERIFIED")
+  truthIndex         Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  verificationStatus String           @default("PENDING_VERIFICATION")
+  verifiedAt         DateTime?
+  verifiedBy         String?
+  active             Boolean          @default(true)
+  suspendedAt        DateTime?
+  suspendReason      String?
+  expiresAt          DateTime?
+  reminderSent       Boolean          @default(false)
+  ownerId            String?
+  trustComponents    TrustComponent[]
+  fraudFlags         FraudFlag[]      @relation("listingFlags")
+
+  @@map("listings")
+}
+
+/// Individual trust verification component for a listing.
+/// Each component is a verifiable fact (e.g. title document verified).
+model TrustComponent {
+  id           String   @id @default(cuid())
+  listingId    String
+  componentKey String
+  label        String
+  weight       Int      @default(0)
+  passed       Boolean  @default(false)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  listing      Listing  @relation(fields: [listingId], references: [id])
+
+  @@unique([listingId, componentKey])
+  @@map("trust_components")
+}
+
+/// Individual entry leg. Each entry carries either a debit
+/// amount (positive) or a credit amount (positive). For any
+/// transaction, Σ(debits) must equal Σ(credits).
+model Entry {
+  id            String            @id @default(cuid())
+  transactionId String
+  accountId     String
+  createdAt     DateTime          @default(now())
+  credit        BigInt            @default(0)
+  currency      String            @default("NGN")
+  debit         BigInt            @default(0)
+  description   String?
+  account       Account           @relation(fields: [accountId], references: [id])
+  transaction   LedgerTransaction @relation(fields: [transactionId], references: [id])
+}
+
+/// Optional dedicated table for idempotency lookups.
+/// Avoids scanning LedgerTransaction for retried operations.
+model LedgerIdempotency {
+  id             String            @id @default(cuid())
+  idempotencyKey String            @unique
+  transactionId  String            @unique
+  createdAt      DateTime          @default(now())
+  transaction    LedgerTransaction @relation(fields: [transactionId], references: [id])
+}
+
+/// KYC / identity verification request submitted by a landlord or agent.
+/// type values: NIN | BVN | CAC | UTILITY_BILL
+/// status values: PENDING | APPROVED | REJECTED
+model VerificationRequest {
+  id              String    @id @default(cuid())
+  userId          String
+  type            String
+  documentUrl     String?
+  status          String    @default("PENDING")
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  rejectionReason String?
+  notes           String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@index([status])
+  @@map("verification_requests")
+}
+
+/// Immutable audit log for all admin state-change actions.
+model AdminAction {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  targetType String
+  targetId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([adminId])
+  @@index([targetType, targetId])
+  @@map("admin_actions")
+}
+
+/// Fraud flag — created by admin or by user report.
+/// targetType values: LISTING | USER
+/// severity values: LOW | MEDIUM | HIGH | CRITICAL
+/// status values: OPEN | INVESTIGATING | RESOLVED | DISMISSED
+model FraudFlag {
+  id         String    @id @default(cuid())
+  targetType String
+  targetId   String
+  severity   String    @default("MEDIUM")
+  reason     String
+  reportedBy String?
+  status     String    @default("OPEN")
+  resolution String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  listing    Listing?  @relation("listingFlags", fields: [targetId], references: [id], map: "fraud_flag_listing_fk")
+
+  @@index([targetType, targetId])
+  @@index([status])
+  @@map("fraud_flags")
+}
+
+/// Referral tracking — one record per successful referral pair.
+/// status values: PENDING | COMPLETED
+model Referral {
+  id             String    @id @default(cuid())
+  referrerId     String
+  referredUserId String
+  status         String    @default("PENDING")
+  reward         Int?
+  createdAt      DateTime  @default(now())
+  referrer       User      @relation("referralsGiven", fields: [referrerId], references: [id])
+  referred       User      @relation("referralsReceived", fields: [referredUserId], references: [id])
+
+  @@unique([referrerId, referredUserId])
+  @@index([referrerId])
+  @@map("referrals")
+}
+
+/// OAuth provider account linked to a User.
+/// Allows the same user to sign in with GitHub, Google, and WebAuthn/password.
+/// provider values: "github" | "google"
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_accounts")
+}

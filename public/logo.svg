@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" width="960" height="320" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">ShadowSpark logo</title>
+  <desc id="logoDesc">ShadowSpark wordmark with a cyan SS monogram on an obsidian background.</desc>
+  <rect width="960" height="320" rx="40" fill="#0A0A0A" />
+  <g opacity="0.32">
+    <path d="M80 96H880" stroke="#13232A" stroke-width="1" />
+    <path d="M80 160H880" stroke="#13232A" stroke-width="1" />
+    <path d="M80 224H880" stroke="#13232A" stroke-width="1" />
+    <path d="M208 48V272" stroke="#13232A" stroke-width="1" />
+    <path d="M464 48V272" stroke="#13232A" stroke-width="1" />
+    <path d="M720 48V272" stroke="#13232A" stroke-width="1" />
+  </g>
+  <g transform="translate(68 52)">
+    <rect x="0" y="0" width="216" height="216" rx="36" fill="#081318" stroke="#17313A" stroke-width="2" />
+    <path d="M49 72C49 55.431 62.431 42 79 42H159V68H92C79.297 68 69 78.297 69 91C69 103.703 79.297 114 92 114H125C151.51 114 173 135.49 173 162C173 188.51 151.51 210 125 210H49V184H112C124.703 184 135 173.703 135 161C135 148.297 124.703 138 112 138H79C52.49 138 31 116.51 31 90C31 83.609 32.246 77.51 34.509 71.93" fill="none" stroke="#00E5FF" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M183 34L196 58L220 71L196 84L183 108L170 84L146 71L170 58L183 34Z" fill="#00E5FF" />
+    <circle cx="33" cy="33" r="4" fill="#00E5FF" opacity="0.85" />
+    <circle cx="183" cy="182" r="4" fill="#00E5FF" opacity="0.55" />
+  </g>
+  <g fill="#00E5FF">
+    <text x="336" y="148" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="74" font-weight="700" letter-spacing="1.5">ShadowSpark</text>
+    <text x="338" y="196" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="17" font-weight="600" letter-spacing="5" opacity="0.78">INFRASTRUCTURE FOR AUTONOMOUS GROWTH</text>
+  </g>
+</svg>

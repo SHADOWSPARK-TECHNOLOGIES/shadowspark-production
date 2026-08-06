@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="darkLogoTitle darkLogoDesc">
+  <title id="darkLogoTitle">ShadowSpark dark logo</title>
+  <desc id="darkLogoDesc">A compact ShadowSpark SS monogram in spark cyan on an obsidian background.</desc>
+  <rect width="512" height="512" rx="108" fill="#0A0A0A" />
+  <rect x="40" y="40" width="432" height="432" rx="88" fill="#091318" stroke="#16323A" stroke-width="4" />
+  <g opacity="0.35">
+    <path d="M112 172H400" stroke="#17313A" stroke-width="2" />
+    <path d="M112 256H400" stroke="#17313A" stroke-width="2" />
+    <path d="M112 340H400" stroke="#17313A" stroke-width="2" />
+    <path d="M172 112V400" stroke="#17313A" stroke-width="2" />
+    <path d="M256 112V400" stroke="#17313A" stroke-width="2" />
+    <path d="M340 112V400" stroke="#17313A" stroke-width="2" />
+  </g>
+  <path d="M160 182C160 151.072 185.072 126 216 126H338V168H241C218.909 168 201 185.909 201 208C201 230.091 218.909 248 241 248H273C318.84 248 356 285.16 356 331C356 376.84 318.84 414 273 414H160V372H247C269.091 372 287 354.091 287 332C287 309.909 269.091 292 247 292H216C170.16 292 133 254.84 133 209C133 198.087 135.109 187.666 139.019 178.135" fill="none" stroke="#00E5FF" stroke-width="36" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M364 97L381 129L413 146L381 163L364 195L347 163L315 146L347 129L364 97Z" fill="#00E5FF" />
+  <circle cx="130" cy="132" r="8" fill="#00E5FF" opacity="0.9" />
+  <circle cx="384" cy="374" r="8" fill="#00E5FF" opacity="0.6" />
+</svg>

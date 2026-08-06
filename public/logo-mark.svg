@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-labelledby="markTitle markDesc">
+  <title id="markTitle">ShadowSpark mark</title>
+  <desc id="markDesc">ShadowSpark SS monogram mark in spark cyan on an obsidian background.</desc>
+  <rect width="512" height="512" rx="112" fill="#0A0A0A" />
+  <rect x="40" y="40" width="432" height="432" rx="88" fill="#091318" stroke="#16323A" stroke-width="4" />
+  <g opacity="0.34">
+    <path d="M104 168H408" stroke="#16323A" stroke-width="2" />
+    <path d="M104 256H408" stroke="#16323A" stroke-width="2" />
+    <path d="M104 344H408" stroke="#16323A" stroke-width="2" />
+    <path d="M168 104V408" stroke="#16323A" stroke-width="2" />
+    <path d="M256 104V408" stroke="#16323A" stroke-width="2" />
+    <path d="M344 104V408" stroke="#16323A" stroke-width="2" />
+  </g>
+  <path d="M166 182C166 151.072 191.072 126 222 126H342V166H246C223.909 166 206 183.909 206 206C206 228.091 223.909 246 246 246H278C323.84 246 361 283.16 361 329C361 374.84 323.84 412 278 412H166V372H252C274.091 372 292 354.091 292 332C292 309.909 274.091 292 252 292H222C176.16 292 139 254.84 139 209C139 198.087 141.109 187.666 145.019 178.135" fill="none" stroke="#00E5FF" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M366 95L382 126L413 142L382 158L366 189L350 158L319 142L350 126L366 95Z" fill="#00E5FF" />
+  <circle cx="134" cy="136" r="8" fill="#00E5FF" opacity="0.9" />
+  <circle cx="384" cy="374" r="8" fill="#00E5FF" opacity="0.55" />
+</svg>

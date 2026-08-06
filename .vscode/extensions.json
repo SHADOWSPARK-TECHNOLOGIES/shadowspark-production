@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "dsznajder.es7-react-js-snippets",
+    "PulkitGangwar.nextjs-snippets",
+    "Prisma.prisma",
+    "dbaeumer.vscode-eslint",
+    "heybourn.headwind",
+    "deque-systems.vscode-axe-linter"
+  ]
+}

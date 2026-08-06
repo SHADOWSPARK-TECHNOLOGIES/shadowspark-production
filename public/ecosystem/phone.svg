@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-labelledby="phoneTitle phoneDesc">
+  <title id="phoneTitle">Phone placeholder</title>
+  <desc id="phoneDesc">Spark cyan phone routing placeholder icon.</desc>
+  <rect width="128" height="128" rx="28" fill="#0A0A0A" />
+  <path d="M42 30H56L62 46L54 56C59.4 67.6 68.4 76.6 80 82L90 74L106 80V94C106 100.627 100.627 106 94 106C57.549 106 28 76.451 28 40C28 33.373 33.373 28 40 28H42" fill="none" stroke="#00E5FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

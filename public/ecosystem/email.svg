@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-labelledby="emailTitle emailDesc">
+  <title id="emailTitle">Email placeholder</title>
+  <desc id="emailDesc">Spark cyan email layer placeholder icon.</desc>
+  <rect width="128" height="128" rx="28" fill="#0A0A0A" />
+  <rect x="24" y="36" width="80" height="56" rx="10" fill="none" stroke="#00E5FF" stroke-width="8" />
+  <path d="M30 42L64 68L98 42" fill="none" stroke="#00E5FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

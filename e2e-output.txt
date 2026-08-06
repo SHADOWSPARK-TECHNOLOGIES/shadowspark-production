@@ -1,0 +1,54 @@
+==================================================
+   SHADOWSPARK E2E REVENUE LOOP VERIFICATION
+==================================================
+
+[1] Preparing Test Lead: wonderstevie702@gmail.com
+   -> Lead Ready. ID: cmo8pcp2g0000vl7rooo4xqfl
+
+[2] Sending Controlled Outreach Payload...
+   -> Email Dispatched. ID: simulated
+
+[3] Simulating Webhook Engagement (Open & Clicks)...
+[SCORING ENGINE] Lead cmo8pcp2g0000vl7rooo4xqfl engagement processed. Score: 1 | Tier: starter | Status: NEW
+[SCORING ENGINE] Lead cmo8pcp2g0000vl7rooo4xqfl engagement processed. Score: 6 | Tier: starter | Status: NEW
+[SCORING ENGINE] Lead cmo8pcp2g0000vl7rooo4xqfl engagement processed. Score: 21 | Tier: starter | Status: NEW
+
+[4] Verifying Database State Updates...
+   -> Lead Score: 21 (Expected ~16: +1 open, +5 click, +10 bonus)
+   -> Tier: starter
+   -> Status: NEW
+   -> Logged Tracking Events: 5
+
+[5] Triggering Autonomous Follow-Up Engine...
+[FOLLOW-UP] Processing lead: wonderstevie702@gmail.com (Score: 21)
+[FOLLOW-UP ERROR] LoadAPIKeyError [AI_LoadAPIKeyError]: Google Generative AI API key is missing. Pass it using the 'apiKey' parameter or the GOOGLE_GENERATIVE_AI_API_KEY environment variable.
+    at loadApiKey (/home/shadowweaver/shadowspark-v1-work/node_modules/.pnpm/@ai-sdk+provider-utils@4.0.23_zod@4.3.6/node_modules/@ai-sdk/provider-utils/src/load-api-key.ts:33:11)
+    at getHeaders (/home/shadowweaver/shadowspark-v1-work/node_modules/.pnpm/@ai-sdk+google@3.0.62_zod@4.3.6/node_modules/@ai-sdk/google/src/google-provider.ts:138:27)
+    at resolve (/home/shadowweaver/shadowspark-v1-work/node_modules/.pnpm/@ai-sdk+provider-utils@4.0.23_zod@4.3.6/node_modules/@ai-sdk/provider-utils/src/resolve.ts:12:14)
+    at GoogleGenerativeAILanguageModel.doGenerate (/home/shadowweaver/shadowspark-v1-work/node_modules/.pnpm/@ai-sdk+google@3.0.62_zod@4.3.6/node_modules/@ai-sdk/google/src/google-generative-ai-language-model.ts:258:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async fn (/home/shadowweaver/shadowspark-v1-work/node_modules/.pnpm/ai@6.0.161_zod@4.3.6/node_modules/ai/src/generate-text/generate-text.ts:785:34)
+    at async <anonymous> (/home/shadowweaver/shadowspark-v1-work/node_modules/.pnpm/ai@6.0.161_zod@4.3.6/node_modules/ai/src/telemetry/record-span.ts:32:24)
+    at async _retryWithExponentialBackoff (/home/shadowweaver/shadowspark-v1-work/node_modules/.pnpm/ai@6.0.161_zod@4.3.6/node_modules/ai/src/util/retry-with-exponential-backoff.ts:96:12)
+    at async fn (/home/shadowweaver/shadowspark-v1-work/node_modules/.pnpm/ai@6.0.161_zod@4.3.6/node_modules/ai/src/generate-text/generate-text.ts:740:36)
+    at async <anonymous> (/home/shadowweaver/shadowspark-v1-work/node_modules/.pnpm/ai@6.0.161_zod@4.3.6/node_modules/ai/src/telemetry/record-span.ts:32:24) {
+  cause: undefined,
+  [Symbol(vercel.ai.error)]: true,
+  [Symbol(vercel.ai.error.AI_LoadAPIKeyError)]: true
+}
+   -> Follow-up skipped/failed: AI_LoadAPIKeyError: Google Generative AI API key is missing. Pass it using the 'apiKey' parameter or the GOOGLE_GENERATIVE_AI_API_KEY environment variable.
+   -> Next FollowUp Scheduled For: null
+
+==================================================
+   OBSERVATION SUMMARY
+==================================================
+{
+  "leadCreated": true,
+  "emailSent": true,
+  "finalScore": 21,
+  "finalTier": "starter",
+  "finalStatus": "NEW",
+  "eventCount": 5,
+  "followUpTriggered": false,
+  "nextFollowUpAt": false
+}

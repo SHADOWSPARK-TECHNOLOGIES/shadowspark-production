@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-labelledby="whatsappTitle whatsappDesc">
+  <title id="whatsappTitle">WhatsApp placeholder</title>
+  <desc id="whatsappDesc">Spark cyan WhatsApp layer placeholder icon.</desc>
+  <rect width="128" height="128" rx="28" fill="#0A0A0A" />
+  <path d="M64 24C41.909 24 24 41.909 24 64C24 72.656 26.755 80.669 31.434 87.206L28 104L45.339 100.526C50.736 103.69 57.011 105.5 64 105.5C86.091 105.5 104 87.591 104 65.5C104 43.409 86.091 24 64 24Z" fill="none" stroke="#00E5FF" stroke-width="8" stroke-linejoin="round" />
+  <path d="M50 50C50 61.046 58.954 70 70 70M69 46L77 54M60 71L50 81" fill="none" stroke="#00E5FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

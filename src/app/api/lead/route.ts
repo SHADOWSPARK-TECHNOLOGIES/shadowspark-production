@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { createLead } from '@/lib/lead-service';
+import { handleCorsPreflight, withCors } from '@/lib/cors';
 
 const upstashRedis =
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
@@ -56,24 +57,20 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await createLead({ email, metadata });
-    return NextResponse.json(result, { status: 200 });
+    return withCors(NextResponse.json(result, { status: 200 }), request, 'POST, OPTIONS');
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
+    return withCors(
+      NextResponse.json(
+        { error: message },
+        { status: 500 }
+      ),
+      request,
+      'POST, OPTIONS'
     );
   }
 }
 
-// Optional: support OPTIONS for CORS if needed
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+export async function OPTIONS(request: Request) {
+  return handleCorsPreflight(request, 'POST, OPTIONS');
 }

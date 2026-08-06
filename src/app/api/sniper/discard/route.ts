@@ -7,6 +7,9 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get("authorization");
+    if (!authHeader || authHeader === "Bearer undefined" || authHeader === "Bearer null") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (authHeader !== `Bearer ${process.env.MOBILE_OPERATOR_KEY}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

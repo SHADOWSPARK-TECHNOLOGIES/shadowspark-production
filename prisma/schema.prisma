@@ -394,3 +394,123 @@ model OAuthAccount {
   @@index([userId])
   @@map("oauth_accounts")
 }
+
+// ─── Fintech API Models ────────────────────────────────────────────────────
+
+model Tenant {
+  id               String             @id @default(cuid())
+  name             String
+  companyName      String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  users            TenantMembership[]
+  loanApplications LoanApplication[]
+  kycDocuments     KycDocument[]
+  messages         Message[]
+  auditLogs        AuditLog[]
+  idempotencyKeys  IdempotencyKey[]
+
+  @@map("tenants")
+}
+
+model TenantMembership {
+  id       String @id @default(cuid())
+  tenantId String
+  userId   String
+  role     String @default("MEMBER")
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@map("tenant_memberships")
+}
+
+model LoanApplication {
+  id             String        @id @default(cuid())
+  tenantId       String
+  applicantName  String
+  applicantPhone String
+  loanAmount     Decimal       @db.Decimal(15, 2)
+  loanPurpose    String?
+  status         String        @default("SUBMITTED")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kycDocuments   KycDocument[]
+  messages       Message[]
+  auditLogs      AuditLog[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("loan_applications")
+}
+
+model KycDocument {
+  id             String          @id @default(cuid())
+  tenantId       String
+  loanApplicationId String
+  type           String
+  status         String          @default("PENDING")
+  fileUrl        String?
+  fileHash       String?
+  ocrData        Json?
+  reviewedById   String?
+  reviewedAt     DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  loanApplication LoanApplication @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("kyc_documents")
+}
+
+model Message {
+  id                String          @id @default(cuid())
+  tenantId          String
+  loanApplicationId String
+  channel           String
+  direction         String          @default("OUTBOUND")
+  status            String          @default("SENT")
+  content           String
+  senderId          String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  loanApplication   LoanApplication @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, loanApplicationId, channel])
+  @@map("messages")
+}
+
+model AuditLog {
+  id                String           @id @default(cuid())
+  tenantId          String
+  loanApplicationId String?
+  action            String
+  metadata          Json?
+  actorId           String?
+  createdAt         DateTime         @default(now())
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  loanApplication   LoanApplication? @relation(fields: [loanApplicationId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, loanApplicationId])
+  @@map("audit_logs")
+}
+
+model IdempotencyKey {
+  id         String   @id @default(cuid())
+  tenantId   String
+  key        String
+  statusCode Int
+  response   Json
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId, key])
+  @@map("idempotency_keys")
+}

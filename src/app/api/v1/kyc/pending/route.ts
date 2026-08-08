@@ -6,11 +6,10 @@ import { getPendingKyc } from "@/lib/api/v1/kyc-service";
 const METHODS = "GET, OPTIONS";
 
 export async function GET(request: Request) {
-  const authResult = await requireAuthContext(request);
-  if (!authResult.ok) return withCors(authResult.response, request, METHODS);
-
+  const auth = await requireAuthContext(request);
+  if (!auth.ok) return withCors(auth.response, request, METHODS);
   try {
-    const data = await getPendingKyc(authResult.context.tenantId);
+    const data = await getPendingKyc(auth.context.tenantId);
     return withCors(successResponse(data), request, METHODS);
   } catch {
     return withCors(errorResponse(500, "INTERNAL_ERROR", "Failed to fetch pending KYC"), request, METHODS);

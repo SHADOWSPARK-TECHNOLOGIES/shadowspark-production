@@ -65,10 +65,10 @@ export async function POST(req: NextRequest) {
       create: {
         id: "audit_seed_1",
         tenantId: tenant.id,
-        userId: user.id,
+        actorId: user.id,
         action: "LOAN_CREATED",
-        entityType: "LoanApplication",
-        entityId: loans[0].id,
+        loanApplicationId: loans[0].id,
+        metadata: { event: "seed" },
       },
       update: {},
     });

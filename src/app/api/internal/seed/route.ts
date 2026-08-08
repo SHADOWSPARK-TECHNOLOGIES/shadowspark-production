@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 
 // One-time seed endpoint — DELETE this file after running once
 export async function POST(req: NextRequest) {
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
           tenantId: tenant.id,
           applicantName: `Applicant ${i}`,
           applicantPhone: `+2348${String(i).padStart(9, "0")}`,
-          loanAmount: new (await import("@prisma/client")).Prisma.Decimal(50000 * i),
+          loanAmount: new Prisma.Decimal(50000 * i),
           loanPurpose: "Business expansion",
           status: statuses[i % statuses.length],
         },

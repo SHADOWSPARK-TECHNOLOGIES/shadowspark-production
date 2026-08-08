@@ -18,3 +18,10 @@ You are the Lead Systems Architect for the ShadowSpark Enterprise Fintech platfo
 - ORM: Prisma + Neon PostgreSQL.
 - Validation: Zod for all API inputs.
 - Background Jobs: BullMQ + Redis.
+
+## DATA SPECIALIZATION (NON-NEGOTIABLE)
+- Money = Prisma Decimal, never Float. Dates = ISO strings.
+- Seeds must be idempotent (upsert by slug/email), tenant-scoped, NO real BVN/NIN/phones.
+- Nigerian realism: names across Yoruba/Igbo/Hausa, +234 phones, ₦50k–₦5M.
+- VERIFY via the shadowspark-db MCP datasource (SELECT counts) before reporting success.
+- Never assume a table has data. Query it.

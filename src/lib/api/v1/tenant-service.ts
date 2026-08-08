@@ -13,7 +13,7 @@ export interface TenantProfile {
 export async function getTenantProfile(userId: string): Promise<TenantProfile> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, createdAt: true, updatedAt: true },
+    select: { id: true, name: true, createdAt: true },
   });
 
   return {
@@ -21,7 +21,7 @@ export async function getTenantProfile(userId: string): Promise<TenantProfile> {
     name: user?.name ?? "My Organisation",
     companyName: user?.name ?? "My Organisation",
     createdAt: user?.createdAt.toISOString() ?? new Date().toISOString(),
-    updatedAt: user?.updatedAt?.toISOString() ?? new Date().toISOString(),
+    updatedAt: user?.createdAt.toISOString() ?? new Date().toISOString(),
     stats: { users: 1, loans: 5, kycDocuments: 3 },
   };
 }

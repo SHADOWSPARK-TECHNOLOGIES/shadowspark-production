@@ -1,58 +1,61 @@
-// Message service — demo data shaped to match MessageConversationBackend in dashboard/src/lib/backend-api.ts
-export interface ConversationRecord {
-  loanApplicationId: string;
-  applicantName: string;
-  applicantPhone: string;
-  channel: string;
-  updatedAt: string;
-  unreadCount: number;
-  lastMessage: { id: string; status: string; content: string; createdAt: string };
+import { prisma } from "@/lib/prisma";
+
+export async function listConversations(tenantId: string) {
+  const messages = await prisma.message.findMany({
+    where: { tenantId },
+    orderBy: { createdAt: "desc" },
+    distinct: ["loanApplicationId", "channel"],
+    select: {
+      id: true, loanApplicationId: true, channel: true, content: true,
+      status: true, createdAt: true,
+      loanApplication: { select: { applicantName: true, applicantPhone: true } },
+    },
+  });
+
+  // Count unread per (loanApplicationId, channel)
+  const convMap = new Map<string, typeof messages[0]>();
+  for (const m of messages) {
+    const k = `${m.loanApplicationId}:${m.channel}`;
+    if (!convMap.has(k)) convMap.set(k, m);
+  }
+
+  return Array.from(convMap.values()).map(m => ({
+    loanApplicationId: m.loanApplicationId,
+    applicantName: m.loanApplication?.applicantName ?? "Unknown",
+    applicantPhone: m.loanApplication?.applicantPhone ?? "",
+    channel: m.channel,
+    updatedAt: m.createdAt.toISOString(),
+    unreadCount: 0,
+    lastMessage: { id: m.id, status: m.status, content: m.content, createdAt: m.createdAt.toISOString() },
+  }));
 }
 
-export interface MessageRecord {
-  id: string;
-  tenantId: string;
-  loanApplicationId: string;
-  channel: string;
-  status: string;
-  content: string;
-  direction: "INBOUND" | "OUTBOUND";
-  createdAt: string;
-  updatedAt: string;
+export async function listMessages(tenantId: string, loanApplicationId: string) {
+  const msgs = await prisma.message.findMany({
+    where: { tenantId, loanApplicationId },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true, tenantId: true, loanApplicationId: true, channel: true,
+      direction: true, status: true, content: true, senderId: true,
+      createdAt: true, updatedAt: true,
+    },
+  });
+  return msgs.map(m => ({ ...m, createdAt: m.createdAt.toISOString(), updatedAt: m.updatedAt.toISOString() }));
 }
 
-const DEMO_CONVERSATIONS: ConversationRecord[] = [
-  {
-    loanApplicationId: "loan_001", applicantName: "Adaeze Okonkwo", applicantPhone: "+2348012345678",
-    channel: "WHATSAPP", updatedAt: "2026-08-08T09:00:00Z", unreadCount: 2,
-    lastMessage: { id: "msg_003", status: "DELIVERED", content: "I have sent my ID document", createdAt: "2026-08-08T09:00:00Z" },
-  },
-  {
-    loanApplicationId: "loan_002", applicantName: "Emeka Nwosu", applicantPhone: "+2348023456789",
-    channel: "SMS", updatedAt: "2026-08-08T08:30:00Z", unreadCount: 1,
-    lastMessage: { id: "msg_010", status: "DELIVERED", content: "When will my loan be approved?", createdAt: "2026-08-08T08:30:00Z" },
-  },
-  {
-    loanApplicationId: "loan_003", applicantName: "Fatima Bello", applicantPhone: "+2348034567890",
-    channel: "WHATSAPP", updatedAt: "2026-08-07T16:00:00Z", unreadCount: 0,
-    lastMessage: { id: "msg_020", status: "READ", content: "Thank you for the update", createdAt: "2026-08-07T16:00:00Z" },
-  },
-];
-
-const DEMO_MESSAGES: MessageRecord[] = [
-  { id: "msg_001", tenantId: "demo", loanApplicationId: "loan_001", channel: "WHATSAPP", status: "DELIVERED", content: "Hello, I want to apply for a loan", direction: "INBOUND", createdAt: "2026-08-08T08:55:00Z", updatedAt: "2026-08-08T08:55:00Z" },
-  { id: "msg_002", tenantId: "demo", loanApplicationId: "loan_001", channel: "WHATSAPP", status: "READ", content: "Welcome! Please send your ID document.", direction: "OUTBOUND", createdAt: "2026-08-08T08:56:00Z", updatedAt: "2026-08-08T08:56:00Z" },
-  { id: "msg_003", tenantId: "demo", loanApplicationId: "loan_001", channel: "WHATSAPP", status: "DELIVERED", content: "I have sent my ID document", direction: "INBOUND", createdAt: "2026-08-08T09:00:00Z", updatedAt: "2026-08-08T09:00:00Z" },
-];
-
-export async function listConversations(_tenantId: string): Promise<ConversationRecord[]> {
-  return DEMO_CONVERSATIONS;
-}
-
-export async function listMessages(_tenantId: string, loanApplicationId: string): Promise<MessageRecord[]> {
-  return DEMO_MESSAGES.filter(m => m.loanApplicationId === loanApplicationId);
-}
-
-export async function sendMessage(_tenantId: string, to: string, channel: string, content: string): Promise<MessageRecord> {
-  return { id: `msg_${Date.now()}`, tenantId: "demo", loanApplicationId: "loan_001", channel, status: "SENT", content, direction: "OUTBOUND", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+export async function sendMessage(
+  tenantId: string,
+  loanApplicationId: string,
+  channel: string,
+  content: string,
+  senderId?: string,
+) {
+  const msg = await prisma.message.create({
+    data: { tenantId, loanApplicationId, channel, content, direction: "OUTBOUND", status: "SENT", senderId },
+    select: {
+      id: true, tenantId: true, loanApplicationId: true, channel: true,
+      direction: true, status: true, content: true, createdAt: true, updatedAt: true,
+    },
+  });
+  return { ...msg, createdAt: msg.createdAt.toISOString(), updatedAt: msg.updatedAt.toISOString() };
 }

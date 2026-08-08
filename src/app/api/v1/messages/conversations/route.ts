@@ -6,14 +6,13 @@ import { listConversations } from "@/lib/api/v1/message-service";
 const METHODS = "GET, OPTIONS";
 
 export async function GET(request: Request) {
-  const authResult = await requireAuthContext(request);
-  if (!authResult.ok) return withCors(authResult.response, request, METHODS);
-
+  const auth = await requireAuthContext(request);
+  if (!auth.ok) return withCors(auth.response, request, METHODS);
   try {
-    const conversations = await listConversations(authResult.context.tenantId);
-    return withCors(successResponse(conversations), request, METHODS);
+    const data = await listConversations(auth.context.tenantId);
+    return withCors(successResponse(data), request, METHODS);
   } catch {
-    return withCors(errorResponse(500, "INTERNAL_ERROR", "Failed to fetch message conversations"), request, METHODS);
+    return withCors(errorResponse(500, "INTERNAL_ERROR", "Failed to fetch conversations"), request, METHODS);
   }
 }
 

@@ -8,7 +8,15 @@ import { usePageView } from '@/hooks/useAnalytics';
 import DataTable from '@/components/dashboard/DataTable';
 import Badge from '@/components/dashboard/Badge';
 import ProgressBar from '@/components/dashboard/ProgressBar';
-import StatusBadge from '@/components/dashboard/StatusBadge';
+
+function WorkflowStatusBadge({ status }: { status: string }) {
+  const variantMap: Record<string, 'green' | 'orange' | 'muted'> = {
+    active: 'green',
+    paused: 'orange',
+    draft: 'muted',
+  };
+  return <Badge variant={variantMap[status] ?? 'muted'}>{status}</Badge>;
+}
 import { Button } from '@/components/ui/button';
 
 type WorkflowRow = {
@@ -88,7 +96,7 @@ export default function WorkflowsPage() {
       {
         accessorKey: 'status',
         header: 'Status',
-        cell: ({ row }) => <StatusBadge status={row.original.status} />,
+        cell: ({ row }) => <WorkflowStatusBadge status={row.original.status} />,
       },
       {
         accessorKey: 'lastRun',

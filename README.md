@@ -34,18 +34,30 @@
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/api/health` | Health check |
-| POST | `/api/v1/auth/login` | Returns JWT |
+| GET | `/api/health` | Public health check |
+| POST | `/api/v1/auth/login` | Returns JWT with `userId`, `tenantId`, `role` |
 | GET | `/api/v1/auth/me` | Requires Bearer token |
 | GET | `/api/v1/loans` | Paginated, tenant-scoped |
 | POST | `/api/v1/loans` | Requires `Idempotency-Key` header |
+| PATCH | `/api/v1/loans/:id` | State-machine-enforced; requires `Idempotency-Key` |
+| POST | `/api/v1/loans/:id/assign` | Requires `Idempotency-Key` |
 | GET | `/api/v1/kyc/pending` | KYC queue |
-| POST | `/api/v1/kyc/:id/verify` | Requires `Idempotency-Key` |
+| GET | `/api/v1/kyc/:id` | KYC document detail |
+| POST | `/api/v1/kyc/:id/verify` | Requires `Idempotency-Key`; writes immutable history |
+| POST | `/api/v1/kyc/:id/request-info` | Requires `Idempotency-Key` |
+| POST | `/api/v1/kyc/:id/ocr` | Queues OCR job (non-blocking) |
+| GET | `/api/v1/messages` | Tenant-scoped messages |
 | GET | `/api/v1/messages/conversations` | Conversation list |
-| POST | `/api/v1/messages/send` | Requires `Idempotency-Key` |
-| GET | `/api/v1/tenant` | Tenant profile + stats |
+| POST | `/api/v1/messages/send` | Stores `QUEUED`, requires `Idempotency-Key` |
+| GET | `/api/v1/workflows` | List workflows |
+| POST | `/api/v1/workflows` | Create workflow; requires `Idempotency-Key` |
+| POST | `/api/v1/workflows/:id/execute` | Execute workflow; requires `Idempotency-Key` |
+| POST | `/api/v1/api-keys` | Server-side only; requires `Idempotency-Key` |
+| DELETE | `/api/v1/api-keys/:id` | Revoke API key; requires `Idempotency-Key` |
+| POST | `/api/v1/invitations` | Invite user; requires `Idempotency-Key` |
+| POST | `/api/v1/settings` | Audit-logged settings change; requires `Idempotency-Key` |
 
-All mutation routes require `Idempotency-Key` header (returns 400 if missing).
+All mutation routes require `Idempotency-Key` header (returns 400 if missing). Cross-tenant resource access returns 404.
 
 ---
 
@@ -70,6 +82,27 @@ vercel --prod --yes # deploy to production
 Schema is synced via `prisma db push` (not `migrate deploy`) — production DB has pre-existing tables not tracked by migration history. See `prisma/schema.prisma` for all models.
 
 To seed: run `POST /api/internal/seed` with `x-seed-secret` header (deploy endpoint temporarily, remove after).
+
+---
+
+## Workers
+
+Background workers use BullMQ + Redis:
+
+```bash
+pnpm worker:message   # delivers messages (Twilio or mock provider)
+pnpm worker:kyc-ocr   # processes KYC OCR jobs
+```
+
+---
+
+## Demo
+
+Run the full backend demo (typecheck + tests + endpoint summary):
+
+```bash
+./scripts/demo-backend.sh
+```
 
 ---
 

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { ZodError } from "zod";
 import { handleCorsPreflight, withCors } from "@/lib/cors";
 import { errorResponse, successResponse } from "@/lib/api/http";

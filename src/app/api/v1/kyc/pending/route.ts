@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { handleCorsPreflight, withCors } from "@/lib/cors";
 import { errorResponse, successResponse } from "@/lib/api/http";
 import { requireAuthContext } from "@/lib/api/auth-context";

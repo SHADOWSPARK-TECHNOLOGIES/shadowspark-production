@@ -12,47 +12,16 @@ export async function GET(request: Request) {
   }
 
   try {
-    const [user, tenant] = await Promise.all([
-      prisma.user.findFirst({
-        where: {
-          id: authResult.context.userId,
-          tenantId: authResult.context.tenantId,
-        },
-        select: {
-          id: true,
-          tenantId: true,
-          email: true,
-          firstName: true,
-          lastName: true,
-          role: true,
-        },
-      }),
-      prisma.tenant.findFirst({
-        where: {
-          id: authResult.context.tenantId,
-        },
-        select: {
-          id: true,
-          name: true,
-          companyName: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: {
-            select: {
-              users: true,
-              loanApplications: true,
-              kycDocuments: true,
-            },
-          },
-        },
-      }),
-    ]);
+    const user = await prisma.user.findFirst({
+      where: { id: authResult.context.userId },
+      select: { id: true, email: true, name: true, role: true, createdAt: true },
+    });
 
-    if (!user || !tenant) {
+    if (!user) {
       return withCors(errorResponse(404, "NOT_FOUND", "Authenticated user not found"), request, METHODS);
     }
 
-    return withCors(successResponse({ user, tenant }), request, METHODS);
+    return withCors(successResponse({ user }), request, METHODS);
   } catch {
     return withCors(errorResponse(500, "INTERNAL_ERROR", "Failed to fetch session"), request, METHODS);
   }

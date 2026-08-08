@@ -20,6 +20,8 @@
     "worker:crawl": "tsx src/workers/crawl-worker.ts",
     "worker:lead": "tsx src/workers/lead-worker.ts",
     "worker:sniper": "tsx src/workers/sniper-worker.ts",
+    "worker:message": "tsx src/workers/message-worker.ts",
+    "worker:kyc-ocr": "tsx src/workers/kyc-ocr-worker.ts",
     "engine:crawl": "tsx --env-file=.env scripts/crawl-competitors.ts",
     "engine:embed": "tsx --env-file=.env scripts/generate-embeddings.ts",
     "engine:sync": "npm run engine:crawl && npm run engine:embed",

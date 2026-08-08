@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { handleCorsPreflight, withCors } from "@/lib/cors";
 import { errorResponse, successResponse } from "@/lib/api/http";
 import { requireAuthContext } from "@/lib/api/auth-context";
@@ -21,17 +23,28 @@ export async function GET(request: Request) {
       return withCors(errorResponse(404, "NOT_FOUND", "Authenticated user not found"), request, METHODS);
     }
 
-    // Synthesise tenant shape from user — real Tenant model pending schema migration
-    const tenant = {
-      id: authResult.context.tenantId,
-      name: user.name ?? "My Organisation",
-      companyName: user.name ?? "My Organisation",
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.createdAt.toISOString(),
-      _count: { users: 1, loanApplications: 5, kycDocuments: 3 },
-    };
+    const tenant = await prisma.tenant.findFirst({
+      where: { id: authResult.context.tenantId },
+      include: {
+        _count: { select: { users: true, loanApplications: true, kycDocuments: true } },
+      },
+    });
 
-    return withCors(successResponse({ user, tenant }), request, METHODS);
+    if (!tenant) {
+      return withCors(errorResponse(404, "NOT_FOUND", "Tenant not found"), request, METHODS);
+    }
+
+    return withCors(successResponse({
+      user,
+      tenant: {
+        id: tenant.id,
+        name: tenant.name,
+        companyName: tenant.companyName,
+        createdAt: tenant.createdAt.toISOString(),
+        updatedAt: tenant.updatedAt.toISOString(),
+        _count: tenant._count,
+      },
+    }), request, METHODS);
   } catch {
     return withCors(errorResponse(500, "INTERNAL_ERROR", "Failed to fetch session"), request, METHODS);
   }

@@ -31,9 +31,11 @@ function createRedis(): Redis {
       },
     });
   }
-  return new Redis(redisUrl, {
+  const client = new Redis(redisUrl, {
     maxRetriesPerRequest: null, // Required for BullMQ
   });
+  client.on("error", () => {});
+  return client;
 }
 
 export const redis: Redis = globalForRedis.redis ?? createRedis();

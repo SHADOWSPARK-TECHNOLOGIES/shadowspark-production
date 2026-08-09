@@ -5,6 +5,14 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["cobertura"],
+      reportsDirectory: "./coverage",
+      reportOnFailure: true,
+      include: ["src/**/*.ts"],
+      exclude: ["src/generated/**", "src/**/*.d.ts"],
+    },
   },
   resolve: {
     alias: {
@@ -12,4 +20,3 @@ export default defineConfig({
     },
   },
 });
-

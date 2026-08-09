@@ -24,7 +24,8 @@
     "engine:embed": "tsx --env-file=.env scripts/generate-embeddings.ts",
     "engine:sync": "npm run engine:crawl && npm run engine:embed",
     "seed:hnw": "tsx --env-file=.env scripts/seed-hnw-leads.ts",
-    "seed:rwa": "tsx --env-file=.env scripts/seed-rwa-assets.ts"
+    "seed:rwa": "tsx --env-file=.env scripts/seed-rwa-assets.ts",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@ai-sdk/google": "3.0.62",
@@ -43,6 +44,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
+    "@vitest/coverage-v8": "^3.2.7",
     "@xyflow/react": "^12.11.2",
     "ai": "^6.0.158",
     "bcryptjs": "^3.0.3",
@@ -100,7 +102,8 @@
     "vitest": "^3.2.4",
     "webpack": "5.106.2",
     "webpack-cli": "^7.0.2",
-    "webpack-dev-server": "^5.2.3"
+    "webpack-dev-server": "^5.2.3",
+    "@vitest/coverage-v8": "^3.2.7"
   },
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"

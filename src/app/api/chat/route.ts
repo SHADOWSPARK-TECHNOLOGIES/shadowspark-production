@@ -4,7 +4,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-export const runtime = "edge"; // fast cold starts; remove if you prefer Node runtime
+import { optionalEnv } from "@/lib/env";
+
+export const runtime = "nodejs";
 
 // ── Knowledge base: edit this to change what the bot knows about ShadowSpark ──
 const SYSTEM_PROMPT = `You are the ShadowSpark Technologies assistant — a friendly, concise guide on the company website. Your job is to explain ShadowSpark's services and expertise to visitors and help them figure out if ShadowSpark is a fit for their project.
@@ -46,57 +48,181 @@ interface ChatMessage {
   content: string;
 }
 
+function isChatMessage(value: unknown): value is ChatMessage {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "role" in value &&
+      "content" in value &&
+      (value as { role?: unknown }).role !== undefined &&
+      ((value as { role?: unknown }).role === "user" ||
+        (value as { role?: unknown }).role === "assistant") &&
+      typeof (value as { content?: unknown }).content === "string" &&
+      (value as { content: string }).content.trim() !== ""
+  );
+}
+
+function extractOpenAICompatibleContent(content: unknown): string {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  if (!Array.isArray(content)) {
+    return "";
+  }
+
+  return content
+    .map((part) => {
+      if (
+        part &&
+        typeof part === "object" &&
+        "type" in part &&
+        "text" in part &&
+        (part as { type?: unknown }).type === "text" &&
+        typeof (part as { text?: unknown }).text === "string"
+      ) {
+        return (part as { text: string }).text;
+      }
+
+      return "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function createOpenAICompatibleReply(messages: ChatMessage[]) {
+  const apiKey = optionalEnv("DEEPSEEK_API_KEY");
+  if (!apiKey) {
+    return null;
+  }
+
+  const baseUrl =
+    optionalEnv("DEEPSEEK_BASE_URL") ??
+    "https://generativelanguage.googleapis.com/v1beta/openai";
+  const model = optionalEnv("CHAT_MODEL") ?? "gemini-2.5-flash";
+  const response = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: ["Bearer", apiKey].join(" "),
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        ...messages,
+      ],
+      stream: false,
+    }),
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    return {
+      ok: false as const,
+      status: response.status,
+      error: details || "OpenAI-compatible upstream error",
+    };
+  }
+
+  const data = await response.json() as {
+    choices?: Array<{
+      message?: {
+        content?: unknown;
+      };
+    }>;
+  };
+  const reply = extractOpenAICompatibleContent(data.choices?.[0]?.message?.content);
+
+  return {
+    ok: true as const,
+    reply: reply || "Sorry, I didn't catch that — could you rephrase?",
+  };
+}
+
+async function createAnthropicReply(messages: ChatMessage[]) {
+  const apiKey = optionalEnv("ANTHROPIC_API_KEY");
+  if (!apiKey) {
+    return null;
+  }
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 512,
+      system: SYSTEM_PROMPT,
+      messages,
+    }),
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    return {
+      ok: false as const,
+      status: response.status,
+      error: details || "Anthropic upstream error",
+    };
+  }
+
+  const data = await response.json() as {
+    content?: Array<{
+      type: string;
+      text?: string;
+    }>;
+  };
+  const reply =
+    data.content
+      ?.filter((block) => block.type === "text")
+      .map((block) => block.text ?? "")
+      .join("\n") ?? "Sorry, I didn't catch that — could you rephrase?";
+
+  return {
+    ok: true as const,
+    reply,
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { messages } = (await req.json()) as { messages: ChatMessage[] };
+    const body = (await req.json()) as {
+      messages?: unknown;
+    };
+    const messages = Array.isArray(body.messages)
+      ? body.messages.filter(isChatMessage)
+      : [];
 
-    if (!Array.isArray(messages) || messages.length === 0) {
+    if (messages.length === 0) {
       return NextResponse.json({ error: "No messages provided" }, { status: 400 });
     }
 
     // Trim history to last 10 turns to control token cost
     const trimmed = messages.slice(-10);
+    const result =
+      (await createOpenAICompatibleReply(trimmed)) ??
+      (await createAnthropicReply(trimmed));
 
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
+    if (!result) {
       return NextResponse.json(
         { error: "Server not configured" },
         { status: 500 }
       );
     }
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 512,
-        system: SYSTEM_PROMPT,
-        messages: trimmed,
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error("Anthropic API error:", errText);
+    if (!result.ok) {
+      console.error("[api][chat] upstream error", result.status);
       return NextResponse.json(
-        { error: "Upstream error" },
-        { status: 502 }
+        { error: "Upstream error", details: result.error },
+        { status: result.status }
       );
     }
 
-    const data = await response.json();
-    const reply =
-      data.content
-        ?.filter((b: { type: string }) => b.type === "text")
-        .map((b: { text: string }) => b.text)
-        .join("\n") ?? "Sorry, I didn't catch that — could you rephrase?";
-
-    return NextResponse.json({ reply });
+    return NextResponse.json({ content: result.reply, reply: result.reply });
   } catch (err) {
     console.error("Chat route error:", err);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });

@@ -12,8 +12,9 @@ We provide security updates for the latest stable release and the `main` branch.
 
 ## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
+Please report security vulnerabilities privately.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+- Preferred: GitHub Security Advisories (Security tab → “Report a vulnerability”).
+- If GitHub reporting is unavailable: email the maintainers.
+
+We aim to acknowledge reports within 2 business days and provide status updates at least weekly until resolution.

@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "22.x"
+    "node": "20.x"
   },
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
-    "postinstall": "prisma generate && prisma db push --accept-data-loss",
+    "postinstall": "prisma generate",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -20,8 +20,6 @@
     "worker:crawl": "tsx src/workers/crawl-worker.ts",
     "worker:lead": "tsx src/workers/lead-worker.ts",
     "worker:sniper": "tsx src/workers/sniper-worker.ts",
-    "worker:message": "tsx src/workers/message-worker.ts",
-    "worker:kyc-ocr": "tsx src/workers/kyc-ocr-worker.ts",
     "engine:crawl": "tsx --env-file=.env scripts/crawl-competitors.ts",
     "engine:embed": "tsx --env-file=.env scripts/generate-embeddings.ts",
     "engine:sync": "npm run engine:crawl && npm run engine:embed",
@@ -105,8 +103,7 @@
     "webpack-dev-server": "^5.2.3"
   },
   "prisma": {
-    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
-    "db:seed": "tsx --env-file=.env prisma/seed.ts"
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "type": "module"
 }

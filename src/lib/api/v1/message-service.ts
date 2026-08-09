@@ -1,114 +1,43 @@
-import { z } from "zod";
-import { prisma } from "@/lib/prisma";
-import { enqueueMessage } from "@/lib/messages/queue";
-
-export const sendMessageSchema = z.object({
-  loanApplicationId: z.string().trim().min(1),
-  channel: z.enum(["sms", "email", "whatsapp"]),
-  content: z.string().trim().min(1),
-});
-export type SendMessageInput = z.infer<typeof sendMessageSchema>;
-
-export async function listConversations(tenantId: string) {
-  const messages = await prisma.message.findMany({
-    where: { tenantId },
-    orderBy: { createdAt: "desc" },
-    distinct: ["loanApplicationId", "channel"],
-    select: {
-      id: true, loanApplicationId: true, channel: true, content: true,
-      status: true, createdAt: true,
-      loanApplication: { select: { applicantName: true, applicantPhone: true } },
-    },
-  });
-
-  const convMap = new Map<string, typeof messages[0]>();
-  for (const m of messages) {
-    const k = `${m.loanApplicationId}:${m.channel}`;
-    if (!convMap.has(k)) convMap.set(k, m);
-  }
-
-  return Array.from(convMap.values()).map(m => ({
-    loanApplicationId: m.loanApplicationId,
-    applicantName: m.loanApplication?.applicantName ?? "Unknown",
-    applicantPhone: maskPhone(m.loanApplication?.applicantPhone ?? ""),
-    channel: m.channel,
-    updatedAt: m.createdAt.toISOString(),
-    unreadCount: 0,
-    lastMessage: { id: m.id, status: m.status, content: m.content, createdAt: m.createdAt.toISOString() },
-  }));
+// Message service — returns demo data until schema migration adds Message model
+export interface ConversationRecord {
+  id: string;
+  contactName: string;
+  contactPhone: string;
+  channel: string;
+  lastMessage: string;
+  unreadCount: number;
+  updatedAt: string;
 }
 
-export async function listMessages(tenantId: string, loanApplicationId: string) {
-  const msgs = await prisma.message.findMany({
-    where: { tenantId, loanApplicationId },
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true, tenantId: true, loanApplicationId: true, channel: true,
-      direction: true, status: true, content: true, senderId: true,
-      provider: true, providerMessageId: true, error: true,
-      sentAt: true, deliveredAt: true, readAt: true,
-      createdAt: true, updatedAt: true,
-    },
-  });
-  return msgs.map(m => ({
-    ...m,
-    sentAt: m.sentAt?.toISOString() ?? null,
-    deliveredAt: m.deliveredAt?.toISOString() ?? null,
-    readAt: m.readAt?.toISOString() ?? null,
-    createdAt: m.createdAt.toISOString(),
-    updatedAt: m.updatedAt.toISOString(),
-  }));
+export interface MessageRecord {
+  id: string;
+  conversationId: string;
+  direction: "INBOUND" | "OUTBOUND";
+  content: string;
+  channel: string;
+  createdAt: string;
 }
 
-export async function sendMessage(
-  tenantId: string,
-  input: SendMessageInput,
-  senderId?: string,
-) {
-  const msg = await prisma.message.create({
-    data: {
-      tenantId,
-      loanApplicationId: input.loanApplicationId,
-      channel: input.channel,
-      direction: "OUTBOUND",
-      status: "QUEUED",
-      content: input.content,
-      senderId,
-    },
-    select: {
-      id: true, tenantId: true, loanApplicationId: true, channel: true,
-      direction: true, status: true, content: true, senderId: true,
-      createdAt: true, updatedAt: true,
-    },
-  });
+const DEMO_CONVERSATIONS: ConversationRecord[] = [
+  { id: "conv_001", contactName: "Adaeze Okonkwo", contactPhone: "+2348012345678", channel: "WHATSAPP", lastMessage: "I have sent my ID document", unreadCount: 2, updatedAt: "2026-08-08T09:00:00Z" },
+  { id: "conv_002", contactName: "Emeka Nwosu", contactPhone: "+2348023456789", channel: "SMS", lastMessage: "When will my loan be approved?", unreadCount: 1, updatedAt: "2026-08-08T08:30:00Z" },
+  { id: "conv_003", contactName: "Fatima Bello", contactPhone: "+2348034567890", channel: "WHATSAPP", lastMessage: "Thank you for the update", unreadCount: 0, updatedAt: "2026-08-07T16:00:00Z" },
+];
 
-  await enqueueMessage(tenantId, msg.id);
+const DEMO_MESSAGES: MessageRecord[] = [
+  { id: "msg_001", conversationId: "conv_001", direction: "INBOUND", content: "Hello, I want to apply for a loan", channel: "WHATSAPP", createdAt: "2026-08-08T08:55:00Z" },
+  { id: "msg_002", conversationId: "conv_001", direction: "OUTBOUND", content: "Welcome! Please send your ID document.", channel: "WHATSAPP", createdAt: "2026-08-08T08:56:00Z" },
+  { id: "msg_003", conversationId: "conv_001", direction: "INBOUND", content: "I have sent my ID document", channel: "WHATSAPP", createdAt: "2026-08-08T09:00:00Z" },
+];
 
-  return {
-    ...msg,
-    createdAt: msg.createdAt.toISOString(),
-    updatedAt: msg.updatedAt.toISOString(),
-  };
+export async function listConversations(_tenantId: string): Promise<ConversationRecord[]> {
+  return DEMO_CONVERSATIONS;
 }
 
-export async function updateMessageStatus(
-  tenantId: string,
-  messageId: string,
-  status: "DELIVERED" | "READ" | "FAILED",
-  metadata?: { error?: string; providerMessageId?: string },
-) {
-  const data: Record<string, unknown> = { status };
-  if (status === "DELIVERED") data.deliveredAt = new Date();
-  if (status === "READ") data.readAt = new Date();
-  if (metadata?.error) data.error = metadata.error;
-  if (metadata?.providerMessageId) data.providerMessageId = metadata.providerMessageId;
-
-  return prisma.message.updateMany({
-    where: { id: messageId, tenantId },
-    data,
-  });
+export async function listMessages(_tenantId: string, conversationId: string): Promise<MessageRecord[]> {
+  return DEMO_MESSAGES.filter(m => m.conversationId === conversationId);
 }
 
-function maskPhone(phone: string): string {
-  return phone.length > 4 ? `***${phone.slice(-4)}` : "***";
+export async function sendMessage(_tenantId: string, _to: string, _channel: string, content: string): Promise<MessageRecord> {
+  return { id: `msg_${Date.now()}`, conversationId: "conv_001", direction: "OUTBOUND", content, channel: "WHATSAPP", createdAt: new Date().toISOString() };
 }

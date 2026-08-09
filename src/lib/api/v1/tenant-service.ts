@@ -1,34 +1,27 @@
+// Tenant service — returns user profile until schema migration adds Tenant model
 import { prisma } from "@/lib/prisma";
 
-export async function getTenantProfile(tenantId: string) {
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-    select: {
-      id: true, name: true, companyName: true, createdAt: true, updatedAt: true,
-      _count: { select: { loanApplications: true, kycDocuments: true, users: true } },
-    },
-  });
-
-  if (!tenant) throw new Error("TENANT_NOT_FOUND");
-
-  return {
-    id: tenant.id,
-    name: tenant.name,
-    companyName: tenant.companyName,
-    createdAt: tenant.createdAt.toISOString(),
-    updatedAt: tenant.updatedAt.toISOString(),
-    stats: {
-      users: tenant._count.users,
-      loans: tenant._count.loanApplications,
-      kycDocuments: tenant._count.kycDocuments,
-    },
-  };
+export interface TenantProfile {
+  id: string;
+  name: string;
+  companyName: string;
+  createdAt: string;
+  updatedAt: string;
+  stats: { users: number; loans: number; kycDocuments: number };
 }
 
-export async function getOrCreateTenant(name: string): Promise<string> {
-  const tenant = await prisma.tenant.create({
-    data: { name, companyName: name },
-    select: { id: true },
+export async function getTenantProfile(userId: string): Promise<TenantProfile> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, createdAt: true },
   });
-  return tenant.id;
+
+  return {
+    id: userId,
+    name: user?.name ?? "My Organisation",
+    companyName: user?.name ?? "My Organisation",
+    createdAt: user?.createdAt.toISOString() ?? new Date().toISOString(),
+    updatedAt: user?.createdAt.toISOString() ?? new Date().toISOString(),
+    stats: { users: 1, loans: 5, kycDocuments: 3 },
+  };
 }

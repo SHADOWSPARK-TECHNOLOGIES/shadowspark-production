@@ -7,7 +7,6 @@ import {
 import { Toaster } from "sonner";
 import { organizationJsonLd } from "@/lib/seo";
 import ChatWidget from "@/components/ChatWidget";
-import MetaPixel from "@/components/meta-pixel";
 import "./globals.css";
 
 const ibmPlexSans = IBM_Plex_Sans({
@@ -77,9 +76,6 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} ${cormorantGaramond.variable} h-full antialiased`}
     >
-      <head>
-        <MetaPixel />
-      </head>
       <body suppressHydrationWarning className="min-h-full flex flex-col">
         {/* Organization JSON-LD structured data */}
         <script

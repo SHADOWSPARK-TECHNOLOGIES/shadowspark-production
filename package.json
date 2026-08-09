@@ -43,6 +43,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "@xyflow/react": "^12.11.2",
     "ai": "^6.0.158",
     "bcryptjs": "^3.0.3",

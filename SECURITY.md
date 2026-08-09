@@ -14,8 +14,8 @@ currently being supported with security updates.
 
 ## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
+Please report security vulnerabilities privately to security@shadowspark.tech.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+Include a clear description of the issue, steps to reproduce, affected versions/environments, and (if available) a minimal proof of concept.
+
+Please do not open public GitHub issues or discussions for security reports.

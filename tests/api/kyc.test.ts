@@ -5,194 +5,159 @@ const mockPrisma = vi.hoisted(() => ({
   kycDocument: {
     findFirst: vi.fn(),
     update: vi.fn(),
-    count: vi.fn(),
+  },
+  kycVerificationHistory: {
+    create: vi.fn(),
   },
   loanApplication: {
+    findFirst: vi.fn(),
     update: vi.fn(),
   },
   auditLog: {
     create: vi.fn(),
   },
-  message: {
-    create: vi.fn(),
-  },
 }));
 
 const mockQueues = vi.hoisted(() => ({
-  enqueueKycOcrJob: vi.fn(),
-  enqueueWorkflowTrigger: vi.fn(),
-  enqueueMessageSend: vi.fn(),
+  enqueueKycOcr: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: mockPrisma,
 }));
 
-vi.mock("@/lib/kyc/ocr-queue", () => ({
-  enqueueKycOcrJob: mockQueues.enqueueKycOcrJob,
+vi.mock("@/lib/kyc/queue", () => ({
+  enqueueKycOcr: mockQueues.enqueueKycOcr,
 }));
 
-vi.mock("@/lib/workflows/queue", () => ({
-  enqueueWorkflowTrigger: mockQueues.enqueueWorkflowTrigger,
-}));
-
-vi.mock("@/lib/messages/send-queue", () => ({
-  enqueueMessageSend: mockQueues.enqueueMessageSend,
-}));
-
-import { requestMoreKycInfo, verifyKycDocument } from "@/lib/api/v1/kyc-service";
+import { requestKycInfo, verifyKycDocument } from "@/lib/api/v1/kyc-service";
 
 describe("kyc service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPrisma.$transaction.mockImplementation(async (handler: (tx: typeof mockPrisma) => unknown) =>
-      handler(mockPrisma)
+    mockPrisma.$transaction.mockImplementation(
+      async (handler: (tx: typeof mockPrisma) => unknown) =>
+        handler(mockPrisma),
     );
-    mockQueues.enqueueMessageSend.mockResolvedValue({ id: "job-message-1" });
-    mockQueues.enqueueWorkflowTrigger.mockResolvedValue({ id: "job-workflow-1" });
   });
 
-  it("verifies document, auto-advances loan, and queues credit check", async () => {
-    mockPrisma.kycDocument.findFirst
-      .mockResolvedValueOnce({
-        id: "kyc-1",
-        status: "PENDING",
-        metadata: null,
-        loanApplicationId: "loan-1",
-        loanApplication: {
-          id: "loan-1",
-          status: "KYC_PENDING",
-          applicantName: "Ada",
-          applicantPhone: "+2348012345678",
-        },
-      })
-      .mockResolvedValueOnce({
-        id: "kyc-1",
-        status: "VERIFIED",
-        rejectionReason: null,
-        verifiedBy: "user-1",
-        verifiedAt: new Date(),
-        metadata: {},
-        loanApplicationId: "loan-1",
-        loanApplication: {
-          id: "loan-1",
-          status: "KYC_VERIFIED",
-          applicantName: "Ada",
-          applicantPhone: "+2348012345678",
-          loanAmount: 1000,
-        },
-      });
+  it("verifies document and advances loan to KYC_VERIFIED", async () => {
+    mockPrisma.kycDocument.findFirst.mockResolvedValue({
+      id: "kyc-1",
+      status: "PENDING",
+      loanApplicationId: "loan-1",
+      type: "ID_DOCUMENT",
+    });
     mockPrisma.kycDocument.update.mockResolvedValue({
       id: "kyc-1",
-      status: "VERIFIED",
-      rejectionReason: null,
-    });
-    mockPrisma.kycDocument.count.mockResolvedValue(0);
-    mockPrisma.message.create.mockResolvedValue({ id: "message-1" });
-
-    const result = await verifyKycDocument({
-      kycId: "kyc-1",
       tenantId: "tenant-1",
-      actorUserId: "user-1",
-      input: {
-        status: "VERIFIED",
-      },
+      loanApplicationId: "loan-1",
+      type: "ID_DOCUMENT",
+      status: "VERIFIED",
+      fileUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    mockPrisma.loanApplication.findFirst.mockResolvedValue({
+      id: "loan-1",
+      status: "KYC_PENDING",
+      kycDocuments: [{ id: "kyc-1", status: "VERIFIED" }],
     });
 
-    expect(result.loanStatusUpdated).toBe(true);
-    expect(mockPrisma.loanApplication.update).toHaveBeenCalled();
-    expect(mockQueues.enqueueWorkflowTrigger).toHaveBeenCalledWith(
-      expect.objectContaining({ trigger: "CREDIT_CHECK" })
+    const result = await verifyKycDocument(
+      "tenant-1",
+      "kyc-1",
+      { status: "VERIFIED", autoRejectLoan: false },
+      "user-1",
     );
-    expect(mockQueues.enqueueMessageSend).toHaveBeenCalled();
+
+    expect(result).not.toBeNull();
+    expect(result?.status).toBe("VERIFIED");
+    expect(mockPrisma.loanApplication.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "loan-1" },
+        data: { status: "KYC_VERIFIED" },
+      }),
+    );
+    expect(mockPrisma.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: "KYC_VERIFIED" }),
+      }),
+    );
   });
 
-  it("rejects document and reverts loan to KYC_PENDING", async () => {
-    mockPrisma.kycDocument.findFirst
-      .mockResolvedValueOnce({
-        id: "kyc-2",
-        status: "PENDING",
-        metadata: null,
-        loanApplicationId: "loan-2",
-        loanApplication: {
-          id: "loan-2",
-          status: "KYC_VERIFIED",
-          applicantName: "Ada",
-          applicantPhone: "+2348012345678",
-        },
-      })
-      .mockResolvedValueOnce({
-        id: "kyc-2",
-        status: "REJECTED",
-        rejectionReason: "Blurry",
-        verifiedBy: "user-1",
-        verifiedAt: new Date(),
-        metadata: {},
-        loanApplicationId: "loan-2",
-        loanApplication: {
-          id: "loan-2",
-          status: "KYC_PENDING",
-          applicantName: "Ada",
-          applicantPhone: "+2348012345678",
-          loanAmount: 1000,
-        },
-      });
+  it("rejects document and auto-rejects loan", async () => {
+    mockPrisma.kycDocument.findFirst.mockResolvedValue({
+      id: "kyc-2",
+      status: "PENDING",
+      loanApplicationId: "loan-2",
+      type: "ID_DOCUMENT",
+    });
     mockPrisma.kycDocument.update.mockResolvedValue({
       id: "kyc-2",
-      status: "REJECTED",
-      rejectionReason: "Blurry",
-    });
-    mockPrisma.message.create.mockResolvedValue({ id: "message-2" });
-
-    const result = await verifyKycDocument({
-      kycId: "kyc-2",
       tenantId: "tenant-1",
-      actorUserId: "user-1",
-      input: {
+      loanApplicationId: "loan-2",
+      type: "ID_DOCUMENT",
+      status: "REJECTED",
+      fileUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    mockPrisma.loanApplication.findFirst.mockResolvedValue({
+      id: "loan-2",
+      status: "KYC_PENDING",
+      kycDocuments: [{ id: "kyc-2", status: "REJECTED" }],
+    });
+
+    const result = await verifyKycDocument(
+      "tenant-1",
+      "kyc-2",
+      {
         status: "REJECTED",
         rejectionReason: "Blurry",
+        autoRejectLoan: true,
       },
-    });
+      "user-1",
+    );
 
-    expect(result.loanStatusUpdated).toBe(true);
+    expect(result).not.toBeNull();
+    expect(result?.status).toBe("REJECTED");
     expect(mockPrisma.loanApplication.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ status: "KYC_PENDING" }),
-      })
-    );
-    expect(mockQueues.enqueueWorkflowTrigger).not.toHaveBeenCalledWith(
-      expect.objectContaining({ trigger: "CREDIT_CHECK" })
+        where: { id: "loan-2" },
+        data: { status: "REJECTED" },
+      }),
     );
   });
 
-  it("requests more KYC info and queues outbound message", async () => {
+  it("requests more KYC info and creates audit log", async () => {
     mockPrisma.kycDocument.findFirst.mockResolvedValue({
       id: "kyc-3",
-      loanApplication: {
-        id: "loan-3",
-        status: "KYC_VERIFIED",
-        applicantPhone: "+2348012345678",
-      },
+      loanApplicationId: "loan-3",
+      type: "ID_DOCUMENT",
     });
-    mockPrisma.message.create.mockResolvedValue({ id: "message-3" });
 
-    const result = await requestMoreKycInfo({
-      kycId: "kyc-3",
-      tenantId: "tenant-1",
-      actorUserId: "user-1",
-      input: {
+    const result = await requestKycInfo(
+      "tenant-1",
+      "kyc-3",
+      {
+        field: "idDocument",
         message: "Please upload a clearer ID image",
-        documentTypes: ["ID_DOCUMENT"],
       },
-    });
-
-    expect(result).toEqual({ success: true });
-    expect(mockPrisma.loanApplication.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({ status: "KYC_PENDING" }),
-      })
+      "user-1",
     );
-    expect(mockQueues.enqueueMessageSend).toHaveBeenCalled();
+
+    expect(result).toEqual({
+      id: "kyc-3",
+      loanApplicationId: "loan-3",
+      field: "idDocument",
+      message: "Please upload a clearer ID image",
+      requestedAt: expect.any(String),
+    });
+    expect(mockPrisma.auditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ action: "KYC_INFO_REQUESTED" }),
+      }),
+    );
   });
 });
-

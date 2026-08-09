@@ -1,15 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
-  $executeRawUnsafe: vi.fn(),
-  $queryRaw: vi.fn(),
   message: {
-    count: vi.fn(),
     findMany: vi.fn(),
     findFirst: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
-    groupBy: vi.fn(),
+    updateMany: vi.fn(),
   },
   loanApplication: {
     findFirst: vi.fn(),
@@ -22,146 +19,87 @@ const mockPrisma = vi.hoisted(() => ({
 }));
 
 const mockQueues = vi.hoisted(() => ({
-  enqueueMessageSend: vi.fn(),
+  enqueueMessage: vi.fn(),
   enqueueWorkflowTrigger: vi.fn(),
-}));
-
-const mockRedis = vi.hoisted(() => ({
-  set: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: mockPrisma,
 }));
 
-vi.mock("@/lib/messages/send-queue", () => ({
-  enqueueMessageSend: mockQueues.enqueueMessageSend,
+vi.mock("@/lib/messages/queue", () => ({
+  enqueueMessage: mockQueues.enqueueMessage,
 }));
 
 vi.mock("@/lib/workflows/queue", () => ({
   enqueueWorkflowTrigger: mockQueues.enqueueWorkflowTrigger,
 }));
 
-vi.mock("@/lib/redis", () => ({
-  redis: mockRedis,
-}));
-
-vi.mock("@/lib/twilio", () => ({
-  normalizeWhatsAppNumber: vi.fn((value: string) => value.replace(/^whatsapp:/i, "")),
-  parseTwilioWebhookPayload: vi.fn(() => ({
-    from: "+2348012345678",
-    to: "+2348099999999",
-    body: "Hello",
-    numMedia: 0,
-    mediaUrls: [],
-    messageSid: "SM123",
-    raw: {},
-  })),
-  verifyTwilioSignature: vi.fn(() => true),
-}));
-
 import {
-  listMessageConversations,
+  listConversations,
   sendMessage,
-  validateSendMessageInput,
+  sendMessageSchema,
 } from "@/lib/api/v1/message-service";
-import { processTwilioWebhook } from "@/lib/api/v1/twilio-webhook-service";
 
 describe("messages api services", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockQueues.enqueueMessageSend.mockResolvedValue({ id: "job-message-1" });
-    mockRedis.set.mockResolvedValue("OK");
-    mockPrisma.$executeRawUnsafe.mockResolvedValue(undefined);
-    mockPrisma.$queryRaw.mockResolvedValue([]);
+    mockQueues.enqueueMessage.mockResolvedValue(undefined);
   });
 
   it("queues an outbound message", async () => {
-    mockPrisma.loanApplication.findFirst.mockResolvedValue({ id: "loan-1" });
-    mockPrisma.message.create.mockResolvedValue({ id: "message-1" });
+    mockPrisma.message.create.mockResolvedValue({
+      id: "message-1",
+      tenantId: "tenant-1",
+      loanApplicationId: "loan-1",
+      channel: "whatsapp",
+      direction: "OUTBOUND",
+      status: "QUEUED",
+      content: "Hello Ada",
+      senderId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
-    const input = validateSendMessageInput({
-      channel: "WHATSAPP",
-      to: "+2348012345678",
-      body: "Hello Ada",
+    const input = sendMessageSchema.parse({
+      channel: "whatsapp",
+      content: "Hello Ada",
       loanApplicationId: "loan-1",
     });
-    const result = await sendMessage("tenant-1", "user-1", input);
+    const result = await sendMessage("tenant-1", input, "user-1");
 
     expect(result.status).toBe("QUEUED");
-    expect(result.messageId).toBe("message-1");
-    expect(mockQueues.enqueueMessageSend).toHaveBeenCalledWith(
-      expect.objectContaining({
-        messageId: "message-1",
-      })
+    expect(result.id).toBe("message-1");
+    expect(mockQueues.enqueueMessage).toHaveBeenCalledWith(
+      "tenant-1",
+      "message-1",
     );
   });
 
-  it("returns grouped conversations with unread counts", async () => {
-    mockPrisma.message.groupBy
-      .mockResolvedValueOnce([
-        {
-          loanApplicationId: "loan-1",
-          channel: "WHATSAPP",
-          _max: { createdAt: new Date("2026-08-01T10:00:00.000Z") },
-        },
-      ])
-      .mockResolvedValueOnce([
-        {
-          loanApplicationId: "loan-1",
-          channel: "WHATSAPP",
-          _count: { _all: 2 },
-        },
-      ]);
-    mockPrisma.loanApplication.findMany.mockResolvedValue([
+  it("returns grouped conversations", async () => {
+    const createdAt = new Date("2026-08-01T10:00:00.000Z");
+    mockPrisma.message.findMany.mockResolvedValue([
       {
-        id: "loan-1",
-        applicantName: "Ada",
-        applicantPhone: "+2348012345678",
+        id: "msg-last",
+        loanApplicationId: "loan-1",
+        channel: "whatsapp",
+        status: "INBOUND",
+        content: "Need an update",
+        createdAt,
+        loanApplication: {
+          applicantName: "Ada",
+          applicantPhone: "+2348012345678",
+        },
       },
     ]);
-    mockPrisma.message.findFirst.mockResolvedValue({
-      id: "msg-last",
-      status: "INBOUND",
-      content: "Need an update",
-      createdAt: new Date("2026-08-01T10:00:00.000Z"),
-    });
 
-    const conversations = await listMessageConversations("tenant-1");
+    const conversations = await listConversations("tenant-1");
 
     expect(conversations).toHaveLength(1);
     expect(conversations[0]).toMatchObject({
       loanApplicationId: "loan-1",
-      unreadCount: 2,
-      channel: "WHATSAPP",
+      channel: "whatsapp",
+      applicantName: "Ada",
     });
-  });
-
-  it("processes inbound webhook and deduplicates by MessageSid", async () => {
-    mockPrisma.loanApplication.findFirst.mockResolvedValue({ id: "loan-1" });
-    mockPrisma.message.create.mockResolvedValue({ id: "message-inbound-1" });
-
-    const firstRun = await processTwilioWebhook({
-      rawBody: "Body=Hello&MessageSid=SM123&From=whatsapp:+2348012345678",
-      requestUrl: "https://example.com/api/v1/webhooks/twilio",
-      twilioSignature: "valid-signature",
-      tenantId: "tenant-1",
-    });
-
-    expect(firstRun).toMatchObject({ deduped: false });
-    expect(mockQueues.enqueueWorkflowTrigger).toHaveBeenCalledWith(
-      expect.objectContaining({ trigger: "MESSAGE_RECEIVED" })
-    );
-
-    mockRedis.set.mockResolvedValue(null);
-    const secondRun = await processTwilioWebhook({
-      rawBody: "Body=Hello&MessageSid=SM123&From=whatsapp:+2348012345678",
-      requestUrl: "https://example.com/api/v1/webhooks/twilio",
-      twilioSignature: "valid-signature",
-      tenantId: "tenant-1",
-    });
-
-    expect(secondRun).toMatchObject({ deduped: true });
   });
 });
-

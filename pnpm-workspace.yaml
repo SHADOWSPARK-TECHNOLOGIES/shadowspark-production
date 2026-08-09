@@ -1,5 +1,6 @@
 packages:
   - "."
+minimumReleaseAge: 0
 ignoredBuiltDependencies:
   - esbuild
   - msgpackr-extract

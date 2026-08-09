@@ -1,6 +1,9 @@
 const ALLOWED_ORIGINS = [
   "https://app.shadowspark.tech",
+  "https://app.shadowspark-techologies.online",
+  "https://shadowspark-dashboard.vercel.app",
   "https://shadowspark-production.vercel.app",
+  "https://shadowspark-production-one.vercel.app",
   "http://localhost:3000",
   "http://localhost:3001",
 ];

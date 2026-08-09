@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { handleCorsPreflight, withCors } from "@/lib/cors";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,9 @@ export async function GET(request: Request) {
 
   if (format === 'json') {
     const authHeader = request.headers.get('authorization');
+    if (!authHeader || authHeader === "Bearer undefined" || authHeader === "Bearer null") {
+      return NextResponse.json({ error: "Unauthorized mobile request" }, { status: 401 });
+    }
     if (authHeader !== `Bearer ${process.env.MOBILE_OPERATOR_KEY}`) {
       return NextResponse.json({ error: "Unauthorized mobile request" }, { status: 401 });
     }
@@ -36,9 +40,12 @@ export async function GET(request: Request) {
       createdAt: lead.createdAt.toISOString()
     }));
 
-    return NextResponse.json(
+    return withCors(
+      NextResponse.json(
       { leads: formattedLeads },
-      { headers: { 'Access-Control-Allow-Origin': '*' } }
+      ),
+      request,
+      "GET, OPTIONS"
     );
   }
 
@@ -49,4 +56,8 @@ export async function GET(request: Request) {
 
   // Basic fallback for non-mobile web if needed
   return NextResponse.json({ error: "Use format=json for mobile operator view" }, { status: 400 });
+}
+
+export async function OPTIONS(request: Request) {
+  return handleCorsPreflight(request, "GET, OPTIONS");
 }

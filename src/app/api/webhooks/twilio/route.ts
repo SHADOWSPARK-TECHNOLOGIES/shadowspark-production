@@ -29,9 +29,11 @@ let messageDirectionColumnPromise: Promise<void> | null = null;
 
 async function ensureMessageDirectionColumn(): Promise<void> {
   if (!messageDirectionColumnPromise) {
-    messageDirectionColumnPromise = prisma.$executeRawUnsafe(
-      'ALTER TABLE "messages" ADD COLUMN IF NOT EXISTS "direction" TEXT NOT NULL DEFAULT \'OUTBOUND\''
-    ).then(() => undefined);
+    messageDirectionColumnPromise = prisma
+      .$executeRawUnsafe(
+        'ALTER TABLE "messages" ADD COLUMN IF NOT EXISTS "direction" TEXT NOT NULL DEFAULT \'OUTBOUND\'',
+      )
+      .then(() => undefined);
   }
 
   return messageDirectionColumnPromise;
@@ -77,7 +79,7 @@ async function storeInboundMessage(params: {
     "INBOUND",
     params.content,
     null,
-    "INBOUND"
+    "INBOUND",
   );
 
   await prisma.auditLog.create({
@@ -119,15 +121,18 @@ async function upsertKycDocument(params: {
     },
   });
 
+  const ocrData = {
+    messageSid: params.messageSid,
+    source: "twilio",
+  };
+
   if (existing) {
     await prisma.kycDocument.update({
       where: { id: existing.id },
       data: {
-        documentUrl: params.documentUrl,
+        fileUrl: params.documentUrl,
         status: "PENDING",
-        metadata: {
-          messageSid: params.messageSid,
-        },
+        ocrData,
       },
     });
     return;
@@ -139,10 +144,8 @@ async function upsertKycDocument(params: {
       loanApplicationId: params.loanApplicationId,
       type: params.type,
       status: "PENDING",
-      documentUrl: params.documentUrl,
-      metadata: {
-        messageSid: params.messageSid,
-      },
+      fileUrl: params.documentUrl,
+      ocrData,
     },
   });
 }
@@ -173,7 +176,11 @@ async function persistConversationResolution(params: {
     return;
   }
 
-  if (resolution.accepted && resolution.state === "ID_DOCUMENT" && params.mediaUrls[0]) {
+  if (
+    resolution.accepted &&
+    resolution.state === "ID_DOCUMENT" &&
+    params.mediaUrls[0]
+  ) {
     await upsertKycDocument({
       tenantId: params.tenantId,
       loanApplicationId: params.loanApplicationId,
@@ -183,7 +190,11 @@ async function persistConversationResolution(params: {
     });
   }
 
-  if (resolution.accepted && resolution.state === "ADDRESS_DOCUMENT" && params.mediaUrls[0]) {
+  if (
+    resolution.accepted &&
+    resolution.state === "ADDRESS_DOCUMENT" &&
+    params.mediaUrls[0]
+  ) {
     await upsertKycDocument({
       tenantId: params.tenantId,
       loanApplicationId: params.loanApplicationId,
@@ -193,7 +204,11 @@ async function persistConversationResolution(params: {
     });
   }
 
-  if (resolution.accepted && resolution.state === "SELFIE" && params.mediaUrls[0]) {
+  if (
+    resolution.accepted &&
+    resolution.state === "SELFIE" &&
+    params.mediaUrls[0]
+  ) {
     await upsertKycDocument({
       tenantId: params.tenantId,
       loanApplicationId: params.loanApplicationId,
@@ -211,7 +226,9 @@ async function persistConversationResolution(params: {
       data: {
         applicantName: resolution.data.name ?? undefined,
         applicantPhone: resolution.data.phone ?? undefined,
-        loanAmount: resolution.data.amount ? new Prisma.Decimal(resolution.data.amount) : undefined,
+        loanAmount: resolution.data.amount
+          ? new Prisma.Decimal(resolution.data.amount)
+          : undefined,
         loanPurpose: resolution.data.purpose ?? undefined,
       },
     });
@@ -225,7 +242,9 @@ async function persistConversationResolution(params: {
       data: {
         applicantName: resolution.data.name ?? undefined,
         applicantPhone: resolution.data.phone ?? undefined,
-        loanAmount: resolution.data.amount ? new Prisma.Decimal(resolution.data.amount) : undefined,
+        loanAmount: resolution.data.amount
+          ? new Prisma.Decimal(resolution.data.amount)
+          : undefined,
         loanPurpose: resolution.data.purpose ?? undefined,
         status: "SUBMITTED",
       },
@@ -255,17 +274,26 @@ export async function POST(request: Request) {
     const signature = request.headers.get("X-Twilio-Signature");
 
     if (!verifyTwilioSignature(request.url, formData, signature)) {
-      return NextResponse.json({ success: false, error: "Invalid Twilio signature" }, { status: 403 });
+      return NextResponse.json(
+        { success: false, error: "Invalid Twilio signature" },
+        { status: 403 },
+      );
     }
 
     const payload = parseTwilioWebhookPayload(formData);
     if (!payload.messageSid || !payload.from) {
-      return NextResponse.json({ success: false, error: "Missing Twilio payload" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Missing Twilio payload" },
+        { status: 400 },
+      );
     }
 
     const normalizedPhone = normalizeWhatsAppNumber(payload.from);
     if (!TWILIO_WHATSAPP_PHONE_REGEX.test(normalizedPhone)) {
-      return NextResponse.json({ success: false, error: "Invalid sender phone number" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Invalid sender phone number" },
+        { status: 400 },
+      );
     }
 
     dedupeKey = `twilio:${TENANT_ID}:${payload.messageSid}`;
@@ -274,7 +302,7 @@ export async function POST(request: Request) {
       "1",
       "EX",
       MESSAGE_DEDUPE_TTL_SECONDS,
-      "NX"
+      "NX",
     );
 
     if (!dedupeHit) {
@@ -339,8 +367,12 @@ export async function POST(request: Request) {
         },
       });
       logger.info(
-        { tenantId: TENANT_ID, loanApplicationId: loan.id, messageSid: payload.messageSid },
-        "twilio loan intake processed"
+        {
+          tenantId: TENANT_ID,
+          loanApplicationId: loan.id,
+          messageSid: payload.messageSid,
+        },
+        "twilio loan intake processed",
       );
     });
   } catch (error) {
@@ -349,8 +381,11 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Twilio webhook failed" },
-      { status: 500 }
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Twilio webhook failed",
+      },
+      { status: 500 },
     );
   }
 

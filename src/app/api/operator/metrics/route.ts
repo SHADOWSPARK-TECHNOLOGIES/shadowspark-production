@@ -2,6 +2,7 @@ import type { Prisma } from "@/generated/prisma/client/client";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { handleCorsPreflight, withCors } from "@/lib/cors";
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,9 @@ export async function GET(request: Request) {
 
   if (format === 'json') {
     const authHeader = request.headers.get('authorization');
+    if (!authHeader || authHeader === "Bearer undefined" || authHeader === "Bearer null") {
+      return NextResponse.json({ error: "Unauthorized mobile request" }, { status: 401 });
+    }
     if (authHeader !== `Bearer ${process.env.MOBILE_OPERATOR_KEY}`) {
       return NextResponse.json({ error: "Unauthorized mobile request" }, { status: 401 });
     }
@@ -45,9 +49,12 @@ export async function GET(request: Request) {
         .reduce((sum: number, lead: LeadWithDemoAndPayments) => sum + (lead.leadScore && lead.leadScore >= 70 ? 750 : 300), 0)
         .toString();
 
-    return NextResponse.json(
+    return withCors(
+      NextResponse.json(
       { metrics: { totalLeads, conversionRate, revenueLeakage, activeDemos } },
-      { headers: { 'Access-Control-Allow-Origin': '*' } }
+      ),
+      request,
+      "GET, OPTIONS"
     );
   }
 
@@ -101,4 +108,8 @@ export async function GET(request: Request) {
     activity,
     sparkline,
   });
+}
+
+export async function OPTIONS(request: Request) {
+  return handleCorsPreflight(request, "GET, OPTIONS");
 }

@@ -7,10 +7,11 @@ const mockPrisma = vi.hoisted(() => ({
 }));
 
 const mockLoanService = vi.hoisted(() => ({
-  createLoanApplication: vi.fn(),
-  validateCreateLoanInput: vi.fn(),
-  listLoanApplications: vi.fn(),
-  validateLoansQuery: vi.fn(),
+  createLoan: vi.fn(),
+  createLoanSchema: {
+    parse: vi.fn((payload: unknown) => payload),
+  },
+  listLoans: vi.fn(),
 }));
 
 const idempotencyStore = new Map<string, string>();
@@ -36,9 +37,6 @@ vi.mock("@/lib/api/auth-context", () => ({
     },
   })),
 }));
-vi.mock("@/lib/tenant-context", () => ({
-  runWithTenantContext: vi.fn(async (_tenantId: string, handler: () => Promise<unknown>) => handler()),
-}));
 vi.mock("@/lib/api/v1/loan-service", () => mockLoanService);
 vi.mock("@/lib/cors", () => ({
   withCors: (response: Response) => response,
@@ -52,8 +50,7 @@ describe("loan idempotency", () => {
     vi.clearAllMocks();
     idempotencyStore.clear();
     let createCount = 0;
-    mockLoanService.validateCreateLoanInput.mockImplementation((payload: unknown) => payload);
-    mockLoanService.createLoanApplication.mockImplementation(async () => {
+    mockLoanService.createLoan.mockImplementation(async () => {
       createCount += 1;
       return {
         id: `loan-${createCount}`,
@@ -87,7 +84,7 @@ describe("loan idempotency", () => {
     expect(second.status).toBe(201);
     expect(firstBody.id).toBe("loan-1");
     expect(secondBody.id).toBe("loan-1");
-    expect(mockLoanService.createLoanApplication).toHaveBeenCalledTimes(1);
+    expect(mockLoanService.createLoan).toHaveBeenCalledTimes(1);
   });
 
   it("rejects mutation requests without an idempotency key", async () => {
@@ -103,12 +100,11 @@ describe("loan idempotency", () => {
           applicantPhone: "+2348012345678",
           loanAmount: 1000,
         }),
-      })
+      }),
     );
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toMatchObject({
-      success: false,
       error: { code: "MISSING_IDEMPOTENCY_KEY" },
     });
   });

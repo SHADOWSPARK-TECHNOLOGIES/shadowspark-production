@@ -84,12 +84,12 @@ export async function verifyAuthToken(token: string): Promise<AuthTokenPayload> 
 
   const signedPart = `${encodedHeader}.${encodedPayload}`;
   const expectedSignature = signInput(signedPart);
-  const signatureBuffer = Buffer.from(encodedSignature);
-  const expectedBuffer = Buffer.from(expectedSignature);
-  if (
-    signatureBuffer.length !== expectedBuffer.length ||
-    !timingSafeEqual(signatureBuffer, expectedBuffer)
-  ) {
+  // Compare HMACs of both signatures to prevent length-based timing oracle.
+  // This ensures timingSafeEqual always operates on equal-length buffers.
+  const secret = getJwtSecret();
+  const sigHmac = createHmac("sha256", secret).update(encodedSignature).digest();
+  const expHmac = createHmac("sha256", secret).update(expectedSignature).digest();
+  if (!timingSafeEqual(sigHmac, expHmac)) {
     throw new Error("Invalid token signature");
   }
 

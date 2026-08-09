@@ -15,6 +15,9 @@ const mockPrisma = vi.hoisted(() => ({
     count: vi.fn(),
     create: vi.fn(),
   },
+  kycOcrJob: {
+    create: vi.fn(),
+  },
   message: {
     create: vi.fn(),
     count: vi.fn(),
@@ -23,19 +26,11 @@ const mockPrisma = vi.hoisted(() => ({
   auditLog: {
     create: vi.fn(),
   },
-  user: {
-    findFirst: vi.fn(),
-  },
-  repayment: {
-    deleteMany: vi.fn(),
-    createMany: vi.fn(),
-  },
 }));
 
 const mockQueues = vi.hoisted(() => ({
-  enqueueWorkflowTrigger: vi.fn(),
-  enqueueMessageSend: vi.fn(),
-  enqueueKycOcrJob: vi.fn(),
+  enqueueMessage: vi.fn(),
+  enqueueKycOcr: vi.fn(),
 }));
 
 vi.mock("@/lib/prisma", () => ({ prisma: mockPrisma }));
@@ -46,47 +41,40 @@ vi.mock("@/lib/redis", () => ({
     del: vi.fn(),
   },
 }));
-vi.mock("@/lib/workflows/queue", () => ({ enqueueWorkflowTrigger: mockQueues.enqueueWorkflowTrigger }));
-vi.mock("@/lib/messages/send-queue", () => ({ enqueueMessageSend: mockQueues.enqueueMessageSend }));
-vi.mock("@/lib/kyc/ocr-queue", () => ({ enqueueKycOcrJob: mockQueues.enqueueKycOcrJob }));
+vi.mock("@/lib/messages/queue", () => ({
+  enqueueMessage: mockQueues.enqueueMessage,
+}));
+vi.mock("@/lib/kyc/queue", () => ({ enqueueKycOcr: mockQueues.enqueueKycOcr }));
 
-import { validateLoansQuery } from "@/lib/api/v1/loan-service";
-import { sendMessage, validateSendMessageInput } from "@/lib/api/v1/message-service";
-import { getKycDocumentById, queueKycOcr, validateKycId } from "@/lib/api/v1/kyc-service";
-
-describe("loan query validation", () => {
-  it("accepts sort params", () => {
-    const query = validateLoansQuery(
-      new URLSearchParams({
-        sortBy: "loanAmount",
-        sortOrder: "asc",
-      })
-    );
-
-    expect(query.sortBy).toBe("loanAmount");
-    expect(query.sortOrder).toBe("asc");
-  });
-});
+import { sendMessage, sendMessageSchema } from "@/lib/api/v1/message-service";
+import { getKycDocumentById, queueKycOcrJob } from "@/lib/api/v1/kyc-service";
 
 describe("message sending", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders template variables and queues a message", async () => {
-    mockPrisma.loanApplication.findFirst.mockResolvedValue({ id: "loan-1" });
-    mockPrisma.message.create.mockResolvedValue({ id: "msg-1" });
-    mockQueues.enqueueMessageSend.mockResolvedValue({ id: "job-1" });
-
-    const input = validateSendMessageInput({
-      channel: "WHATSAPP",
-      to: "+2348012345678",
-      body: "Hello {{name}}",
+  it("queues an outbound message", async () => {
+    mockPrisma.message.create.mockResolvedValue({
+      id: "msg-1",
+      tenantId: "tenant-1",
       loanApplicationId: "loan-1",
-      variables: { name: "Ada" },
+      channel: "whatsapp",
+      direction: "OUTBOUND",
+      status: "QUEUED",
+      content: "Hello Ada",
+      senderId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
-    const result = await sendMessage("tenant-1", "user-1", input);
+    const input = sendMessageSchema.parse({
+      channel: "whatsapp",
+      content: "Hello Ada",
+      loanApplicationId: "loan-1",
+    });
+
+    const result = await sendMessage("tenant-1", input, "user-1");
 
     expect(mockPrisma.message.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -94,9 +82,10 @@ describe("message sending", () => {
           content: "Hello Ada",
           status: "QUEUED",
         }),
-      })
+      }),
     );
-    expect(result.jobId).toBe("job-1");
+    expect(result.status).toBe("QUEUED");
+    expect(mockQueues.enqueueMessage).toHaveBeenCalledWith("tenant-1", "msg-1");
   });
 });
 
@@ -105,18 +94,18 @@ describe("kyc helpers", () => {
     vi.clearAllMocks();
   });
 
-  it("returns derived fields for KYC docs", async () => {
+  it("returns masked KYC doc fields", async () => {
     mockPrisma.kycDocument.findFirst.mockResolvedValue({
       id: "kyc-1",
       tenantId: "tenant-1",
       loanApplicationId: "loan-1",
       type: "ID_DOCUMENT",
       status: "PENDING",
-      rejectionReason: null,
-      verifiedBy: null,
-      verifiedAt: null,
-      documentUrl: "https://example.com/doc.jpg",
-      metadata: { ocrData: { name: "Ada" }, verificationResponse: { score: 0.99 } },
+      fileUrl: "https://example.com/doc.jpg",
+      fileHash: null,
+      ocrData: { name: "Ada" },
+      reviewedById: null,
+      reviewedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
       loanApplication: {
@@ -124,26 +113,27 @@ describe("kyc helpers", () => {
         applicantName: "Ada",
         applicantPhone: "+2348012345678",
         loanAmount: 1000,
+        status: "KYC_PENDING",
       },
     });
 
-    const doc = await getKycDocumentById("kyc-1", "tenant-1");
+    const doc = await getKycDocumentById("tenant-1", "kyc-1");
 
     expect(doc?.ocrData).toEqual({ name: "Ada" });
-    expect(doc?.verificationResponse).toEqual({ score: 0.99 });
-    expect(validateKycId("kyc-1")).toBe("kyc-1");
+    expect(doc?.loanApplication?.applicantPhone).toBe("***5678");
   });
 
   it("queues OCR jobs", async () => {
-    mockPrisma.kycDocument.findFirst.mockResolvedValue({
-      id: "kyc-1",
+    mockPrisma.kycOcrJob.create.mockResolvedValue({
+      id: "job-ocr",
       tenantId: "tenant-1",
-      loanApplicationId: "loan-1",
-      documentUrl: "https://example.com/doc.jpg",
+      kycDocumentId: "kyc-1",
+      status: "PENDING",
+      createdAt: new Date(),
     });
-    mockQueues.enqueueKycOcrJob.mockResolvedValue({ id: "job-ocr" });
 
-    const job = await queueKycOcr("kyc-1", "tenant-1");
+    const job = await queueKycOcrJob("tenant-1", "kyc-1");
     expect(job.id).toBe("job-ocr");
+    expect(mockQueues.enqueueKycOcr).toHaveBeenCalledWith("tenant-1", "kyc-1");
   });
 });

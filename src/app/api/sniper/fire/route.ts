@@ -2,12 +2,16 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { EmailTemplate } from "@/components/email/EmailTemplate";
+import { handleCorsPreflight, withCors } from "@/lib/cors";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
     const authHeader = req.headers.get("authorization");
+    if (!authHeader || authHeader === "Bearer undefined" || authHeader === "Bearer null") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (authHeader !== `Bearer ${process.env.MOBILE_OPERATOR_KEY}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -43,7 +47,11 @@ export async function POST(req: Request) {
       });
 
       console.log(`[SNIPER FIRE] Successfully fired at ${target.domain}`);
-      return NextResponse.json({ status: 'success', target: updatedTarget }, { headers: { 'Access-Control-Allow-Origin': '*' } });
+      return withCors(
+        NextResponse.json({ status: 'success', target: updatedTarget }),
+        req,
+        "POST, OPTIONS"
+      );
 
     } catch (emailError) {
       console.error(`[SNIPER FIRE] Resend failed for ${target.domain}:`, emailError);
@@ -54,4 +62,8 @@ export async function POST(req: Request) {
     console.error("[SNIPER FIRE] Fatal Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
+}
+
+export async function OPTIONS(request: Request) {
+  return handleCorsPreflight(request, "POST, OPTIONS");
 }

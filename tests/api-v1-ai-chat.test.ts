@@ -97,4 +97,28 @@ describe("POST /api/v1/ai/chat", () => {
     expect(body.details).toContain("Invalid API key");
     expect(errorSpy).toHaveBeenCalledWith("[api][chat] upstream error", 401);
   });
+
+  it("rejects streaming requests explicitly", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { POST } = await import("@/app/api/v1/ai/chat/route");
+    const request = new NextRequest("http://localhost/api/v1/ai/chat", {
+      method: "POST",
+      body: JSON.stringify({
+        messages: [{ role: "user", content: "stream am" }],
+        stream: true,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const response = await POST(request);
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Streaming is not supported on this endpoint");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

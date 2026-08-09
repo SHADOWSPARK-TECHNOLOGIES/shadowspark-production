@@ -48,6 +48,9 @@ function createRedis(): Redis {
       error instanceof Error ? error.message : String(error),
     );
   });
+  client.on("ready", () => {
+    globalForRedis.redisErrorLogged = false;
+  });
   return client;
 }
 

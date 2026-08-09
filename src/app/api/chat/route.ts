@@ -189,7 +189,7 @@ async function createAnthropicReply(messages: ChatMessage[]) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 512,
       system: SYSTEM_PROMPT,
       messages,
@@ -227,13 +227,22 @@ export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as {
       messages?: unknown;
+      stream?: unknown;
     };
     const messages = Array.isArray(body.messages)
       ? body.messages.filter(isChatMessage)
       : [];
+    const stream = body.stream === true;
 
     if (messages.length === 0) {
       return NextResponse.json({ error: "No messages provided" }, { status: 400 });
+    }
+
+    if (stream) {
+      return NextResponse.json(
+        { error: "Streaming is not supported on this endpoint" },
+        { status: 400 },
+      );
     }
 
     // Trim history to last 10 turns to control token cost

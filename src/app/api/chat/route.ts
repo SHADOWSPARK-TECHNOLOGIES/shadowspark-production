@@ -90,6 +90,41 @@ function extractOpenAICompatibleContent(content: unknown): string {
     .join("\n");
 }
 
+async function readUpstreamError(response: Response): Promise<string> {
+  const rawBody = await response.text();
+  if (!rawBody) {
+    return "Upstream request failed";
+  }
+
+  try {
+    const parsed = JSON.parse(rawBody) as {
+      error?: { message?: string } | string;
+      message?: string;
+    };
+
+    if (typeof parsed.error === "string" && parsed.error.trim()) {
+      return parsed.error;
+    }
+
+    if (
+      parsed.error &&
+      typeof parsed.error === "object" &&
+      typeof parsed.error.message === "string" &&
+      parsed.error.message.trim()
+    ) {
+      return parsed.error.message;
+    }
+
+    if (typeof parsed.message === "string" && parsed.message.trim()) {
+      return parsed.message;
+    }
+  } catch {
+    return rawBody;
+  }
+
+  return rawBody;
+}
+
 async function createOpenAICompatibleReply(messages: ChatMessage[]) {
   const apiKey = optionalEnv("DEEPSEEK_API_KEY");
   if (!apiKey) {
@@ -117,7 +152,7 @@ async function createOpenAICompatibleReply(messages: ChatMessage[]) {
   });
 
   if (!response.ok) {
-    const details = await response.text();
+    const details = await readUpstreamError(response);
     return {
       ok: false as const,
       status: response.status,
@@ -154,7 +189,7 @@ async function createAnthropicReply(messages: ChatMessage[]) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
+      model: "claude-haiku-4-5",
       max_tokens: 512,
       system: SYSTEM_PROMPT,
       messages,
@@ -162,7 +197,7 @@ async function createAnthropicReply(messages: ChatMessage[]) {
   });
 
   if (!response.ok) {
-    const details = await response.text();
+    const details = await readUpstreamError(response);
     return {
       ok: false as const,
       status: response.status,

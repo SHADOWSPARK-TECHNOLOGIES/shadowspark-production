@@ -2,7 +2,10 @@ import Redis from "ioredis";
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 
-const globalForRedis = global as unknown as { redis: Redis | undefined };
+const globalForRedis = global as unknown as {
+  redis: Redis | undefined;
+  redisErrorLogged?: boolean;
+};
 
 /**
  * Lazily-initialised Redis client.
@@ -34,7 +37,17 @@ function createRedis(): Redis {
   const client = new Redis(redisUrl, {
     maxRetriesPerRequest: null, // Required for BullMQ
   });
-  client.on("error", () => {});
+  client.on("error", (error) => {
+    if (globalForRedis.redisErrorLogged) {
+      return;
+    }
+
+    globalForRedis.redisErrorLogged = true;
+    console.warn(
+      "[redis] connection error",
+      error instanceof Error ? error.message : String(error),
+    );
+  });
   return client;
 }
 

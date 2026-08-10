@@ -1,26 +1,42 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { redis } from "@/lib/redis";
 
 export const runtime = "nodejs";
 const THRESHOLD = 0.6;
 
 export async function GET() {
   const checks = {
-    status: "ok" as string,
+    status: "ok" as "ok" | "degraded",
     timestamp: new Date().toISOString(),
-    database: "unknown" as string,
     version: process.env.npm_package_version || "1.0.0",
     vectorCount: 0,
     threshold: THRESHOLD,
+    services: {
+      database: "unknown" as "connected" | "disconnected" | "unknown",
+      redis: "unknown" as "connected" | "disconnected" | "unknown",
+    },
   };
 
   try {
     await prisma.$queryRaw`SELECT 1`;
-    checks.database = "connected";
+    checks.services.database = "connected";
   } catch {
-    checks.database = "disconnected";
+    checks.services.database = "disconnected";
     checks.status = "degraded";
+  }
+
+  if (typeof redis.ping === "function") {
+    try {
+      await redis.ping();
+      checks.services.redis = "connected";
+    } catch {
+      checks.services.redis = "disconnected";
+      checks.status = "degraded";
+    }
+  } else {
+    checks.services.redis = "unknown";
   }
 
   try {

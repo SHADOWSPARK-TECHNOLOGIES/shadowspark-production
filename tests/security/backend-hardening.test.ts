@@ -12,7 +12,7 @@
  * 8. Secrets — no raw keys/secrets in API responses.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import bcrypt from "bcryptjs";
 import { signAuthToken, verifyAuthToken } from "@/lib/auth";
 import { validateLoanTransition, isValidLoanTransition } from "@/lib/api/v1/state-machine";
@@ -100,6 +100,7 @@ vi.mock("@/lib/redis", () => ({
       redisStore.set(key, { value, ttl: Date.now() + seconds * 1000 });
       return Promise.resolve("OK");
     }),
+    ping: vi.fn(() => Promise.resolve("PONG")),
   },
 }));
 
@@ -109,6 +110,18 @@ vi.mock("@/lib/prisma", () => ({
 
 vi.mock("@/lib/messages/queue", () => ({
   enqueueMessage: vi.fn(),
+}));
+
+vi.mock("@/lib/messages/send-queue", () => ({
+  enqueueMessageSend: vi.fn(() => Promise.resolve({ id: "job_msg_1" })),
+}));
+
+vi.mock("@/lib/workflows/queue", () => ({
+  enqueueWorkflowTrigger: vi.fn(() => Promise.resolve({ id: "job_wf_1" })),
+}));
+
+vi.mock("@/lib/kyc/ocr-queue", () => ({
+  enqueueKycOcrJob: vi.fn(() => Promise.resolve({ id: "job_ocr_1" })),
 }));
 
 vi.mock("@/lib/kyc/queue", () => ({
@@ -121,6 +134,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   redisStore.clear();
   process.env.JWT_SECRET = process.env.JWT_SECRET ?? "test-secret-32-bytes-long-abc123";
+  vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 }))));
 });
 
 async function makeJsonRequest(body: unknown, headers: Record<string, string> = {}): Promise<Request> {
@@ -130,6 +144,10 @@ async function makeJsonRequest(body: unknown, headers: Record<string, string> = 
     body: body ? JSON.stringify(body) : undefined,
   });
 }
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 // ── 1. Auth ─────────────────────────────────────────────────────────────────
 
@@ -248,6 +266,12 @@ describe("KYC Pipeline", () => {
       loanApplicationId: "loan_1",
       type: "NIN",
       status: "PENDING",
+      metadata: {},
+      loanApplication: {
+        id: "loan_1",
+        status: "KYC_PENDING",
+        applicantPhone: "+2348012345678",
+      },
     });
     mockPrisma.kycDocument.update.mockResolvedValueOnce({ id: "kyc_1", status: "VERIFIED" });
     mockPrisma.loanApplication.findFirst.mockResolvedValueOnce({
@@ -255,6 +279,9 @@ describe("KYC Pipeline", () => {
       status: "KYC_PENDING",
       kycDocuments: [{ id: "kyc_1", status: "VERIFIED" }],
     });
+    mockPrisma.message.create.mockResolvedValueOnce({ id: "msg_kyc_1" });
+    mockPrisma.auditLog.create.mockResolvedValueOnce({ id: "audit_1" });
+    mockPrisma.loanApplication.update.mockResolvedValueOnce({ id: "loan_1", status: "KYC_VERIFIED" });
 
     await verifyKycDocument("t1", "kyc_1", { status: "VERIFIED", autoRejectLoan: false }, "user_1");
 
@@ -297,6 +324,11 @@ describe("Messages", () => {
   it("creates message with status QUEUED and enqueues worker", async () => {
     const { sendMessage } = await import("@/lib/api/v1/message-service");
     const { enqueueMessage } = await import("@/lib/messages/queue");
+
+    mockPrisma.loanApplication.findFirst.mockResolvedValueOnce({
+      id: "loan_1",
+      tenantId: "t1",
+    });
 
     mockPrisma.message.create.mockResolvedValueOnce({
       id: "msg_1",

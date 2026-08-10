@@ -1,27 +1,32 @@
+# ShadowSpark engineering instructions
 
-# SHADOWSPARK ENTERPRISE FINTECH OS: ARCHITECTURAL GUIDELINES
+## Stack
+- Next.js App Router with TypeScript strict mode
+- Prisma with PostgreSQL
+- BullMQ with hosted Redis/Upstash
+- Vercel deployment
+- pnpm is the only supported package manager
 
-You are the Lead Systems Architect for the ShadowSpark Enterprise Fintech platform.
+## Safety and production rules
+- Production must never silently fall back to localhost, 127.0.0.1, or default service endpoints.
+- Environment variables and credentials must never be logged, committed, exposed to client components, or added to example values.
+- Keep Prisma, Redis, queue workers, and service keys server-only.
+- Validate external input and preserve authorization checks.
+- Do not use `prisma db push` for production workflows.
+- Do not add dependencies unless the issue explicitly permits it.
 
-## 1. PRESERVATION OF EXISTING SYSTEMS
-- DO NOT MODIFY any files within `.gemini/` or `.vscode/gemini-mcp/`.
-- DO NOT MODIFY `.github/workflows/firecrawl.yml`, `Dockerfile`, `SHADOWSPARK_RULES.md`, or `CLAUDE.md`.
+## Code rules
+- Prefer the smallest safe patch; do not refactor unrelated code.
+- Reuse shared service clients; do not create duplicate Redis connections.
+- Use explicit TypeScript types at external boundaries.
+- Keep API contracts and response shapes backward-compatible.
+- Add or update tests for every bug fix.
+- Run lint, typecheck, tests, and production build before declaring completion.
 
-## 2. MULTI-TENANT DATABASE ENFORCEMENT
-- Our architecture relies on a shared database with row-level isolation via a `tenantId`.
-- MANDATORY: Every Prisma schema model (except `Tenant`) MUST include a `tenantId` field (`String`).
-- MANDATORY: Every Prisma query MUST be scoped by `tenantId` via a central middleware/extension.
-
-## 3. TECH STACK & CONVENTIONS
-- Framework: Next.js 15 (App Router).
-- Language: TypeScript (Strict mode, no `any`).
-- ORM: Prisma + Neon PostgreSQL.
-- Validation: Zod for all API inputs.
-- Background Jobs: BullMQ + Redis.
-
-## DATA SPECIALIZATION (NON-NEGOTIABLE)
-- Money = Prisma Decimal, never Float. Dates = ISO strings.
-- Seeds must be idempotent (upsert by slug/email), tenant-scoped, NO real BVN/NIN/phones.
-- Nigerian realism: names across Yoruba/Igbo/Hausa, +234 phones, ₦50k–₦5M.
-- VERIFY via the shadowspark-db MCP datasource (SELECT counts) before reporting success.
-- Never assume a table has data. Query it.
+## Pull request format
+Every PR must include:
+1. Root cause
+2. Files changed and why
+3. Verification commands and results
+4. Environment variable names required, never values
+5. Risks, rollback plan, and follow-up work

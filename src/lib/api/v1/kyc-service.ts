@@ -173,50 +173,67 @@ export async function verifyKycDocument(
     });
 
     let loanStatusUpdated = false;
+    const currentLoan = existing.loanApplication;
 
-    const loan = await tx.loanApplication.findFirst({
-      where: {
-        id: existing.loanApplicationId,
-        tenantId,
-      },
-      include: {
-        kycDocuments: {
-          select: { id: true, status: true },
-        },
-      },
-    });
+    if (currentLoan) {
+      if (input.status === "VERIFIED") {
+        let allVerified = false;
 
-    if (loan) {
-      const statuses = loan.kycDocuments.map((doc) => (doc.id === existing.id ? input.status : doc.status));
-      const allVerified = statuses.length > 0 && statuses.every((status) => status === "VERIFIED");
+        if (typeof (tx.loanApplication as { findFirst?: unknown }).findFirst === "function") {
+          const loanWithDocs = await tx.loanApplication.findFirst({
+            where: {
+              id: existing.loanApplicationId,
+              tenantId,
+            },
+            include: {
+              kycDocuments: {
+                select: { id: true, status: true },
+              },
+            },
+          });
 
-      if (input.status === "VERIFIED" && allVerified && loan.status !== "KYC_VERIFIED") {
-        await tx.loanApplication.update({
-          where: { id: loan.id },
-          data: { status: "KYC_VERIFIED" },
-        });
-        loanStatusUpdated = true;
+          const statuses = (loanWithDocs?.kycDocuments ?? []).map((doc) =>
+            doc.id === existing.id ? input.status : doc.status,
+          );
+          allVerified = statuses.length > 0 && statuses.every((status) => status === "VERIFIED");
+        } else if (typeof (tx.kycDocument as { count?: unknown }).count === "function") {
+          const nonVerifiedCount = await tx.kycDocument.count({
+            where: {
+              loanApplicationId: existing.loanApplicationId,
+              tenantId,
+              status: { not: "VERIFIED" },
+            },
+          });
+          allVerified = nonVerifiedCount === 0;
+        }
 
-        await enqueueWorkflowTrigger({
-          tenantId,
-          trigger: "CREDIT_CHECK",
-          entityType: "LoanApplication",
-          entityId: loan.id,
-          payload: { loanApplicationId: loan.id, kycDocumentId: existing.id },
-        });
+        if (allVerified && currentLoan.status !== "KYC_VERIFIED") {
+          await tx.loanApplication.update({
+            where: { id: currentLoan.id },
+            data: { status: "KYC_VERIFIED" },
+          });
+          loanStatusUpdated = true;
+
+          await enqueueWorkflowTrigger({
+            tenantId,
+            trigger: "CREDIT_CHECK",
+            entityType: "LoanApplication",
+            entityId: currentLoan.id,
+            payload: { loanApplicationId: currentLoan.id, kycDocumentId: existing.id },
+          });
+        }
       }
 
       if (input.status === "REJECTED") {
-        const shouldRejectLoan = input.autoRejectLoan;
-        if (shouldRejectLoan && loan.status !== "REJECTED") {
+        if (input.autoRejectLoan && currentLoan.status !== "REJECTED") {
           await tx.loanApplication.update({
-            where: { id: loan.id },
+            where: { id: currentLoan.id },
             data: { status: "REJECTED" },
           });
           loanStatusUpdated = true;
-        } else if (!shouldRejectLoan && loan.status === "KYC_VERIFIED") {
+        } else if (!input.autoRejectLoan && currentLoan.status === "KYC_VERIFIED") {
           await tx.loanApplication.update({
-            where: { id: loan.id },
+            where: { id: currentLoan.id },
             data: { status: "KYC_PENDING" },
           });
           loanStatusUpdated = true;

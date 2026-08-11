@@ -345,17 +345,17 @@ model AdminAction {
 /// severity values: LOW | MEDIUM | HIGH | CRITICAL
 /// status values: OPEN | INVESTIGATING | RESOLVED | DISMISSED
 model FraudFlag {
-  id         String    @id @default(cuid())
+  id         String   @id @default(cuid())
   targetType String
   targetId   String
-  severity   String    @default("MEDIUM")
+  severity   String   @default("MEDIUM")
   reason     String
   reportedBy String?
-  status     String    @default("OPEN")
+  status     String   @default("OPEN")
   resolution String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  listing    Listing?  @relation("listingFlags", fields: [targetId], references: [id], map: "fraud_flag_listing_fk")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  listing    Listing? @relation("listingFlags", fields: [targetId], references: [id], map: "fraud_flag_listing_fk")
 
   @@index([targetType, targetId])
   @@index([status])
@@ -365,14 +365,14 @@ model FraudFlag {
 /// Referral tracking — one record per successful referral pair.
 /// status values: PENDING | COMPLETED
 model Referral {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   referrerId     String
   referredUserId String
-  status         String    @default("PENDING")
+  status         String   @default("PENDING")
   reward         Int?
-  createdAt      DateTime  @default(now())
-  referrer       User      @relation("referralsGiven", fields: [referrerId], references: [id])
-  referred       User      @relation("referralsReceived", fields: [referredUserId], references: [id])
+  createdAt      DateTime @default(now())
+  referrer       User     @relation("referralsGiven", fields: [referrerId], references: [id])
+  referred       User     @relation("referralsReceived", fields: [referredUserId], references: [id])
 
   @@unique([referrerId, referredUserId])
   @@index([referrerId])
@@ -393,4 +393,264 @@ model OAuthAccount {
   @@unique([provider, providerAccountId])
   @@index([userId])
   @@map("oauth_accounts")
+}
+
+// ─── Fintech API Models ────────────────────────────────────────────────────
+
+model Tenant {
+  id               String             @id @default(cuid())
+  name             String
+  companyName      String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  users            TenantMembership[]
+  loanApplications LoanApplication[]
+  kycDocuments     KycDocument[]
+  messages         Message[]
+  auditLogs        AuditLog[]
+  idempotencyKeys  IdempotencyKey[]
+  workflows        Workflow[]
+  apiKeys          ApiKey[]
+  invitations      Invitation[]
+  settingsChanges  SettingsChange[]
+
+  @@map("tenants")
+}
+
+model TenantMembership {
+  id       String @id @default(cuid())
+  tenantId String
+  userId   String
+  role     String @default("MEMBER")
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@map("tenant_memberships")
+}
+
+model LoanApplication {
+  id             String        @id @default(cuid())
+  tenantId       String
+  applicantName  String
+  applicantPhone String
+  loanAmount     Decimal       @db.Decimal(15, 2)
+  loanPurpose    String?
+  status         String        @default("SUBMITTED")
+  assignedToId   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  kycDocuments   KycDocument[]
+  messages       Message[]
+  auditLogs      AuditLog[]
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("loan_applications")
+}
+
+model KycDocument {
+  id                String          @id @default(cuid())
+  tenantId          String
+  loanApplicationId String
+  type              String
+  status            String          @default("PENDING")
+  fileUrl           String?
+  fileHash          String?
+  ocrData           Json?
+  reviewedById      String?
+  reviewedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  loanApplication   LoanApplication @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@map("kyc_documents")
+}
+
+model AuditLog {
+  id                String           @id @default(cuid())
+  tenantId          String
+  loanApplicationId String?
+  action            String
+  metadata          Json?
+  actorId           String?
+  createdAt         DateTime         @default(now())
+  tenant            Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  loanApplication   LoanApplication? @relation(fields: [loanApplicationId], references: [id])
+
+  @@index([tenantId])
+  @@index([tenantId, loanApplicationId])
+  @@map("audit_logs")
+}
+
+model IdempotencyKey {
+  id         String   @id @default(cuid())
+  tenantId   String
+  key        String
+  statusCode Int
+  response   Json
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  tenant     Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, key])
+  @@index([tenantId, key])
+  @@map("idempotency_keys")
+}
+
+/// Background job queue for non-blocking OCR processing of KYC documents.
+model KycOcrJob {
+  id            String    @id @default(cuid())
+  tenantId      String
+  kycDocumentId String
+  status        String    @default("PENDING")
+  result        Json?
+  error         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  startedAt     DateTime?
+  completedAt   DateTime?
+
+  @@index([tenantId, kycDocumentId])
+  @@index([status])
+  @@map("kyc_ocr_jobs")
+}
+
+/// Immutable history of every KYC verification decision.
+model KycVerificationHistory {
+  id                String   @id @default(cuid())
+  tenantId          String
+  kycDocumentId     String
+  loanApplicationId String
+  status            String
+  actorId           String?
+  rejectionReason   String?
+  createdAt         DateTime @default(now())
+
+  @@index([tenantId, kycDocumentId])
+  @@index([tenantId, loanApplicationId])
+  @@map("kyc_verification_history")
+}
+
+/// Message delivery lifecycle. Provider-specific IDs are stored server-side only.
+model Message {
+  id                String          @id @default(cuid())
+  tenantId          String
+  loanApplicationId String
+  channel           String
+  direction         String          @default("OUTBOUND")
+  status            String          @default("QUEUED")
+  content           String
+  senderId          String?
+  provider          String?
+  providerMessageId String?
+  error             String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  readAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  tenant            Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  loanApplication   LoanApplication @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, loanApplicationId, channel])
+  @@index([status])
+  @@map("messages")
+}
+
+/// Minimal workflow definition (backend-execution first; no visual builder).
+model Workflow {
+  id          String              @id @default(cuid())
+  tenantId    String
+  name        String
+  description String?
+  nodes       Json
+  edges       Json
+  isActive    Boolean             @default(true)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  createdById String?
+  executions  WorkflowExecution[]
+  tenant      Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@map("workflows")
+}
+
+/// Record of a workflow execution.
+model WorkflowExecution {
+  id          String    @id @default(cuid())
+  tenantId    String
+  workflowId  String
+  status      String    @default("PENDING")
+  input       Json?
+  output      Json?
+  error       String?
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  workflow    Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, workflowId])
+  @@index([status])
+  @@map("workflow_executions")
+}
+
+/// Server-side API key storage. Only a SHA-256 hash of the key is persisted;
+/// the plaintext key is returned once on creation and must never be stored client-side.
+model ApiKey {
+  id          String    @id @default(cuid())
+  tenantId    String
+  name        String
+  keyHash     String    @unique
+  last4       String
+  scopes      String[]  @default([])
+  revokedAt   DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, revokedAt])
+  @@map("api_keys")
+}
+
+/// Tenant user invitation.
+model Invitation {
+  id          String    @id @default(cuid())
+  tenantId    String
+  email       String
+  role        String    @default("MEMBER")
+  tokenHash   String    @unique
+  invitedById String?
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId, email])
+  @@map("invitations")
+}
+
+/// Audit log for tenant settings changes.
+model SettingsChange {
+  id        String   @id @default(cuid())
+  tenantId  String
+  category  String
+  key       String
+  oldValue  Json?
+  newValue  Json?
+  actorId   String?
+  createdAt DateTime @default(now())
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, category])
+  @@map("settings_changes")
 }

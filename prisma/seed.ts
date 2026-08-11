@@ -1,160 +1,264 @@
-import { PrismaClient } from "../src/generated/prisma/client/client";
+import { PrismaClient, Prisma } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 import bcrypt from "bcryptjs";
-import { readFile } from "node:fs/promises";
-import "dotenv/config";
 
-const DB_URL_FILE = "/tmp/dburl.txt";
+const connectionString = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
+if (!connectionString) throw new Error("DATABASE_URL is not set");
+const pool = new pg.Pool({ connectionString });
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({ adapter });
 
-function hostnameOf(url: string): string {
-  return new URL(url).hostname;
-}
+const TENANT_ID = "demo-lending";
+const USERS = [
+  { id: "user_admin_demo", email: "admin@shadowspark.tech", name: "Demo Admin", role: "ADMIN" },
+  { id: "user_manager_demo", email: "manager@shadowspark.tech", name: "Demo Manager", role: "MANAGER" },
+  { id: "user_agent_demo", email: "agent@shadowspark.tech", name: "Demo Agent", role: "AGENT" },
+];
 
-function withRequiredNeonParams(input: string): string {
-  const parsed = new URL(input);
-  parsed.searchParams.set("pgbouncer", "true");
-  parsed.searchParams.set("sslmode", "require");
-  return parsed.toString();
-}
+const LOAN_STATUSES = [
+  "SUBMITTED",
+  "UNDER_REVIEW",
+  "KYC_PENDING",
+  "KYC_VERIFIED",
+  "APPROVED",
+  "REJECTED",
+  "DISBURSED",
+  "CLOSED",
+  "DEFAULTED",
+  "RESTRUCTURED",
+] as const;
 
-async function resolveDatabaseUrl(): Promise<{ url: string; source: "env" | "file" }> {
-  const fromEnv = process.env.DATABASE_URL?.trim();
-  if (fromEnv) {
-    return { url: withRequiredNeonParams(fromEnv), source: "env" };
-  }
+const APPLICANTS = [
+  "Adaeze Okonkwo",
+  "Emeka Nwosu",
+  "Fatima Bello",
+  "Chukwudi Eze",
+  "Ngozi Adeyemi",
+  "Babajide Alabi",
+  "Chioma Obiora",
+  "Tunde Fashola",
+  "Amaka Osei",
+  "Kelechi Ibe",
+  "Yewande Adeleke",
+  "Olumide Ogunleye",
+  "Zainab Usman",
+  "Ifeanyi Nnamdi",
+  "Amina Ibrahim",
+];
 
-  const rawFile = await readFile(DB_URL_FILE, "utf8");
-  const fileLines = rawFile
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith("#"));
+const PIDGIN_MESSAGES = [
+  "Oga, how far my loan?",
+  "Abeg, when dem go approve am?",
+  "I don send my documents o",
+  "Wetin remain wey I go do?",
+  "My people need the money sharp sharp",
+];
 
-  const explicitEntry = fileLines.find((line) => line.startsWith("DATABASE_URL="));
-  const fromFile = explicitEntry
-    ? explicitEntry.slice("DATABASE_URL=".length).trim()
-    : fileLines[0];
-
-  if (!fromFile) {
-    throw new Error(`DATABASE_URL is missing and ${DB_URL_FILE} is empty`);
-  }
-
-  return { url: withRequiredNeonParams(fromFile), source: "file" };
-}
-
-async function countModel(
-  prisma: PrismaClient,
-  modelKey: string,
-  label: string,
-): Promise<{ table: string; count: number | null }> {
-  try {
-    const delegate = (prisma as unknown as Record<string, { count: () => Promise<number> }>)[modelKey];
-    if (!delegate || typeof delegate.count !== "function") {
-      return { table: label, count: null };
-    }
-
-    const count = await delegate.count();
-    return { table: label, count };
-  } catch {
-    return { table: label, count: null };
-  }
+async function clearDemoTenant() {
+  // Delete child rows for the demo tenant in dependency order.
+  await prisma.message.deleteMany({ where: { tenantId: TENANT_ID } });
+  await prisma.kycDocument.deleteMany({ where: { tenantId: TENANT_ID } });
+  await prisma.kycOcrJob.deleteMany({ where: { tenantId: TENANT_ID } });
+  await prisma.kycVerificationHistory.deleteMany({ where: { tenantId: TENANT_ID } });
+  await prisma.auditLog.deleteMany({ where: { tenantId: TENANT_ID } });
+  await prisma.workflowExecution.deleteMany({ where: { tenantId: TENANT_ID } });
+  await prisma.workflow.deleteMany({ where: { tenantId: TENANT_ID } });
+  await prisma.loanApplication.deleteMany({ where: { tenantId: TENANT_ID } });
+  await prisma.apiKey.deleteMany({ where: { tenantId: TENANT_ID } });
+  await prisma.invitation.deleteMany({ where: { tenantId: TENANT_ID } });
+  await prisma.settingsChange.deleteMany({ where: { tenantId: TENANT_ID } });
+  await prisma.tenantMembership.deleteMany({ where: { tenantId: TENANT_ID } });
+  await prisma.user.deleteMany({ where: { id: { startsWith: "user_" } } });
+  await prisma.tenant.deleteMany({ where: { id: TENANT_ID } });
 }
 
 async function main() {
-  const envUrl = process.env.DATABASE_URL?.trim();
-  const envHostname = envUrl ? hostnameOf(envUrl) : "<unset>";
-  console.log(`[diagnose] process.env.DATABASE_URL hostname: ${envHostname}`);
+  console.log("🌱 Seeding ShadowSpark demo data...");
 
-  const { url, source } = await resolveDatabaseUrl();
-  console.log(`[diagnose] runtime datasource source: ${source}`);
-  console.log(`[diagnose] effective datasource hostname: ${hostnameOf(url)}`);
+  await clearDemoTenant();
 
-  const adapter = new PrismaPg({ connectionString: url });
-  const prisma = new PrismaClient({ adapter });
+  const tenant = await prisma.tenant.create({
+    data: { id: TENANT_ID, name: "Demo Lending Co", companyName: "ShadowSpark Demo Lending" },
+  });
+  console.log(`✅ Tenant: ${tenant.id}`);
 
-  if (source === "file") {
-    console.log(`[diagnose] loaded DATABASE_URL from ${DB_URL_FILE}`);
+  const passwordHash = await bcrypt.hash("Demo@1234", 12);
+  const users = await Promise.all(
+    USERS.map((u) =>
+      prisma.user.upsert({
+        where: { email: u.email },
+        update: {
+          name: u.name,
+          password: passwordHash,
+          role: u.role,
+        },
+        create: {
+          id: u.id,
+          email: u.email,
+          name: u.name,
+          password: passwordHash,
+          role: u.role,
+        },
+      })
+    )
+  );
+
+  await prisma.tenantMembership.createMany({
+    data: users.map((u) => ({ tenantId: tenant.id, userId: u.id, role: u.role ?? "USER" })),
+    skipDuplicates: true,
+  });
+  console.log(`✅ Users: ${users.map((u) => u.email).join(", ")}`);
+
+  const adminId = users.find((u) => u.role === "ADMIN")!.id;
+
+  // 15 loans across 30 days covering every status.
+  const loans: Awaited<ReturnType<typeof prisma.loanApplication.create>>[] = [];
+  for (let i = 0; i < 15; i++) {
+    const status = LOAN_STATUSES[i % LOAN_STATUSES.length];
+    const createdAt = new Date(Date.now() - i * 2 * 24 * 60 * 60 * 1000);
+    const loan = await prisma.loanApplication.create({
+      data: {
+        tenantId: tenant.id,
+        applicantName: APPLICANTS[i],
+        applicantPhone: `+23480${1000000 + i * 11111}`,
+        loanAmount: new Prisma.Decimal(100000 + i * 50000),
+        loanPurpose: "Working capital",
+        status,
+        createdAt,
+        updatedAt: createdAt,
+      },
+    });
+    loans.push(loan);
+
+    await prisma.auditLog.create({
+      data: {
+        tenantId: tenant.id,
+        loanApplicationId: loan.id,
+        action: "LOAN_CREATED",
+        actorId: adminId,
+        metadata: { amount: Number(loan.loanAmount), status },
+      },
+    });
+
+    console.log(`  ✅ Loan ${i + 1}: ${loan.applicantName} — ₦${Number(loan.loanAmount).toLocaleString()} (${status})`);
   }
 
-  console.log("🏦 INITIATING SOVEREIGN CHART OF ACCOUNTS...");
+  // 20 KYC documents (multiple per loan).
+  for (let i = 0; i < 20; i++) {
+    const loan = loans[i % loans.length];
+    const status = i % 5 === 0 ? "REJECTED" : i % 3 === 0 ? "VERIFIED" : "PENDING";
+    await prisma.kycDocument.create({
+      data: {
+        tenantId: tenant.id,
+        loanApplicationId: loan.id,
+        type: i % 2 === 0 ? "ID_DOCUMENT" : "PROOF_OF_ADDRESS",
+        status,
+        fileUrl: `https://placehold.co/600x400/1e293b/94a3b8?text=${encodeURIComponent(loan.applicantName)}+KYC+${i}`,
+      },
+    });
+  }
+  console.log("✅ 20 KYC documents");
 
-  // Seed admin user first (required for Account.userId relation)
-  const email = "admin@shadowspark.com";
-  const password = await bcrypt.hash("password", 10);
-  const adminUser = await prisma.user.upsert({
-    where: { email },
-    update: {},
+  // 20 messages, some in Pidgin.
+  for (let i = 0; i < 20; i++) {
+    const loan = loans[i % loans.length];
+    const isPidgin = i % 3 === 0;
+    const content = isPidgin
+      ? PIDGIN_MESSAGES[i % PIDGIN_MESSAGES.length]
+      : `Hi, this is ${loan.applicantName}. I would like an update on my loan application.`;
+    await prisma.message.create({
+      data: {
+        tenantId: tenant.id,
+        loanApplicationId: loan.id,
+        channel: i % 2 === 0 ? "WHATSAPP" : "SMS",
+        direction: i % 4 === 0 ? "INBOUND" : "OUTBOUND",
+        status: ["QUEUED", "SENT", "DELIVERED", "READ", "FAILED"][i % 5],
+        content,
+        senderId: adminId,
+      },
+    });
+  }
+  console.log("✅ 20 messages");
+
+  // 5 workflows.
+  for (let i = 0; i < 5; i++) {
+    await prisma.workflow.create({
+      data: {
+        tenantId: tenant.id,
+        name: ["KYC Review", "Approve & Disburse", "Default Follow-up", "Repayment Reminder", "Risk Escalation"][i],
+        description: `Workflow ${i + 1} for demo tenant`,
+        nodes: [{ id: "start", type: "start" }, { id: "action", type: "action" }],
+        edges: [{ source: "start", target: "action" }],
+        isActive: true,
+        createdById: adminId,
+      },
+    });
+  }
+  console.log("✅ 5 workflows");
+
+  // 20 audit logs.
+  const auditActions = [
+    "LOAN_CREATED",
+    "LOAN_UPDATED",
+    "KYC_VERIFIED",
+    "KYC_REJECTED",
+    "MESSAGE_SENT",
+    "WORKFLOW_EXECUTED",
+    "USER_INVITED",
+    "API_KEY_CREATED",
+    "SETTINGS_CHANGED",
+  ];
+  for (let i = 0; i < 20; i++) {
+    const loan = loans[i % loans.length];
+    await prisma.auditLog.create({
+      data: {
+        tenantId: tenant.id,
+        loanApplicationId: loan.id,
+        action: auditActions[i % auditActions.length],
+        actorId: adminId,
+        metadata: { demo: true, index: i },
+      },
+    });
+  }
+  console.log("✅ 20 audit logs");
+
+  // 10 repayments via Payment table (no dedicated Repayment model).
+  // Create a single demo lead to satisfy the Payment relation.
+  const lead = await prisma.lead.upsert({
+    where: { email: "repayments@shadowspark.demo" },
+    update: {
+      phoneNumber: "+2348000000000",
+      status: "converted",
+    },
     create: {
-      email,
-      password,
-      role: "admin",
+      email: "repayments@shadowspark.demo",
+      phoneNumber: "+2348000000000",
+      status: "converted",
     },
   });
-  console.log(`✅ Seeded admin user: ${email} (${adminUser.id})`);
-
-  // Accounts matching IDs used in application code:
-  //   expenses.ts -> 1111... (Cash), 2222... (Operating Expense)
-  //   webhooks/paystack -> 1111... (Cash), 3333... (Revenue)
-  //   LedgerService -> referenced by accountId in entries
-  const SYSTEM_ACCOUNTS = [
-    {
-      id: "11111111-1111-1111-1111-111111111111",
-      userId: adminUser.id,
-      type: "WALLET",
-      currency: "NGN",
-    },
-    {
-      id: "22222222-2222-2222-2222-222222222222",
-      userId: adminUser.id,
-      type: "EXPENSE",
-      currency: "NGN",
-    },
-    {
-      id: "33333333-3333-3333-3333-333333333333",
-      userId: adminUser.id,
-      type: "INCOME",
-      currency: "NGN",
-    },
-    {
-      id: "44444444-4444-4444-4444-444444444444",
-      userId: adminUser.id,
-      type: "CLEARING",
-      currency: "NGN",
-    },
-  ];
-
-  for (const account of SYSTEM_ACCOUNTS) {
-    await prisma.account.upsert({
-      where: { id: account.id },
-      update: {},
-      create: account,
+  await prisma.payment.deleteMany({ where: { leadId: lead.id } });
+  for (let i = 0; i < 10; i++) {
+    await prisma.payment.create({
+      data: {
+        amount: 10000 + i * 5000,
+        status: i % 4 === 0 ? "failed" : "successful",
+        reference: `SEED-REPAY-${Date.now()}-${i}`,
+        leadId: lead.id,
+      },
     });
-    console.log(`✅ VERIFIED [${account.type}]: ${account.id}`);
   }
+  console.log("✅ 10 repayments");
 
-  console.log("\n🔒 CHART OF ACCOUNTS SECURED.");
-
-  const modelsToCount = [
-    { key: "tenant", label: "Tenant" },
-    { key: "user", label: "User" },
-    { key: "loanApplication", label: "LoanApplication" },
-    { key: "kycDocument", label: "KycDocument" },
-    { key: "message", label: "Message" },
-    { key: "workflow", label: "Workflow" },
-    { key: "auditLog", label: "AuditLog" },
-  ] as const;
-
-  console.log("\n📊 ROW COUNTS");
-  for (const model of modelsToCount) {
-    const result = await countModel(prisma, model.key, model.label);
-    const renderedCount = result.count === null ? "MISSING" : String(result.count);
-    console.log(`${result.table}\t${renderedCount}`);
-  }
-
-  await prisma.$disconnect();
+  console.log("\n🎉 Demo seed complete!");
+  console.log("   Logins (all users): Demo@1234");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ SEED FAILURE:", e);
+    console.error(e);
     process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
   });

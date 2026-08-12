@@ -5,7 +5,33 @@ export const runtime = "nodejs";
 
 const BUSINESS_ID = "1416205687214106";
 const WEBHOOK_URL = "https://shadowspark-chatbot-524469712746.europe-central2.run.app/webhooks/whatsapp";
-const VERIFY_TOKEN = "ShadowSpark_2026_Final";
+
+interface HealthStatus {
+  timestamp: string;
+  webhook: string;
+  database: string;
+  meta_api: string;
+  redis: string;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function metaApiError(payload: unknown): string {
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "error" in payload &&
+    typeof payload.error === "object" &&
+    payload.error !== null &&
+    "message" in payload.error &&
+    typeof payload.error.message === "string"
+  ) {
+    return payload.error.message;
+  }
+  return "Unknown API error";
+}
 
 async function sendSlackAlert(message: string, system: string = "WhatsApp Bot Health Alert") {
   const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL;
@@ -18,8 +44,8 @@ async function sendSlackAlert(message: string, system: string = "WhatsApp Bot He
           text: `🚨 *${system}*\n*Status:* FAILED\n*Detail:* ${message}\n*Project:* shadowspark-production-489115` 
         })
       });
-    } catch (e: any) {
-      console.error("Failed to send Slack alert:", e.message);
+    } catch (error: unknown) {
+      console.error("Failed to send Slack alert:", errorMessage(error));
     }
   }
 }
@@ -31,14 +57,14 @@ export async function GET(req: Request) {
   
   if (!secret || authHeader !== expected) {
     console.log("Auth Failure:", { 
-      received: authHeader, 
-      expected: expected ? "EXISTS" : "MISSING",
+      received: authHeader ? "PRESENT" : "MISSING",
+      expected: secret ? "PRESENT" : "MISSING",
       secretLength: secret.length 
     });
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  const status: any = {
+  const status: HealthStatus = {
     timestamp: new Date().toISOString(),
     webhook: "unknown",
     database: "unknown",
@@ -47,50 +73,68 @@ export async function GET(req: Request) {
   };
 
   // 1. Webhook Challenge
-  try {
-    const res = await fetch(`${WEBHOOK_URL}?hub.mode=subscribe&hub.verify_token=${VERIFY_TOKEN}&hub.challenge=health_check`);
-    const data = await res.text();
-    if (data === "health_check") {
-      status.webhook = "ok";
-    } else {
-      status.webhook = "failed";
-      await sendSlackAlert("Webhook returned unexpected challenge response.");
+  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN?.trim();
+  if (!verifyToken) {
+    status.webhook = "not_configured";
+  } else {
+    try {
+      const healthUrl = new URL(WEBHOOK_URL);
+      healthUrl.searchParams.set("hub.mode", "subscribe");
+      healthUrl.searchParams.set("hub.verify_token", verifyToken);
+      healthUrl.searchParams.set("hub.challenge", "health_check");
+      const res = await fetch(healthUrl);
+      const data = await res.text();
+      if (data === "health_check") {
+        status.webhook = "ok";
+      } else {
+        status.webhook = "failed";
+        await sendSlackAlert("Webhook returned unexpected challenge response.");
+      }
+    } catch (error: unknown) {
+      status.webhook = "error";
+      await sendSlackAlert(`Webhook Unreachable: ${errorMessage(error)}`);
     }
-  } catch (error: any) {
-    status.webhook = "error";
-    await sendSlackAlert(`Webhook Unreachable: ${error.message}`);
   }
 
   // 2. Database Connectivity
   try {
     await prisma.$queryRaw`SELECT 1`;
     status.database = "ok";
-  } catch (error: any) {
+  } catch (error: unknown) {
     status.database = "error";
-    await sendSlackAlert(`Database Connection Failed: ${error.message}`);
+    await sendSlackAlert(`Database Connection Failed: ${errorMessage(error)}`);
   }
 
   // 3. Meta API Token Validity
   const META_TOKEN = process.env.META_ACCESS_TOKEN;
   if (META_TOKEN) {
     try {
-      const res = await fetch(`https://graph.facebook.com/v21.0/${BUSINESS_ID}?access_token=${META_TOKEN}&fields=name,status`);
+      const metaUrl = new URL(`https://graph.facebook.com/v21.0/${BUSINESS_ID}`);
+      metaUrl.searchParams.set("fields", "name,status");
+      const res = await fetch(metaUrl, {
+        headers: { Authorization: `Bearer ${META_TOKEN}` },
+      });
       if (res.ok) {
         status.meta_api = "ok";
       } else {
-        const errorData = await res.json();
+        const errorData: unknown = await res.json();
         status.meta_api = "error";
-        await sendSlackAlert(`Meta Token Issue: ${errorData.error?.message || "Unknown API error"}`);
+        await sendSlackAlert(`Meta Token Issue: ${metaApiError(errorData)}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       status.meta_api = "error";
-      await sendSlackAlert(`Meta Token Issue: ${error.message}`);
+      await sendSlackAlert(`Meta Token Issue: ${errorMessage(error)}`);
     }
   }
 
   // 4. Redis Capacity
   try {
     const { redis } = await import("@/lib/redis");
+    if (redis === null) {
+      status.redis = "not_configured";
+      return NextResponse.json(status);
+    }
+
     const memoryInfo = await redis.info("memory");
     const usedMatch = memoryInfo.match(/used_memory:(\d+)/);
     const maxMatch = memoryInfo.match(/maxmemory:(\d+)/);
@@ -112,9 +156,9 @@ export async function GET(req: Request) {
         status.redis = "ok";
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     status.redis = "error";
-    await sendSlackAlert(`Redis Connection Failed: ${error.message}`, "Redis Health Alert");
+    await sendSlackAlert(`Redis Connection Failed: ${errorMessage(error)}`, "Redis Health Alert");
   }
 
   return NextResponse.json(status);

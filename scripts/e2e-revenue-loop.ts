@@ -48,8 +48,14 @@ async function executeE2ETest() {
       console.log(`    - Status:   ${processedLead.status}`);
       console.log(`    - PIS Score: ${processedLead.leadScore} / 100`);
       
-      const audit = processedLead.miniAuditData as any;
-      if (audit && audit.reasoning) {
+      const audit = processedLead.miniAuditData;
+      if (
+        audit &&
+        typeof audit === "object" &&
+        !Array.isArray(audit) &&
+        "reasoning" in audit &&
+        typeof audit.reasoning === "string"
+      ) {
         console.log(`    - Reasoning: "${audit.reasoning}"`);
       }
 
@@ -67,7 +73,7 @@ async function executeE2ETest() {
     console.log("===========================================");
     
     setTimeout(() => {
-      redis.disconnect();
+      redis?.disconnect();
       prisma.$disconnect();
       process.exit(0);
     }, 1000);

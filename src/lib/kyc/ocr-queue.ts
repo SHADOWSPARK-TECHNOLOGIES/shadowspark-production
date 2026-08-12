@@ -1,4 +1,5 @@
 import { Queue } from "bullmq";
+import { dispatchQueueJob } from "@/lib/queue-dispatch";
 import { redis } from "@/lib/redis";
 
 export const KYC_OCR_QUEUE = "kyc-ocr";
@@ -13,6 +14,10 @@ export interface KycOcrJobData {
 let kycOcrQueueInstance: Queue<KycOcrJobData> | null = null;
 
 function getKycOcrQueue(): Queue<KycOcrJobData> {
+  if (redis === null) {
+    throw new Error("Redis is not configured for the KYC OCR queue");
+  }
+
   if (!kycOcrQueueInstance) {
     kycOcrQueueInstance = new Queue<KycOcrJobData>(KYC_OCR_QUEUE, {
       connection: redis,
@@ -29,5 +34,15 @@ function getKycOcrQueue(): Queue<KycOcrJobData> {
 }
 
 export async function enqueueKycOcrJob(data: KycOcrJobData) {
-  return getKycOcrQueue().add("kyc.ocr", data);
+  return dispatchQueueJob({
+    redisAvailable: redis !== null,
+    queueName: KYC_OCR_QUEUE,
+    jobName: "kyc.ocr",
+    data,
+    enqueue: () => getKycOcrQueue().add("kyc.ocr", data),
+    runInline: async () => {
+      const { processKycDocumentJob } = await import("@/workers/kyc.worker");
+      return processKycDocumentJob(data);
+    },
+  });
 }

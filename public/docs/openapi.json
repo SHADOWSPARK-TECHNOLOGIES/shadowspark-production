@@ -140,6 +140,93 @@
         }
       }
     },
+    "/health": {
+      "get": {
+        "summary": "Get application dependency health",
+        "description": "Checks PostgreSQL, vector storage, and optional Redis. An absent REDIS_URL is reported as not_configured and does not degrade health.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Required services are healthy; Redis may be connected, unknown, or not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["status", "timestamp", "version", "vectorCount", "threshold", "services"],
+                  "properties": {
+                    "status": { "type": "string", "enum": ["ok"] },
+                    "timestamp": { "type": "string", "format": "date-time" },
+                    "version": { "type": "string" },
+                    "vectorCount": { "type": "integer", "minimum": 0 },
+                    "threshold": { "type": "number" },
+                    "services": {
+                      "type": "object",
+                      "required": ["database", "redis"],
+                      "properties": {
+                        "database": { "type": "string", "enum": ["connected", "unknown"] },
+                        "redis": { "type": "string", "enum": ["connected", "not_configured", "unknown"] }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": "ok",
+                  "timestamp": "2026-08-12T12:00:00.000Z",
+                  "version": "1.0.0",
+                  "vectorCount": 42,
+                  "threshold": 0.6,
+                  "services": { "database": "connected", "redis": "not_configured" }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A required dependency is unavailable.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "degraded",
+                  "services": { "database": "disconnected", "redis": "not_configured" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operator/queue-stats": {
+      "get": {
+        "summary": "Get crawl and lead queue statistics",
+        "description": "Returns BullMQ counts when Redis is configured. Without Redis, returns zero counts with mode inline because jobs execute synchronously at enqueue time.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Queue transport status and counters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["crawl", "leads", "generatedAt"],
+                  "properties": {
+                    "mode": { "type": "string", "enum": ["inline"] },
+                    "crawl": { "$ref": "#/components/schemas/QueueSnapshot" },
+                    "leads": { "$ref": "#/components/schemas/QueueSnapshot" },
+                    "generatedAt": { "type": "string", "format": "date-time" }
+                  }
+                },
+                "example": {
+                  "mode": "inline",
+                  "crawl": { "waiting": 0, "active": 0, "completed": 0, "failed": 0, "delayed": 0 },
+                  "leads": { "waiting": 0, "active": 0, "completed": 0, "failed": 0, "delayed": 0 },
+                  "generatedAt": "2026-08-12T12:00:00.000Z"
+                }
+              }
+            }
+          },
+          "500": { "description": "Redis is configured but queue statistics could not be read." }
+        }
+      }
+    },
     "/operator/metrics": {
       "get": {
         "summary": "Get real-time operator dashboard metrics",
@@ -491,6 +578,19 @@
     }
   },
   "components": {
+    "schemas": {
+      "QueueSnapshot": {
+        "type": "object",
+        "required": ["waiting", "active", "completed", "failed", "delayed"],
+        "properties": {
+          "waiting": { "type": "integer", "minimum": 0 },
+          "active": { "type": "integer", "minimum": 0 },
+          "completed": { "type": "integer", "minimum": 0 },
+          "failed": { "type": "integer", "minimum": 0 },
+          "delayed": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
     "securitySchemes": {
       "ApiKey": {
         "type": "apiKey",

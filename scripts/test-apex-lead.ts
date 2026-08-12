@@ -18,7 +18,7 @@ async function testApexLead() {
     
     // Disconnect so the script can exit
     setTimeout(() => {
-      redis.disconnect();
+      redis?.disconnect();
       process.exit(0);
     }, 1000);
   } catch (err) {

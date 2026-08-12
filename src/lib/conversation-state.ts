@@ -3,6 +3,23 @@ import { redis } from "@/lib/redis";
 
 export const CONVERSATION_TTL_SECONDS = 60 * 60 * 24;
 
+interface LocalConversationEntry {
+  record: ConversationRecord;
+  expiresAt: number;
+}
+
+const globalForConversationState = globalThis as typeof globalThis & {
+  optionalRedisConversationState?: Map<string, LocalConversationEntry>;
+};
+const localConversationState =
+  globalForConversationState.optionalRedisConversationState ??
+  new Map<string, LocalConversationEntry>();
+let localWritesSinceSweep = 0;
+
+if (process.env.NODE_ENV !== "production") {
+  globalForConversationState.optionalRedisConversationState = localConversationState;
+}
+
 export const CONVERSATION_STATES = {
   IDLE: {
     prompt: "Welcome to ShadowSpark loans. What is your full name?",
@@ -141,12 +158,27 @@ export function getConversationKey(tenantId: string, phone: string): string {
   return `conv:${tenantId}:${phone}`;
 }
 
+function sweepExpiredLocalConversationState(now: number): void {
+  for (const [key, entry] of localConversationState) {
+    if (entry.expiresAt <= now) localConversationState.delete(key);
+  }
+}
+
 export async function loadConversationState(params: {
   tenantId: string;
   phone: string;
   loanApplicationId: string;
 }): Promise<ConversationRecord> {
   const key = getConversationKey(params.tenantId, params.phone);
+  if (redis === null) {
+    const entry = localConversationState.get(key);
+    if (!entry || entry.expiresAt <= Date.now()) {
+      localConversationState.delete(key);
+      return emptyConversationRecord(params);
+    }
+    return entry.record;
+  }
+
   const raw = await redis.get(key);
   if (!raw || typeof raw !== "string") {
     return emptyConversationRecord(params);
@@ -166,6 +198,19 @@ export async function loadConversationState(params: {
 
 export async function saveConversationState(record: ConversationRecord): Promise<void> {
   const key = getConversationKey(record.tenantId, record.phone);
+  if (redis === null) {
+    localWritesSinceSweep += 1;
+    if (localWritesSinceSweep >= 100) {
+      sweepExpiredLocalConversationState(Date.now());
+      localWritesSinceSweep = 0;
+    }
+    localConversationState.set(key, {
+      record,
+      expiresAt: Date.now() + CONVERSATION_TTL_SECONDS * 1000,
+    });
+    return;
+  }
+
   await redis.set(key, JSON.stringify(record), "EX", CONVERSATION_TTL_SECONDS);
 }
 

@@ -3,7 +3,8 @@ import { redis } from "@/lib/redis";
 import { prisma } from "@/lib/prisma";
 import { KYC_OCR_QUEUE, type KycOcrJobData } from "@/lib/kyc/queue";
 
-async function processKycOcrJob(data: KycOcrJobData): Promise<void> {
+/** Processes one legacy KYC OCR job independently of BullMQ transport. */
+export async function processKycOcrJob(data: KycOcrJobData): Promise<void> {
   const pendingJob = await prisma.kycOcrJob.findFirst({
     where: { tenantId: data.tenantId, kycDocumentId: data.kycDocumentId, status: "PENDING" },
     orderBy: { createdAt: "desc" },
@@ -38,7 +39,9 @@ async function processKycOcrJob(data: KycOcrJobData): Promise<void> {
   }
 }
 
-export function startKycOcrWorker(): Worker<KycOcrJobData> {
+export function startKycOcrWorker(): Worker<KycOcrJobData> | null {
+  if (redis === null) return null;
+
   return new Worker<KycOcrJobData>(
     KYC_OCR_QUEUE,
     async (job) => {
@@ -49,6 +52,6 @@ export function startKycOcrWorker(): Worker<KycOcrJobData> {
 }
 
 const worker = startKycOcrWorker();
-worker.on("completed", (job) => console.log(`[kyc-ocr-worker] completed ${job.id}`));
-worker.on("failed", (job, err) => console.error(`[kyc-ocr-worker] failed ${job?.id}:`, err));
-console.log("[kyc-ocr-worker] started");
+worker?.on("completed", (job) => console.log(`[kyc-ocr-worker] completed ${job.id}`));
+worker?.on("failed", (job, err) => console.error(`[kyc-ocr-worker] failed ${job?.id}:`, err));
+if (worker) console.log("[kyc-ocr-worker] started");

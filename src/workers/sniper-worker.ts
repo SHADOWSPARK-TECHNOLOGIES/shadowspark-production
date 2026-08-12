@@ -9,41 +9,40 @@ import { google } from "@ai-sdk/google";
 
 const firecrawl = new FirecrawlApp({ apiKey: process.env.FIRECRAWL_API_KEY || "" });
 
-export const sniperWorker = new Worker<SniperJobData>(
-  SNIPER_QUEUE,
-  async (job) => {
-    const { targetId, domain } = job.data;
-    console.log(`[sniper-worker] Processing Target: ${domain} (ID: ${targetId})`);
+/** Processes one target independently of BullMQ transport. */
+export async function processSniperJob(data: SniperJobData) {
+  const { targetId, domain } = data;
+  console.log(`[sniper-worker] Processing Target: ${domain} (ID: ${targetId})`);
 
-    try {
-      // 1. Update status to analyzing
+  try {
+    await prisma.sniperTarget.update({
+      where: { id: targetId },
+      data: { status: "analyzing" },
+    });
+
+    console.log(`[sniper-worker] Scraping ${domain}...`);
+    const scrapeResult = await firecrawl.scrape(domain, { formats: ["markdown"] });
+
+    if (!scrapeResult.success || !scrapeResult.markdown) {
+      throw new Error(`Failed to scrape ${domain}: ${scrapeResult.error}`);
+    }
+
+    const markdown = scrapeResult.markdown.toLowerCase();
+    if (
+      markdown.includes("domain for sale") ||
+      markdown.includes("404 not found") ||
+      markdown.includes("buy this domain")
+    ) {
+      console.log(`[sniper-worker] Detected dead link for ${domain}`);
       await prisma.sniperTarget.update({
         where: { id: targetId },
-        data: { status: "analyzing" },
+        data: { status: "dead_link" },
       });
+      return { ok: false, reason: "dead_link" };
+    }
 
-      // 2. Firecrawl Scrape
-      console.log(`[sniper-worker] Scraping ${domain}...`);
-      const scrapeResult: any = await firecrawl.scrape(domain, { formats: ['markdown'] });
-
-      if (!scrapeResult.success || !scrapeResult.markdown) {
-        throw new Error(`Failed to scrape ${domain}: ${scrapeResult.error}`);
-      }
-
-      // Check for dead links/domains for sale
-      const md = scrapeResult.markdown.toLowerCase();
-      if (md.includes("domain for sale") || md.includes("404 not found") || md.includes("buy this domain")) {
-        console.log(`[sniper-worker] Detected dead link for ${domain}`);
-        await prisma.sniperTarget.update({
-          where: { id: targetId },
-          data: { status: "dead_link" },
-        });
-        return { ok: false, reason: "dead_link" };
-      }
-
-      // 3. Gemini Analysis & Generation
-      console.log(`[sniper-worker] Generating payload with Gemini 1.5 Pro...`);
-      const prompt = `
+    console.log(`[sniper-worker] Generating payload with Gemini 1.5 Pro...`);
+    const prompt = `
 You are an elite, highly aggressive outbound sales AI for ShadowSpark.
 ShadowSpark provides "Autonomous Revenue Intelligence" - we catch and fix conversion leaks using AI agents.
 
@@ -58,45 +57,48 @@ Be authoritative, direct, and slightly arrogant but deeply insightful.
 Provide ONLY the body of the email. Do not include subject lines or greetings.
 `;
 
-      const { text } = await generateText({
-        model: google("gemini-1.5-pro"),
-        prompt,
-      });
+    const { text } = await generateText({
+      model: google("gemini-1.5-pro"),
+      prompt,
+    });
 
-      // 4. Save the drafted weaponized payload
-      await prisma.sniperTarget.update({
-        where: { id: targetId },
-        data: {
-          status: "draft_ready",
-          generatedDraft: text.trim(),
-        },
-      });
+    await prisma.sniperTarget.update({
+      where: { id: targetId },
+      data: {
+        status: "draft_ready",
+        generatedDraft: text.trim(),
+      },
+    });
 
-      console.log(`[sniper-worker] Successfully drafted payload for ${domain}`);
-      return { ok: true, draftLength: text.length };
-
-    } catch (error) {
-      console.error(`[sniper-worker] Error processing ${domain}:`, error);
-      // Revert status on failure so it can be retried or manually checked
-      await prisma.sniperTarget.update({
-        where: { id: targetId },
-        data: { status: "new" },
-      });
-      throw error;
-    }
-  },
-  {
-    connection: redis,
-    concurrency: 2, // Keep concurrency low to protect API limits
-    limiter: {
-      max: 10,
-      duration: 60000, // Max 10 requests per minute
-    },
+    console.log(`[sniper-worker] Successfully drafted payload for ${domain}`);
+    return { ok: true, draftLength: text.length };
+  } catch (error) {
+    console.error(`[sniper-worker] Error processing ${domain}:`, error);
+    await prisma.sniperTarget.update({
+      where: { id: targetId },
+      data: { status: "new" },
+    });
+    throw error;
   }
-);
+}
 
-console.log("[sniper-worker] Booted and listening to queue...");
+export const sniperWorker = redis
+  ? new Worker<SniperJobData>(
+      SNIPER_QUEUE,
+      async (job) => processSniperJob(job.data),
+      {
+        connection: redis,
+        concurrency: 2, // Keep concurrency low to protect API limits
+        limiter: {
+          max: 10,
+          duration: 60000, // Max 10 requests per minute
+        },
+      }
+    )
+  : null;
 
-sniperWorker.on("failed", (job, err) => {
+if (sniperWorker) console.log("[sniper-worker] Booted and listening to queue...");
+
+sniperWorker?.on("failed", (job, err) => {
   console.error(`[sniper-worker] Job ${job?.id} failed:`, err);
 });

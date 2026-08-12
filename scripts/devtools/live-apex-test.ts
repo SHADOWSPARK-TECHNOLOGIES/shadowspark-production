@@ -21,8 +21,8 @@ async function ignite() {
   // Allow 8 seconds for the local LLM inference to complete
   setTimeout(async () => {
     console.log("\n🛑 Test window closing. Shutting down worker and Redis connections...");
-    await leadWorker.close();
-    redis.quit();
+    await leadWorker?.close();
+    redis?.quit();
     process.exit(0);
   }, 8000);
 }

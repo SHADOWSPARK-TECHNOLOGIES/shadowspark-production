@@ -1,11 +1,11 @@
 import Redis from "ioredis";
 
-const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+const redisUrl = process.env.REDIS_URL?.trim();
 
-const globalForRedis = global as unknown as { redis: Redis | undefined };
+const globalForRedis = global as unknown as { redis: Redis | null | undefined };
 
 /**
- * Lazily-initialised Redis client.
+ * Creates the configured Redis client without applying a network default.
  *
  * During `next build` (NEXT_PHASE === "phase-production-build") the client is
  * never instantiated, avoiding ECONNREFUSED errors in CI/build environments
@@ -13,11 +13,10 @@ const globalForRedis = global as unknown as { redis: Redis | undefined };
  * (BullMQ workers, API routes) will receive the real client when the server
  * starts.
  *
- * The non-null assertion (`!`) is safe because every consumer that imports
- * `redis` only does so at runtime — never during static build — and Redis
- * will be available in deployed environments.
+ * @param url - Explicit Redis connection URL supplied by `REDIS_URL`.
+ * @returns A BullMQ-compatible Redis client or a build-time guard proxy.
  */
-function createRedis(): Redis {
+function createRedis(url: string): Redis {
   if (process.env.NEXT_PHASE === "phase-production-build") {
     // Return a proxy that throws on any method call, ensuring build-time
     // access is caught early while keeping the exported type `Redis`.
@@ -31,11 +30,19 @@ function createRedis(): Redis {
       },
     });
   }
-  return new Redis(redisUrl, {
+  return new Redis(url, {
     maxRetriesPerRequest: null, // Required for BullMQ
   });
 }
 
-export const redis: Redis = globalForRedis.redis ?? createRedis();
+/**
+ * Shared optional Redis client.
+ *
+ * Redis-backed features must branch on `null`. An absent `REDIS_URL` never
+ * creates ioredis, preventing implicit localhost connection attempts.
+ */
+export const redis: Redis | null = redisUrl
+  ? (globalForRedis.redis ?? createRedis(redisUrl))
+  : null;
 
 if (process.env.NODE_ENV !== "production") globalForRedis.redis = redis;

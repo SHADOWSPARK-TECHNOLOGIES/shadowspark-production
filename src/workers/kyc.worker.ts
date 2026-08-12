@@ -51,86 +51,91 @@ async function extractOcrData(documentUrl: string): Promise<OcrResult> {
   };
 }
 
-export const kycWorker = new Worker<KycOcrJobData>(
-  KYC_OCR_QUEUE,
-  async (job) => {
-    return runWithTenantContext(job.data.tenantId, async () => {
-      const kycDocument = await prisma.kycDocument.findFirst({
-        where: {
-          id: job.data.kycDocumentId,
-          tenantId: job.data.tenantId,
-        },
-        select: {
-          id: true,
-          tenantId: true,
-          status: true,
-          metadata: true,
-          loanApplicationId: true,
-          documentUrl: true,
-        },
-      });
-
-      if (!kycDocument) {
-        throw new Error("KYC_NOT_FOUND");
-      }
-
-      const sourceUrl = job.data.documentUrl ?? kycDocument.documentUrl;
-      if (!sourceUrl) {
-        throw new Error("KYC_DOCUMENT_URL_NOT_FOUND");
-      }
-
-      const ocrResult = await extractOcrData(sourceUrl);
-      const existingMetadata =
-        (kycDocument.metadata as Record<string, unknown> | null | undefined) ?? {};
-
-      const updatedDocument = await prisma.kycDocument.update({
-        where: {
-          id: kycDocument.id,
-        },
-        data: {
-          status: "PENDING",
-          metadata: {
-            ...existingMetadata,
-            ocrData: {
-              text: ocrResult.text,
-              confidence: ocrResult.confidence,
-              provider: ocrResult.provider,
-            },
-            ocrUpdatedAt: new Date().toISOString(),
-          },
-        },
-        select: {
-          id: true,
-          loanApplicationId: true,
-          status: true,
-        },
-      });
-
-      await prisma.auditLog.create({
-        data: {
-          tenantId: job.data.tenantId,
-          loanApplicationId: updatedDocument.loanApplicationId,
-          action: "KYC_OCR_PROCESSED",
-          metadata: {
-            kycDocumentId: updatedDocument.id,
-            provider: ocrResult.provider,
-            confidence: ocrResult.confidence,
-          },
-        },
-      });
-
-      return {
-        kycDocumentId: updatedDocument.id,
-      };
+/** Processes one KYC document job independently of BullMQ transport. */
+export async function processKycDocumentJob(data: KycOcrJobData) {
+  return runWithTenantContext(data.tenantId, async () => {
+    const kycDocument = await prisma.kycDocument.findFirst({
+      where: {
+        id: data.kycDocumentId,
+        tenantId: data.tenantId,
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        status: true,
+        metadata: true,
+        loanApplicationId: true,
+        documentUrl: true,
+      },
     });
-  },
-  {
-    connection: redis,
-    concurrency: 2,
-  }
-);
 
-kycWorker.on("failed", async (job, error) => {
+    if (!kycDocument) {
+      throw new Error("KYC_NOT_FOUND");
+    }
+
+    const sourceUrl = data.documentUrl ?? kycDocument.documentUrl;
+    if (!sourceUrl) {
+      throw new Error("KYC_DOCUMENT_URL_NOT_FOUND");
+    }
+
+    const ocrResult = await extractOcrData(sourceUrl);
+    const existingMetadata =
+      (kycDocument.metadata as Record<string, unknown> | null | undefined) ?? {};
+
+    const updatedDocument = await prisma.kycDocument.update({
+      where: {
+        id: kycDocument.id,
+      },
+      data: {
+        status: "PENDING",
+        metadata: {
+          ...existingMetadata,
+          ocrData: {
+            text: ocrResult.text,
+            confidence: ocrResult.confidence,
+            provider: ocrResult.provider,
+          },
+          ocrUpdatedAt: new Date().toISOString(),
+        },
+      },
+      select: {
+        id: true,
+        loanApplicationId: true,
+        status: true,
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        tenantId: data.tenantId,
+        loanApplicationId: updatedDocument.loanApplicationId,
+        action: "KYC_OCR_PROCESSED",
+        metadata: {
+          kycDocumentId: updatedDocument.id,
+          provider: ocrResult.provider,
+          confidence: ocrResult.confidence,
+        },
+      },
+    });
+
+    return {
+      kycDocumentId: updatedDocument.id,
+    };
+  });
+}
+
+export const kycWorker = redis
+  ? new Worker<KycOcrJobData>(
+      KYC_OCR_QUEUE,
+      async (job) => processKycDocumentJob(job.data),
+      {
+        connection: redis,
+        concurrency: 2,
+      }
+    )
+  : null;
+
+kycWorker?.on("failed", async (job, error) => {
   if (!job) {
     return;
   }

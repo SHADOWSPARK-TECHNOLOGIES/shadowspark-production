@@ -1,4 +1,5 @@
 import { Queue, Worker } from "bullmq";
+import { dispatchQueueJob } from "@/lib/queue-dispatch";
 import { redis } from "@/lib/redis";
 import { prisma } from "@/lib/prisma";
 
@@ -12,6 +13,10 @@ export interface MessageJobData {
 let messageQueue: Queue<MessageJobData> | null = null;
 
 function getMessageQueue(): Queue<MessageJobData> {
+  if (redis === null) {
+    throw new Error("Redis is not configured for the message queue");
+  }
+
   if (!messageQueue) {
     messageQueue = new Queue<MessageJobData>(MESSAGE_QUEUE, {
       connection: redis,
@@ -25,7 +30,15 @@ function getMessageQueue(): Queue<MessageJobData> {
 }
 
 export async function enqueueMessage(tenantId: string, messageId: string): Promise<void> {
-  await getMessageQueue().add("send", { tenantId, messageId });
+  const data = { tenantId, messageId };
+  await dispatchQueueJob({
+    redisAvailable: redis !== null,
+    queueName: MESSAGE_QUEUE,
+    jobName: "send",
+    data,
+    enqueue: () => getMessageQueue().add("send", data),
+    runInline: () => processMessageJob(data),
+  });
 }
 
 interface SenderResult {
@@ -130,7 +143,9 @@ export async function processMessageJob(data: MessageJobData): Promise<void> {
   });
 }
 
-export function startMessageWorker(): Worker<MessageJobData> {
+export function startMessageWorker(): Worker<MessageJobData> | null {
+  if (redis === null) return null;
+
   return new Worker<MessageJobData>(
     MESSAGE_QUEUE,
     async (job) => {

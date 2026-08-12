@@ -32,7 +32,7 @@ async function runSimulation() {
 
   // Close redis connection after queuing so the script can exit
   setTimeout(() => {
-      redis.quit();
+      redis?.quit();
       console.log("Simulation queuing complete.");
   }, 1000);
 }

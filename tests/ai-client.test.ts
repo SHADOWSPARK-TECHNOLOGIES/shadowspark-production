@@ -20,7 +20,7 @@ const payload = {
 describe("AI client fallback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv("AI_SERVICE_URL", "http://127.0.0.1:8000");
+    vi.stubEnv("AI_SERVICE_URL", "https://ai-service.invalid");
     vi.stubEnv("AI_SERVICE_SECRET_KEY", "service-secret");
     vi.stubEnv("GEMINI_API_KEY", "gemini-key");
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("fetch failed")));

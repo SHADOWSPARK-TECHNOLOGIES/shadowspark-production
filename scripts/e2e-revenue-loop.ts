@@ -1,3 +1,5 @@
+import { randomInt } from "node:crypto";
+
 import { addLeadToSyncQueue } from "../src/lib/leads/queue";
 import { prisma } from "../src/lib/prisma";
 import { redis } from "../src/lib/redis";
@@ -7,7 +9,7 @@ async function executeE2ETest() {
   console.log("🔥 INITIATING END-TO-END REVENUE LOOP TEST");
   console.log("===========================================\n");
   
-  const apexPhone = `+1234500${Math.floor(Math.random() * 1000)}`;
+  const apexPhone = `+1234500${randomInt(1000)}`;
 
   const apexLeadPayload = {
     phone: apexPhone,

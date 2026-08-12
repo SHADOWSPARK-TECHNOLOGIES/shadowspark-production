@@ -1,33 +1,53 @@
 import { z } from "zod";
+
+import type { Prisma } from "@/generated/prisma/client";
+
 import { prisma } from "@/lib/prisma";
 
-export const workflowNodeSchema = z.object({
-  id: z.string().trim().min(1),
-  type: z.union([z.literal("start"), z.literal("task"), z.literal("condition"), z.literal("end")]),
-  label: z.string().trim().optional(),
-  config: z.record(z.string(), z.unknown()).default({}),
-});
+const workflowContextSchema = z.record(z.string(), z.json());
 
-export const workflowEdgeSchema = z.object({
-  id: z.string().trim().min(1),
-  source: z.string().trim().min(1),
-  target: z.string().trim().min(1),
-  condition: z.string().trim().optional(),
-});
+/** Schema for persisted workflow nodes accepted by the execution engine. */
+export const workflowNodeSchema = z
+  .object({
+    id: z.string().trim().min(1).max(128),
+    type: z.enum(["start", "task", "action", "condition", "end"]),
+    label: z.string().trim().max(200).optional(),
+    config: workflowContextSchema.default({}),
+  })
+  .strict();
+type WorkflowNode = z.infer<typeof workflowNodeSchema>;
 
-export const createWorkflowSchema = z.object({
-  name: z.string().trim().min(1),
-  description: z.string().trim().optional(),
-  nodes: z.array(workflowNodeSchema).min(2),
-  edges: z.array(workflowEdgeSchema).min(1),
-});
+/** Schema for a directed transition between persisted workflow nodes. */
+export const workflowEdgeSchema = z
+  .object({
+    id: z.string().trim().min(1).max(128).optional(),
+    source: z.string().trim().min(1).max(128),
+    target: z.string().trim().min(1).max(128),
+    condition: z.string().trim().max(500).optional(),
+  })
+  .strict();
+type WorkflowEdge = z.infer<typeof workflowEdgeSchema>;
+
+/** Validates bounded workflow definitions before persistence. */
+export const createWorkflowSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200),
+    description: z.string().trim().max(2000).optional(),
+    nodes: z.array(workflowNodeSchema).min(2).max(100),
+    edges: z.array(workflowEdgeSchema).min(1).max(200),
+  })
+  .strict();
 export type CreateWorkflowInput = z.infer<typeof createWorkflowSchema>;
 
-export const executeWorkflowSchema = z.object({
-  input: z.record(z.string(), z.unknown()).default({}),
-});
+/** Validates the JSON context supplied to a workflow execution. */
+export const executeWorkflowSchema = z
+  .object({
+    input: workflowContextSchema.default({}),
+  })
+  .strict();
 export type ExecuteWorkflowInput = z.infer<typeof executeWorkflowSchema>;
 
+/** Lists active workflows within the authenticated tenant boundary. */
 export async function listWorkflows(tenantId: string) {
   return prisma.workflow.findMany({
     where: { tenantId, isActive: true },
@@ -36,6 +56,7 @@ export async function listWorkflows(tenantId: string) {
   });
 }
 
+/** Finds a workflow only when it belongs to the authenticated tenant. */
 export async function getWorkflow(tenantId: string, workflowId: string) {
   return prisma.workflow.findFirst({
     where: { id: workflowId, tenantId },
@@ -43,31 +64,55 @@ export async function getWorkflow(tenantId: string, workflowId: string) {
   });
 }
 
+/** Persists a validated workflow for one tenant. */
 export async function createWorkflow(
   tenantId: string,
   input: CreateWorkflowInput,
   actorId?: string,
 ) {
-  return prisma.workflow.create({
-    data: {
-      tenantId,
-      name: input.name,
-      description: input.description,
-      nodes: input.nodes as unknown[],
-      edges: input.edges as unknown[],
-      createdById: actorId,
-    },
-    select: { id: true, tenantId: true, name: true, description: true, isActive: true, createdAt: true, updatedAt: true },
+  return prisma.$transaction(async (transaction) => {
+    const workflow = await transaction.workflow.create({
+      data: {
+        tenantId,
+        name: input.name,
+        description: input.description,
+        nodes: input.nodes as Prisma.InputJsonValue,
+        edges: input.edges as Prisma.InputJsonValue,
+        createdById: actorId,
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        name: true,
+        description: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    await transaction.auditLog.create({
+      data: {
+        tenantId,
+        actorId,
+        action: "WORKFLOW_CREATED",
+        metadata: { workflowId: workflow.id, name: workflow.name },
+      },
+    });
+
+    return workflow;
   });
 }
 
+/** Persisted outcome returned by the workflow execution engine. */
 export interface WorkflowExecutionResult {
   executionId: string;
   status: "COMPLETED" | "FAILED";
-  output: Record<string, unknown>;
+  output: Record<string, Prisma.JsonValue>;
   error?: string;
 }
 
+/** Executes an active tenant workflow and appends an audit record. */
 export async function executeWorkflow(
   tenantId: string,
   workflowId: string,
@@ -89,42 +134,60 @@ export async function executeWorkflow(
   });
 
   try {
-    const nodes = workflow.nodes as Array<{ id: string; type: string; config?: Record<string, unknown> }>;
-    const edges = workflow.edges as Array<{ id: string; source: string; target: string; condition?: string }>;
+    const nodes = z.array(workflowNodeSchema).max(100).parse(workflow.nodes);
+    const edges = z.array(workflowEdgeSchema).max(200).parse(workflow.edges);
 
     const startNode = nodes.find((n) => n.type === "start");
     if (!startNode) throw new Error("Workflow missing start node");
 
-    const context = { ...input.input };
+    const context: Record<string, Prisma.JsonValue> = { ...input.input };
     const visited = new Set<string>();
-    let currentNode = startNode;
+    let currentNode: WorkflowNode | undefined = startNode;
 
-    while (currentNode && currentNode.type !== "end") {
-      if (visited.has(currentNode.id)) throw new Error("Workflow cycle detected");
-      visited.add(currentNode.id);
+    while (currentNode !== undefined && currentNode.type !== "end") {
+      const activeNode: WorkflowNode = currentNode;
+      if (visited.has(activeNode.id)) throw new Error("Workflow cycle detected");
+      visited.add(activeNode.id);
 
-      if (currentNode.type === "task") {
-        const taskConfig = currentNode.config ?? {};
-        if (taskConfig.assignVariable && taskConfig.value !== undefined) {
-          context[taskConfig.assignVariable as string] = taskConfig.value;
+      if (activeNode.type === "task" || activeNode.type === "action") {
+        const taskConfig: Record<string, Prisma.JsonValue> = activeNode.config;
+        const assignVariable = taskConfig.assignVariable;
+        if (typeof assignVariable === "string" && taskConfig.value !== undefined) {
+          context[assignVariable] = taskConfig.value;
         }
-      } else if (currentNode.type === "condition") {
-        const conditionConfig = currentNode.config ?? {};
-        const variable = conditionConfig.variable as string | undefined;
-        const conditionValue = variable ? context[variable] : undefined;
-        const outgoing = edges.filter((e) => e.source === currentNode!.id);
-        const match = outgoing.find((e) => {
-          if (!e.condition) return true;
-          return String(conditionValue) === e.condition;
-        }) ?? outgoing[0];
-        if (!match) throw new Error(`No outgoing edge from condition ${currentNode.id}`);
-        currentNode = nodes.find((n) => n.id === match.target)!;
+      } else if (activeNode.type === "condition") {
+        const conditionConfig: Record<string, Prisma.JsonValue> = activeNode.config;
+        const variable: string | undefined =
+          typeof conditionConfig.variable === "string" ? conditionConfig.variable : undefined;
+        const conditionValue: Prisma.JsonValue | undefined = variable
+          ? context[variable]
+          : undefined;
+        const outgoing = edges.filter((edge) => edge.source === activeNode.id);
+        const match: WorkflowEdge | undefined =
+          outgoing.find((edge) => {
+            if (!edge.condition) return true;
+            return String(conditionValue) === edge.condition;
+          }) ?? outgoing[0];
+        if (!match) throw new Error(`No outgoing edge from condition ${activeNode.id}`);
+        currentNode = nodes.find((node) => node.id === match.target);
+        if (currentNode === undefined) {
+          throw new Error(`Workflow edge targets missing node ${match.target}`);
+        }
         continue;
       }
 
-      const outgoing = edges.find((e) => e.source === currentNode!.id);
-      if (!outgoing) throw new Error(`No outgoing edge from node ${currentNode.id}`);
-      currentNode = nodes.find((n) => n.id === outgoing.target)!;
+      const outgoing = edges.find((edge) => edge.source === activeNode.id);
+      if (!outgoing) {
+        if (activeNode.type === "action") {
+          currentNode = undefined;
+          continue;
+        }
+        throw new Error(`No outgoing edge from node ${activeNode.id}`);
+      }
+      currentNode = nodes.find((node) => node.id === outgoing.target);
+      if (currentNode === undefined) {
+        throw new Error(`Workflow edge targets missing node ${outgoing.target}`);
+      }
     }
 
     await prisma.workflowExecution.update({

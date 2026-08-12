@@ -1,19 +1,94 @@
+import { Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+
 import { LOAN_STATUSES, isValidLoanTransition } from "@/lib/api/v1/state-machine";
+import { prisma } from "@/lib/prisma";
 
 const phoneRegex = /^\+234\d{10}$/;
 
-const createLoanSchema = z.object({
-  applicantName: z.string().trim().min(1),
-  applicantPhone: z
-    .string()
-    .trim()
-    .regex(phoneRegex, "Phone must be in +234XXXXXXXXXX format"),
-  loanAmount: z.number().positive(),
-  loanPurpose: z.string().trim().optional(),
-  bvn: z.string().trim().optional(),
-});
+const amountSchema = z
+  .union([z.string().trim().min(1), z.number().finite().transform(String)])
+  .transform(String)
+  .refine((value) => {
+    try {
+      const amount = new Prisma.Decimal(value);
+      return amount.gt(0) && amount.decimalPlaces() <= 2 && amount.lt("10000000000000");
+    } catch {
+      return false;
+    }
+  }, "Amount must be a positive decimal with at most 2 decimal places");
+
+const createLoanSchema = z
+  .object({
+    applicantName: z.string().trim().min(2).max(200),
+    amount: amountSchema.optional(),
+    loanAmount: amountSchema.optional(),
+    currency: z
+      .string()
+      .trim()
+      .length(3)
+      .transform((value) => value.toUpperCase())
+      .pipe(z.literal("NGN"))
+      .default("NGN"),
+    purpose: z.string().trim().max(2000).optional(),
+    loanPurpose: z.string().trim().max(2000).optional(),
+    phone: z
+      .string()
+      .trim()
+      .regex(phoneRegex, "Phone must be in +234XXXXXXXXXX format")
+      .optional(),
+    applicantPhone: z
+      .string()
+      .trim()
+      .regex(phoneRegex, "Phone must be in +234XXXXXXXXXX format")
+      .optional(),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.amount === undefined && value.loanAmount === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["amount"],
+        message: "Amount is required",
+      });
+    }
+    if (value.amount !== undefined && value.loanAmount !== undefined && value.amount !== value.loanAmount) {
+      context.addIssue({
+        code: "custom",
+        path: ["amount"],
+        message: "amount and loanAmount must match when both are provided",
+      });
+    }
+    if (value.phone === undefined && value.applicantPhone === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["phone"],
+        message: "Phone is required",
+      });
+    }
+    if (value.phone !== undefined && value.applicantPhone !== undefined && value.phone !== value.applicantPhone) {
+      context.addIssue({
+        code: "custom",
+        path: ["phone"],
+        message: "phone and applicantPhone must match when both are provided",
+      });
+    }
+  })
+  .transform((value) => {
+    const amount = value.amount ?? value.loanAmount;
+    const phone = value.phone ?? value.applicantPhone;
+    if (amount === undefined || phone === undefined) {
+      throw new Error("Validated loan input is missing required normalized fields");
+    }
+
+    return {
+      applicantName: value.applicantName,
+      amount,
+      currency: value.currency,
+      purpose: value.purpose ?? value.loanPurpose,
+      phone,
+    };
+  });
 
 const patchLoanSchema = z
   .object({
@@ -41,10 +116,12 @@ const loansQuerySchema = z.object({
   sortOrder: z.enum(["asc", "desc"]).default("desc"),
 });
 
+/** Canonical, normalized input used to persist a new loan application. */
 export type CreateLoanInput = z.infer<typeof createLoanSchema>;
 export type PatchLoanInput = z.infer<typeof patchLoanSchema>;
 export type LoansQuery = z.infer<typeof loansQuerySchema>;
 
+/** Validates and normalizes canonical or established loan creation fields. */
 export function validateCreateLoanInput(input: unknown): CreateLoanInput {
   return createLoanSchema.parse(input);
 }
@@ -112,16 +189,16 @@ export async function getLoanById(tenantId: string, loanId: string) {
   });
 }
 
+/** Creates a tenant-scoped Decimal loan and its append-only audit record atomically. */
 export async function createLoanApplication(tenantId: string, input: CreateLoanInput, actorId?: string) {
   return prisma.$transaction(async (tx) => {
     const loan = await tx.loanApplication.create({
       data: {
         tenantId,
         applicantName: input.applicantName,
-        applicantPhone: input.applicantPhone,
-        loanAmount: input.loanAmount,
-        loanPurpose: input.loanPurpose,
-        bvn: input.bvn,
+        applicantPhone: input.phone,
+        loanAmount: new Prisma.Decimal(input.amount),
+        loanPurpose: input.purpose,
         status: "SUBMITTED",
       },
     });
@@ -132,11 +209,24 @@ export async function createLoanApplication(tenantId: string, input: CreateLoanI
         loanApplicationId: loan.id,
         actorId,
         action: "LOAN_CREATED",
+        metadata: {
+          amount: input.amount,
+          currency: input.currency,
+          applicantPhone: maskPhone(input.phone),
+          purpose: input.purpose ?? null,
+        },
       },
     });
 
-    return loan;
+    return {
+      id: loan.id,
+      status: "SUBMITTED" as const,
+    };
   });
+}
+
+function maskPhone(phone: string): string {
+  return `***${phone.slice(-4)}`;
 }
 
 export async function patchLoanApplication(

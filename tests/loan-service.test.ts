@@ -42,6 +42,7 @@ vi.mock("@/lib/loans/disbursement-queue", () => ({
 }));
 
 import {
+  createLoanApplication,
   patchLoanApplication,
   validateCreateLoanInput,
   validatePatchLoanInput,
@@ -52,13 +53,32 @@ describe("loan service validators", () => {
     expect(
       validateCreateLoanInput({
         applicantName: "Ada Okafor",
-        applicantPhone: "+2348012345678",
-        loanAmount: 250000,
+        amount: "250000.00",
+        currency: "ngn",
+        phone: "+2348012345678",
       })
     ).toMatchObject({
       applicantName: "Ada Okafor",
-      applicantPhone: "+2348012345678",
-      loanAmount: 250000,
+      amount: "250000.00",
+      currency: "NGN",
+      phone: "+2348012345678",
+    });
+  });
+
+  it("normalizes the established loan payload without floating-point persistence", () => {
+    expect(
+      validateCreateLoanInput({
+        applicantName: "Ada Okafor",
+        applicantPhone: "+2348012345678",
+        loanAmount: 250000,
+        loanPurpose: "Working capital",
+      })
+    ).toMatchObject({
+      applicantName: "Ada Okafor",
+      amount: "250000",
+      currency: "NGN",
+      phone: "+2348012345678",
+      purpose: "Working capital",
     });
   });
 
@@ -66,10 +86,21 @@ describe("loan service validators", () => {
     expect(() =>
       validateCreateLoanInput({
         applicantName: "Ada Okafor",
-        applicantPhone: "08012345678",
-        loanAmount: 250000,
+        amount: "250000",
+        phone: "08012345678",
       })
     ).toThrow(/Phone must be in \+234XXXXXXXXXX format/);
+  });
+
+  it("rejects a currency that cannot be represented by the loan schema", () => {
+    expect(() =>
+      validateCreateLoanInput({
+        applicantName: "Ada Okafor",
+        amount: "250000",
+        currency: "USD",
+        phone: "+2348012345678",
+      })
+    ).toThrow();
   });
 
   it("requires at least one field for loan updates", () => {
@@ -83,6 +114,50 @@ describe("loan service write operations", () => {
     mockPrisma.$transaction.mockImplementation(async (handler: (tx: typeof mockPrisma) => unknown) =>
       handler(mockPrisma)
     );
+  });
+
+  it("creates a tenant-scoped Decimal loan and append-only audit record", async () => {
+    mockPrisma.loanApplication.create.mockResolvedValue({ id: "loan-1" });
+
+    const result = await createLoanApplication(
+      "tenant-1",
+      validateCreateLoanInput({
+        applicantName: "Ada Okafor",
+        amount: "250000.25",
+        currency: "NGN",
+        purpose: "Working capital",
+        phone: "+2348012345678",
+      }),
+      "user-1"
+    );
+
+    expect(mockPrisma.loanApplication.create).toHaveBeenCalledWith({
+      data: {
+        tenantId: "tenant-1",
+        applicantName: "Ada Okafor",
+        applicantPhone: "+2348012345678",
+        loanAmount: expect.objectContaining({ toString: expect.any(Function) }),
+        loanPurpose: "Working capital",
+        status: "SUBMITTED",
+      },
+    });
+    const createCall = mockPrisma.loanApplication.create.mock.calls[0]?.[0];
+    expect(createCall?.data.loanAmount.toString()).toBe("250000.25");
+    expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        tenantId: "tenant-1",
+        loanApplicationId: "loan-1",
+        actorId: "user-1",
+        action: "LOAN_CREATED",
+        metadata: {
+          amount: "250000.25",
+          currency: "NGN",
+          applicantPhone: "***5678",
+          purpose: "Working capital",
+        },
+      },
+    });
+    expect(result).toEqual({ id: "loan-1", status: "SUBMITTED" });
   });
 
   it("rejects status jumps that skip the workflow", async () => {

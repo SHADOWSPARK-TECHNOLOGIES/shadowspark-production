@@ -148,6 +148,346 @@
           "200": { "description": "Metrics retrieved" }
         }
       }
+    },
+    "/v1/loans": {
+      "post": {
+        "summary": "Create a loan application",
+        "description": "Creates a tenant-scoped loan using the tenant in the verified JWT. The monetary amount is validated and persisted as a Prisma Decimal, and creation appends a LOAN_CREATED audit record.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "description": "Caller-generated key reused only when replaying the same mutation.",
+            "schema": { "type": "string", "minLength": 1, "maxLength": 200 }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["applicantName", "amount", "phone"],
+                "properties": {
+                  "applicantName": { "type": "string", "minLength": 2, "maxLength": 200 },
+                  "amount": {
+                    "type": "string",
+                    "pattern": "^[0-9]+(?:\\.[0-9]{1,2})?$",
+                    "description": "Positive decimal string with at most two fractional digits."
+                  },
+                  "currency": {
+                    "type": "string",
+                    "enum": ["NGN"],
+                    "default": "NGN"
+                  },
+                  "purpose": { "type": "string", "maxLength": 2000 },
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+234[0-9]{10}$"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "example": {
+                "applicantName": "Ada Okafor",
+                "amount": "250000.00",
+                "currency": "NGN",
+                "purpose": "Working capital",
+                "phone": "+2348012345678"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Loan created or an idempotent response replayed.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "id": "loan_123", "status": "SUBMITTED" }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid JSON/body or a missing/oversized Idempotency-Key.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "error": {
+                    "code": "INVALID_BODY",
+                    "message": "Amount must be a positive decimal with at most 2 decimal places"
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing, invalid, or expired bearer token." },
+          "403": { "description": "Tenant access denied." },
+          "409": { "description": "A mutation with the same Idempotency-Key is still in progress." },
+          "500": { "description": "Loan creation failed." }
+        }
+      }
+    },
+    "/v1/workflows": {
+      "get": {
+        "summary": "List active workflows",
+        "description": "Returns a flat success envelope whose data property is the authenticated tenant's active workflow array.",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Tenant workflows returned.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "id": "workflow_123",
+                      "name": "KYC Review",
+                      "isActive": true
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": { "description": "Missing, invalid, or expired bearer token." },
+          "403": { "description": "Tenant access denied." },
+          "500": { "description": "Workflow listing failed." }
+        }
+      },
+      "post": {
+        "summary": "Create a workflow",
+        "description": "Creates a bounded workflow definition and append-only audit record inside the authenticated tenant.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "minLength": 1, "maxLength": 200 }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "nodes", "edges"],
+                "properties": {
+                  "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+                  "description": { "type": "string", "maxLength": 2000 },
+                  "nodes": { "type": "array", "minItems": 2, "maxItems": 100 },
+                  "edges": { "type": "array", "minItems": 1, "maxItems": 200 }
+                },
+                "additionalProperties": false
+              },
+              "example": {
+                "name": "KYC Review",
+                "nodes": [
+                  { "id": "start", "type": "start" },
+                  { "id": "review", "type": "action" }
+                ],
+                "edges": [{ "source": "start", "target": "review" }]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Workflow created or an idempotent response replayed." },
+          "400": { "description": "Invalid definition or Idempotency-Key." },
+          "401": { "description": "Missing, invalid, or expired bearer token." },
+          "403": { "description": "Tenant access denied." },
+          "409": { "description": "A mutation with the same Idempotency-Key is still in progress." },
+          "500": { "description": "Workflow creation failed." }
+        }
+      }
+    },
+    "/v1/workflows/{id}/execute": {
+      "post": {
+        "summary": "Execute a workflow",
+        "description": "Runs an active tenant workflow, persists its execution status and output, and appends a WORKFLOW_EXECUTED audit record.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "minLength": 1, "maxLength": 200 }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "input": { "type": "object", "additionalProperties": true }
+                },
+                "additionalProperties": false
+              },
+              "example": { "input": { "riskBand": "LOW" } }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Workflow completed or failed with a persisted execution record.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "executionId": "execution_123",
+                    "status": "COMPLETED",
+                    "output": { "riskBand": "LOW" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid input or missing Idempotency-Key." },
+          "401": { "description": "Missing, invalid, or expired bearer token." },
+          "403": { "description": "Tenant access denied." },
+          "404": { "description": "Active workflow not found in the tenant." },
+          "409": { "description": "A mutation with the same Idempotency-Key is still in progress." },
+          "500": { "description": "Workflow execution request failed." }
+        }
+      }
+    },
+    "/v1/analytics/dashboard": {
+      "get": {
+        "summary": "Get lending dashboard aggregates",
+        "description": "Computes tenant-scoped loan, KYC, workflow, execution, and message aggregates. Monetary totals are returned as decimal strings.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "format": "date-time" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard aggregates returned.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "totalLoans": 15,
+                    "totalLoanAmount": "6750000.00",
+                    "loansByStatus": { "SUBMITTED": 3, "APPROVED": 4 },
+                    "approvedLoans": 8,
+                    "approvalRate": 53,
+                    "pendingKycDocuments": 7,
+                    "activeWorkflows": 5,
+                    "workflowExecutions": 12,
+                    "messages": 20
+                  },
+                  "meta": {}
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid or reversed date range." },
+          "401": { "description": "Missing, invalid, or expired bearer token." },
+          "403": { "description": "Tenant access denied." },
+          "500": { "description": "Aggregate query failed." }
+        }
+      }
+    },
+    "/v1/ai/chat": {
+      "post": {
+        "summary": "Generate a lending AI response",
+        "description": "Uses the configured AI service. If that service is absent or unreachable, the route calls Gemini directly when GEMINI_API_KEY is present; otherwise it returns NEEDS_ENV.",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["messages"],
+                "properties": {
+                  "messages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 20,
+                    "items": {
+                      "type": "object",
+                      "required": ["role", "content"],
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": ["system", "user", "assistant"]
+                        },
+                        "content": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 20000
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "loan_context": { "type": "string", "maxLength": 50000 },
+                  "stream": { "type": "boolean", "default": false }
+                },
+                "additionalProperties": false
+              },
+              "example": {
+                "messages": [
+                  { "role": "user", "content": "Summarize the application risk." }
+                ],
+                "loan_context": "KYC verified; requested amount NGN 250000.00"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI response returned from the service or Gemini fallback."
+          },
+          "400": { "description": "Invalid request body." },
+          "401": { "description": "Missing, invalid, or expired bearer token." },
+          "403": { "description": "Tenant access denied." },
+          "502": { "description": "The configured provider failed." },
+          "503": {
+            "description": "No usable AI provider is configured.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "data": null,
+                  "meta": {},
+                  "error": { "code": "NEEDS_ENV", "message": "NEEDS_ENV" }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -161,6 +501,11 @@
         "type": "apiKey",
         "in": "cookie",
         "name": "authjs.session-token"
+      },
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     }
   }

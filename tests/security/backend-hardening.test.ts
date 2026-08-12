@@ -100,6 +100,16 @@ vi.mock("@/lib/redis", () => ({
       redisStore.set(key, { value, ttl: Date.now() + seconds * 1000 });
       return Promise.resolve("OK");
     }),
+    set: vi.fn((key: string, value: string, _mode: string, seconds: number, condition: string) => {
+      if (condition === "NX" && redisStore.has(key)) return Promise.resolve(null);
+      redisStore.set(key, { value, ttl: Date.now() + seconds * 1000 });
+      return Promise.resolve("OK");
+    }),
+    eval: vi.fn((_script: string, _numberOfKeys: number, key: string, owner: string) => {
+      if (redisStore.get(key)?.value !== owner) return Promise.resolve(0);
+      redisStore.delete(key);
+      return Promise.resolve(1);
+    }),
     ping: vi.fn(() => Promise.resolve("PONG")),
   },
 }));
@@ -357,6 +367,37 @@ describe("Messages", () => {
 // ── 7. Workflows ────────────────────────────────────────────────────────────
 
 describe("Workflows", () => {
+  it("creates a tenant workflow and audit record in one transaction", async () => {
+    const { createWorkflow, createWorkflowSchema } = await import("@/lib/api/v1/workflow-service");
+    const input = createWorkflowSchema.parse({
+      name: "KYC Review",
+      nodes: [
+        { id: "start", type: "start" },
+        { id: "review", type: "action" },
+      ],
+      edges: [{ source: "start", target: "review" }],
+    });
+    mockPrisma.workflow.create.mockResolvedValueOnce({
+      id: "wf_created",
+      tenantId: "t1",
+      name: "KYC Review",
+    });
+
+    await createWorkflow("t1", input, "user_1");
+
+    expect(mockPrisma.workflow.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ tenantId: "t1" }) }),
+    );
+    expect(mockPrisma.auditLog.create).toHaveBeenCalledWith({
+      data: {
+        tenantId: "t1",
+        actorId: "user_1",
+        action: "WORKFLOW_CREATED",
+        metadata: { workflowId: "wf_created", name: "KYC Review" },
+      },
+    });
+  });
+
   it("executes a simple task workflow and logs audit", async () => {
     const { executeWorkflow } = await import("@/lib/api/v1/workflow-service");
     mockPrisma.workflow.findFirst.mockResolvedValueOnce({
@@ -385,6 +426,33 @@ describe("Workflows", () => {
     expect(mockPrisma.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ action: "WORKFLOW_EXECUTED" }) }),
     );
+  });
+
+  it("executes the established terminal action workflow seed", async () => {
+    const { executeWorkflow } = await import("@/lib/api/v1/workflow-service");
+    mockPrisma.workflow.findFirst.mockResolvedValueOnce({
+      id: "wf_seed",
+      tenantId: "t1",
+      isActive: true,
+      nodes: [
+        { id: "start", type: "start" },
+        {
+          id: "action",
+          type: "action",
+          config: { assignVariable: "seedExecuted", value: true },
+        },
+      ],
+      edges: [{ id: "edge-1", source: "start", target: "action" }],
+    });
+    mockPrisma.workflowExecution.create.mockResolvedValueOnce({ id: "exec_seed" });
+
+    const result = await executeWorkflow("t1", "wf_seed", { input: {} }, "user_1");
+
+    expect(result).toEqual({
+      executionId: "exec_seed",
+      status: "COMPLETED",
+      output: { seedExecuted: true },
+    });
   });
 });
 

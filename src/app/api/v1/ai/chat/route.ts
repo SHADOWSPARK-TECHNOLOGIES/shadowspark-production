@@ -3,23 +3,28 @@ import { ZodError, z } from "zod";
 import { requireAuthContext } from "@/lib/api/auth-context";
 import { envelopeErrorResponse, envelopeSuccessResponse } from "@/lib/api/http";
 import { handleCorsPreflight, withCors } from "@/lib/cors";
-import { chatWithAi } from "@/lib/ai-client";
+import { AiClientError, chatWithAi } from "@/lib/ai-client";
 
 export const dynamic = "force-dynamic";
 
 const METHODS = "POST, OPTIONS";
 
-const messageSchema = z.object({
-  role: z.enum(["system", "user", "assistant"]),
-  content: z.string().trim().min(1),
-});
+const messageSchema = z
+  .object({
+    role: z.enum(["system", "user", "assistant"]),
+    content: z.string().trim().min(1).max(20_000),
+  })
+  .strict();
 
-const chatSchema = z.object({
-  messages: z.array(messageSchema).min(1).max(20),
-  loan_context: z.string().trim().optional(),
-  stream: z.boolean().optional(),
-});
+const chatSchema = z
+  .object({
+    messages: z.array(messageSchema).min(1).max(20),
+    loan_context: z.string().trim().max(50_000).optional(),
+    stream: z.boolean().optional(),
+  })
+  .strict();
 
+/** Generates a tenant-authenticated lending chat response. */
 export async function POST(request: Request) {
   const auth = await requireAuthContext(request);
   if (!auth.ok) {
@@ -46,9 +51,17 @@ export async function POST(request: Request) {
       );
     }
 
-    if (error instanceof Error && error.message.includes("AI service")) {
+    if (error instanceof SyntaxError) {
       return withCors(
-        envelopeErrorResponse(502, "AI_SERVICE_ERROR", error.message),
+        envelopeErrorResponse(400, "INVALID_JSON", "Request body must be valid JSON"),
+        request,
+        METHODS,
+      );
+    }
+
+    if (error instanceof AiClientError) {
+      return withCors(
+        envelopeErrorResponse(error.statusCode ?? 502, error.code, error.message),
         request,
         METHODS,
       );
@@ -62,6 +75,7 @@ export async function POST(request: Request) {
   }
 }
 
+/** Handles CORS preflight for lending chat. */
 export async function OPTIONS(request: Request) {
   return handleCorsPreflight(request, METHODS);
 }

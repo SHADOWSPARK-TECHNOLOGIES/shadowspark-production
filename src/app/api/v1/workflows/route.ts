@@ -2,24 +2,30 @@ export const dynamic = 'force-dynamic';
 
 import { ZodError } from "zod";
 import { handleCorsPreflight, withCors } from "@/lib/cors";
-import { errorResponse, successResponse } from "@/lib/api/http";
+import { envelopeErrorResponse, successResponse } from "@/lib/api/http";
 import { requireAuthContext } from "@/lib/api/auth-context";
 import { withIdempotency } from "@/middleware/idempotency";
 import { createWorkflow, createWorkflowSchema, listWorkflows } from "@/lib/api/v1/workflow-service";
 
 const METHODS = "GET, POST, OPTIONS";
 
+/** Lists active workflows in the authenticated tenant as a flat data array. */
 export async function GET(request: Request) {
   const auth = await requireAuthContext(request);
   if (!auth.ok) return withCors(auth.response, request, METHODS);
   try {
     const workflows = await listWorkflows(auth.context.tenantId);
-    return withCors(successResponse(workflows), request, METHODS);
+    return withCors(successResponse({ success: true, data: workflows }), request, METHODS);
   } catch {
-    return withCors(errorResponse(500, "INTERNAL_ERROR", "Failed to list workflows"), request, METHODS);
+    return withCors(
+      envelopeErrorResponse(500, "INTERNAL_ERROR", "Failed to list workflows"),
+      request,
+      METHODS
+    );
   }
 }
 
+/** Creates a validated, tenant-scoped workflow idempotently. */
 export async function POST(request: Request) {
   const auth = await requireAuthContext(request);
   if (!auth.ok) return withCors(auth.response, request, METHODS);
@@ -30,12 +36,19 @@ export async function POST(request: Request) {
         const body = await request.json();
         const input = createWorkflowSchema.parse(body);
         const workflow = await createWorkflow(auth.context.tenantId, input, auth.context.userId);
-        return successResponse(workflow, 201);
+        return successResponse({ success: true, data: workflow }, 201);
       } catch (error) {
         if (error instanceof ZodError) {
-          return errorResponse(400, "INVALID_BODY", error.issues[0]?.message ?? "Invalid request body");
+          return envelopeErrorResponse(
+            400,
+            "INVALID_BODY",
+            error.issues[0]?.message ?? "Invalid request body"
+          );
         }
-        return errorResponse(500, "INTERNAL_ERROR", "Failed to create workflow");
+        if (error instanceof SyntaxError) {
+          return envelopeErrorResponse(400, "INVALID_JSON", "Request body must be valid JSON");
+        }
+        return envelopeErrorResponse(500, "INTERNAL_ERROR", "Failed to create workflow");
       }
     }),
     request,
@@ -43,6 +56,7 @@ export async function POST(request: Request) {
   );
 }
 
+/** Handles CORS preflight for workflow collection operations. */
 export async function OPTIONS(request: Request) {
   return handleCorsPreflight(request, METHODS);
 }

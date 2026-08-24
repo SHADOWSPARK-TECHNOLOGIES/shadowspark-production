@@ -15,7 +15,7 @@ function isPlaceholder(value) {
   return (
     normalized === "" ||
     /^[-:]+$/.test(normalized) ||
-    /^(?:n\/?a|none|removed|redacted|not committed)$/i.test(normalized) ||
+    /^(?:n\/?a|none|removed|redacted|not committed|password|pass|secret|example|placeholder)$/i.test(normalized) ||
     /^(?:<[^>]+>|\[[^\]]+\]|\$\{[^}]+\})$/.test(normalized) ||
     /^(?:process\.env\.|stored (?:outside|in)|managed (?:outside|in))/i.test(normalized)
   );
@@ -35,7 +35,8 @@ function detectCredentialLeaks(content) {
     }
 
     const databaseUrl = line.match(/\bpostgres(?:ql)?:\/\/[^:\s/]+:([^@\s/]+)@/i);
-    if (databaseUrl && !isPlaceholder(databaseUrl[1])) {
+    const containsShellVariable = /\$(?:\{)?[A-Za-z_][A-Za-z0-9_]*/.test(line);
+    if (databaseUrl && !containsShellVariable && !isPlaceholder(databaseUrl[1])) {
       findings.push({ line: index + 1, rule: "database-password" });
     }
 
@@ -77,6 +78,16 @@ test("flags a password embedded in a PostgreSQL connection string", () => {
   assert.deepEqual(detectCredentialLeaks(content), [
     { line: 1, rule: "database-password" },
   ]);
+});
+
+test("allows documented database placeholders and shell-variable templates", () => {
+  const content = [
+    "DATABASE_URL=postgresql://user:password@HOST:5432/app",
+    "DIRECT_URL=postgres://user:pass@db.example/app",
+    "NEW_URL=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/app",
+    "NEW_URL=postgresql://${DB_USER:-postgres}:${NEW_PASSWORD:-$DB_PASS}@${DB_HOST}:5432/app",
+  ].join("\n");
+  assert.deepEqual(detectCredentialLeaks(content), []);
 });
 
 test("flags a committed private-key header", () => {

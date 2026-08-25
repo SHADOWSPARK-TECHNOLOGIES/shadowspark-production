@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockPrisma = vi.hoisted(() => ({
   $queryRaw: vi.fn(),
@@ -14,8 +14,16 @@ vi.mock("@/lib/redis", () => ({ redis: mockRedis }));
 import { GET } from "@/app/api/health/route";
 
 describe("health check", () => {
+  const originalRedisUrl = process.env.REDIS_URL;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.REDIS_URL = "redis://test.invalid:6379";
+  });
+
+  afterAll(() => {
+    if (originalRedisUrl === undefined) delete process.env.REDIS_URL;
+    else process.env.REDIS_URL = originalRedisUrl;
   });
 
   it("reports connected services", async () => {

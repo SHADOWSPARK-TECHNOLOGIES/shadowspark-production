@@ -15,7 +15,7 @@ export async function GET() {
     threshold: THRESHOLD,
     services: {
       database: "unknown" as "connected" | "disconnected" | "unknown",
-      redis: "unknown" as "connected" | "disconnected" | "unknown",
+      redis: "unknown" as "connected" | "disconnected" | "not_configured" | "unknown",
     },
   };
 
@@ -27,7 +27,9 @@ export async function GET() {
     checks.status = "degraded";
   }
 
-  if (typeof redis.ping === "function") {
+  if (!process.env.REDIS_URL?.trim()) {
+    checks.services.redis = "not_configured";
+  } else {
     try {
       await redis.ping();
       checks.services.redis = "connected";
@@ -35,8 +37,6 @@ export async function GET() {
       checks.services.redis = "disconnected";
       checks.status = "degraded";
     }
-  } else {
-    checks.services.redis = "unknown";
   }
 
   try {

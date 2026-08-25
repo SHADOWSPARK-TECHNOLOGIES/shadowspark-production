@@ -7,6 +7,10 @@ const mockPrisma = vi.hoisted(() => ({
     update: vi.fn(),
     count: vi.fn(),
   },
+  kycVerificationHistory: {
+    create: vi.fn(),
+    findFirst: vi.fn(),
+  },
   loanApplication: {
     update: vi.fn(),
   },
@@ -57,7 +61,7 @@ describe("kyc service", () => {
       .mockResolvedValueOnce({
         id: "kyc-1",
         status: "PENDING",
-        metadata: null,
+        ocrData: null,
         loanApplicationId: "loan-1",
         loanApplication: {
           id: "loan-1",
@@ -69,10 +73,9 @@ describe("kyc service", () => {
       .mockResolvedValueOnce({
         id: "kyc-1",
         status: "VERIFIED",
-        rejectionReason: null,
-        verifiedBy: "user-1",
-        verifiedAt: new Date(),
-        metadata: {},
+        reviewedById: "user-1",
+        reviewedAt: new Date(),
+        ocrData: null,
         loanApplicationId: "loan-1",
         loanApplication: {
           id: "loan-1",
@@ -96,10 +99,29 @@ describe("kyc service", () => {
       actorUserId: "user-1",
       input: {
         status: "VERIFIED",
+        autoRejectLoan: false,
       },
     });
 
+    if (!result) throw new Error("Expected KYC verification result");
     expect(result.loanStatusUpdated).toBe(true);
+    expect(mockPrisma.kycDocument.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "VERIFIED",
+          reviewedById: "user-1",
+          reviewedAt: expect.any(Date),
+        }),
+      })
+    );
+    expect(mockPrisma.kycVerificationHistory.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        tenantId: "tenant-1",
+        kycDocumentId: "kyc-1",
+        status: "VERIFIED",
+        actorId: "user-1",
+      }),
+    });
     expect(mockPrisma.loanApplication.update).toHaveBeenCalled();
     expect(mockQueues.enqueueWorkflowTrigger).toHaveBeenCalledWith(
       expect.objectContaining({ trigger: "CREDIT_CHECK" })
@@ -112,7 +134,7 @@ describe("kyc service", () => {
       .mockResolvedValueOnce({
         id: "kyc-2",
         status: "PENDING",
-        metadata: null,
+        ocrData: null,
         loanApplicationId: "loan-2",
         loanApplication: {
           id: "loan-2",
@@ -124,10 +146,9 @@ describe("kyc service", () => {
       .mockResolvedValueOnce({
         id: "kyc-2",
         status: "REJECTED",
-        rejectionReason: "Blurry",
-        verifiedBy: "user-1",
-        verifiedAt: new Date(),
-        metadata: {},
+        reviewedById: "user-1",
+        reviewedAt: new Date(),
+        ocrData: null,
         loanApplicationId: "loan-2",
         loanApplication: {
           id: "loan-2",
@@ -151,10 +172,18 @@ describe("kyc service", () => {
       input: {
         status: "REJECTED",
         rejectionReason: "Blurry",
+        autoRejectLoan: false,
       },
     });
 
+    if (!result) throw new Error("Expected KYC rejection result");
     expect(result.loanStatusUpdated).toBe(true);
+    expect(mockPrisma.kycVerificationHistory.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        rejectionReason: "Blurry",
+        status: "REJECTED",
+      }),
+    });
     expect(mockPrisma.loanApplication.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: "KYC_PENDING" }),
@@ -195,4 +224,3 @@ describe("kyc service", () => {
     expect(mockQueues.enqueueMessageSend).toHaveBeenCalled();
   });
 });
-

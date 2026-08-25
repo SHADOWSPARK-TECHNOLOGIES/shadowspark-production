@@ -38,7 +38,7 @@ function inRange(dateString: string, days: number): boolean {
 
 function countByStatus(loans: LoanApplicationRecord[]) {
   const approved = loans.filter((loan) => ['APPROVED', 'DISBURSED'].includes(loan.status)).length;
-  const rejected = loans.filter((loan) => loan.rejectionReason).length;
+  const rejected = loans.filter((loan) => loan.status === 'REJECTED').length;
   const pending = loans.filter((loan) => ['SUBMITTED', 'KYC_PENDING'].includes(loan.status)).length;
   return { approved, rejected, pending };
 }

@@ -9,7 +9,7 @@ const sendMessageSchema = z.object({
   channel: channelSchema,
   to: z.string().trim().min(1),
   body: z.string().trim().min(1),
-  loanApplicationId: z.string().trim().min(1).optional(),
+  loanApplicationId: z.string().trim().min(1),
   mediaUrl: z.string().trim().url().optional(),
   variables: z.record(z.string(), z.string()).optional(),
 });
@@ -71,12 +71,18 @@ export async function listConversations(tenantId: string) {
 
       return {
         loanApplicationId: row.loanApplicationId,
-        contactName: loan?.applicantName ?? null,
-        contactPhone: loan?.applicantPhone ?? null,
+        applicantName: loan?.applicantName ?? "Unknown",
+        applicantPhone: loan?.applicantPhone ?? "",
         channel: row.channel,
         unreadCount: unreadMap.get(`${row.loanApplicationId ?? ""}:${row.channel}`) ?? 0,
-        lastMessage: lastMessage?.content ?? null,
-        lastMessageStatus: lastMessage?.status ?? null,
+        lastMessage: lastMessage
+          ? {
+              id: lastMessage.id,
+              status: lastMessage.status,
+              content: lastMessage.content,
+              createdAt: lastMessage.createdAt,
+            }
+          : null,
         updatedAt: row._max.createdAt ?? null,
       };
     })
@@ -119,23 +125,21 @@ async function sendMessageWithInput(
 ): Promise<SendMessageResult> {
   const renderedBody = renderTemplate(input.body, input.variables);
 
-  if (input.loanApplicationId) {
-    const loan = await prisma.loanApplication.findFirst({
-      where: {
-        id: input.loanApplicationId,
-        tenantId,
-      },
-      select: { id: true },
-    });
-    if (!loan) {
-      throw new Error("LOAN_NOT_FOUND");
-    }
+  const loan = await prisma.loanApplication.findFirst({
+    where: {
+      id: input.loanApplicationId,
+      tenantId,
+    },
+    select: { id: true },
+  });
+  if (!loan) {
+    throw new Error("LOAN_NOT_FOUND");
   }
 
   const created = await prisma.message.create({
     data: {
       tenantId,
-      loanApplicationId: input.loanApplicationId ?? null,
+      loanApplicationId: input.loanApplicationId,
       channel: input.channel,
       status: "QUEUED",
       content: renderedBody,
@@ -168,7 +172,7 @@ async function sendMessageWithInput(
   await prisma.auditLog.create({
     data: {
       tenantId,
-      loanApplicationId: input.loanApplicationId ?? null,
+      loanApplicationId: input.loanApplicationId,
       actorId: actorUserId ?? null,
       action: "MESSAGE_QUEUED",
       metadata: {
@@ -186,7 +190,7 @@ async function sendMessageWithInput(
 }
 
 type LegacySendMessageInput = {
-  loanApplicationId?: string;
+  loanApplicationId: string;
   channel: string;
   content: string;
   to?: string;

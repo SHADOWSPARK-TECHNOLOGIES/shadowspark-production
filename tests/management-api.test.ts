@@ -15,6 +15,9 @@ const mockPrisma = vi.hoisted(() => ({
     count: vi.fn(),
     create: vi.fn(),
   },
+  kycVerificationHistory: {
+    findFirst: vi.fn(),
+  },
   message: {
     create: vi.fn(),
     count: vi.fn(),
@@ -112,11 +115,11 @@ describe("kyc helpers", () => {
       loanApplicationId: "loan-1",
       type: "ID_DOCUMENT",
       status: "PENDING",
-      rejectionReason: null,
-      verifiedBy: null,
-      verifiedAt: null,
-      documentUrl: "https://example.com/doc.jpg",
-      metadata: { ocrData: { name: "Ada" }, verificationResponse: { score: 0.99 } },
+      reviewedById: null,
+      reviewedAt: null,
+      fileUrl: "https://example.com/doc.jpg",
+      fileHash: null,
+      ocrData: { name: "Ada" },
       createdAt: new Date(),
       updatedAt: new Date(),
       loanApplication: {
@@ -126,11 +129,19 @@ describe("kyc helpers", () => {
         loanAmount: 1000,
       },
     });
+    mockPrisma.kycVerificationHistory.findFirst.mockResolvedValue({
+      status: "VERIFIED",
+      actorId: "user-1",
+      rejectionReason: null,
+      createdAt: new Date(),
+    });
 
     const doc = await getKycDocumentById("kyc-1", "tenant-1");
 
     expect(doc?.ocrData).toEqual({ name: "Ada" });
-    expect(doc?.verificationResponse).toEqual({ score: 0.99 });
+    expect(doc?.verificationResponse).toEqual(
+      expect.objectContaining({ status: "VERIFIED", actorId: "user-1" })
+    );
     expect(validateKycId("kyc-1")).toBe("kyc-1");
   });
 
@@ -139,7 +150,7 @@ describe("kyc helpers", () => {
       id: "kyc-1",
       tenantId: "tenant-1",
       loanApplicationId: "loan-1",
-      documentUrl: "https://example.com/doc.jpg",
+      fileUrl: "https://example.com/doc.jpg",
     });
     mockQueues.enqueueKycOcrJob.mockResolvedValue({ id: "job-ocr" });
 

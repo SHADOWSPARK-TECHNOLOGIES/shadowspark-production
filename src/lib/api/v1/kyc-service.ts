@@ -24,10 +24,30 @@ export function validateKycId(kycId: string): string {
 }
 
 export async function getPendingKyc(tenantId: string) {
-  return prisma.kycDocument.findMany({
+  const documents = await prisma.kycDocument.findMany({
     where: { tenantId, status: "PENDING" },
     orderBy: { createdAt: "desc" },
+    include: {
+      loanApplication: {
+        select: {
+          id: true,
+          applicantName: true,
+          applicantPhone: true,
+          loanAmount: true,
+          status: true,
+        },
+      },
+    },
   });
+
+  return documents.map((document) => ({
+    ...document,
+    reviewedAt: document.reviewedAt?.toISOString() ?? null,
+    loanApplication: {
+      ...document.loanApplication,
+      loanAmount: Number(document.loanApplication.loanAmount),
+    },
+  }));
 }
 
 export async function getKycDocumentById(kycId: string, tenantId: string) {
@@ -50,11 +70,23 @@ export async function getKycDocumentById(kycId: string, tenantId: string) {
 
   if (!doc) return null;
 
-  const metadata = (doc.metadata as Record<string, unknown> | null | undefined) ?? {};
+  const verificationResponse = await prisma.kycVerificationHistory.findFirst({
+    where: {
+      tenantId,
+      kycDocumentId: doc.id,
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      status: true,
+      actorId: true,
+      rejectionReason: true,
+      createdAt: true,
+    },
+  });
+
   return {
     ...doc,
-    ocrData: metadata.ocrData ?? null,
-    verificationResponse: metadata.verificationResponse ?? null,
+    verificationResponse,
   };
 }
 
@@ -67,7 +99,7 @@ export async function queueKycOcr(kycId: string, tenantId: string) {
     select: {
       id: true,
       loanApplicationId: true,
-      documentUrl: true,
+      fileUrl: true,
     },
   });
 
@@ -79,18 +111,19 @@ export async function queueKycOcr(kycId: string, tenantId: string) {
     tenantId,
     kycDocumentId: doc.id,
     loanApplicationId: doc.loanApplicationId,
-    documentUrl: doc.documentUrl,
+    documentUrl: doc.fileUrl,
   });
 }
 
-type VerifyInput = z.infer<typeof verifyInputSchema>;
+type VerifyInput = z.input<typeof verifyInputSchema>;
+type ParsedVerifyInput = z.output<typeof verifyInputSchema>;
 
 function normalizeVerifyArgs(
   a: string | { tenantId: string; kycId: string; actorUserId?: string; input: VerifyInput },
   b?: string,
   c?: VerifyInput | "VERIFIED" | "REJECTED",
   d?: string,
-): { tenantId: string; kycId: string; actorUserId?: string; input: VerifyInput } {
+): { tenantId: string; kycId: string; actorUserId?: string; input: ParsedVerifyInput } {
   if (typeof a === "object" && a !== null) {
     return {
       tenantId: a.tenantId,
@@ -150,25 +183,26 @@ export async function verifyKycDocument(
       return null;
     }
 
-    const existingMetadata =
-      (existing.metadata as Record<string, unknown> | null | undefined) ?? {};
     await tx.kycDocument.update({
       where: {
         id: existing.id,
       },
       data: {
         status: input.status,
-        rejectionReason: input.status === "REJECTED" ? input.rejectionReason ?? null : null,
-        verifiedBy: actorUserId ?? null,
-        verifiedAt: new Date(),
-        metadata: {
-          ...existingMetadata,
-          verificationResponse: {
-            status: input.status,
-            rejectionReason: input.rejectionReason ?? null,
-            actorUserId: actorUserId ?? null,
-          },
-        },
+        reviewedById: actorUserId ?? null,
+        reviewedAt: new Date(),
+      },
+    });
+
+    await tx.kycVerificationHistory.create({
+      data: {
+        tenantId,
+        kycDocumentId: existing.id,
+        loanApplicationId: existing.loanApplicationId,
+        status: input.status,
+        actorId: actorUserId ?? null,
+        rejectionReason:
+          input.status === "REJECTED" ? input.rejectionReason ?? null : null,
       },
     });
 

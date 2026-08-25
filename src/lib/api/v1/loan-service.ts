@@ -98,14 +98,12 @@ const patchLoanSchema = z
       .trim()
       .regex(phoneRegex, "Phone must be in +234XXXXXXXXXX format")
       .optional(),
-    loanAmount: z.number().positive().optional(),
+    loanAmount: amountSchema.optional(),
     loanPurpose: z.string().trim().optional(),
     assignedOfficerId: z.string().trim().min(1).optional(),
-    interestRate: z.number().min(0).max(100).optional(),
-    tenureMonths: z.number().int().positive().optional(),
     status: z.enum(LOAN_STATUSES).optional(),
-    rejectionReason: z.string().trim().optional(),
   })
+  .strict()
   .refine((value) => Object.keys(value).length > 0, "At least one field is required");
 
 const loansQuerySchema = z.object({
@@ -254,20 +252,25 @@ export async function patchLoanApplication(
     }
 
     if (patch.assignedOfficerId) {
-      const officer = await tx.user.findFirst({
-        where: {
-          id: patch.assignedOfficerId,
-          tenantId,
-        },
+      const officer = await tx.tenantMembership.findFirst({
+        where: { tenantId, userId: patch.assignedOfficerId },
+        select: { id: true },
       });
       if (!officer) {
         throw new Error("ASSIGNED_OFFICER_NOT_FOUND");
       }
     }
 
+    const { assignedOfficerId, loanAmount, ...loanPatch } = patch;
+    const updateData: Prisma.LoanApplicationUpdateInput = {
+      ...loanPatch,
+      assignedToId: assignedOfficerId,
+      loanAmount: loanAmount === undefined ? undefined : new Prisma.Decimal(loanAmount),
+    };
+
     const updated = await tx.loanApplication.update({
       where: { id: loanId },
-      data: patch,
+      data: updateData,
     });
 
     await tx.auditLog.create({

@@ -31,6 +31,7 @@ import {
 } from '@/lib/dashboard/live-data';
 
 const newMessageSchema = z.object({
+  loanApplicationId: z.string().trim().min(1, 'Loan application is required'),
   to: z.string().trim().min(1, 'Recipient is required'),
   channel: z.enum(['WHATSAPP', 'SMS', 'EMAIL']),
   body: z.string().trim().min(1, 'Message body is required'),
@@ -103,6 +104,7 @@ export default function MessagesPage() {
   const form = useForm<z.infer<typeof newMessageSchema>>({
     resolver: zodResolver(newMessageSchema),
     defaultValues: {
+      loanApplicationId: '',
       to: '',
       channel: 'WHATSAPP',
       body: '',
@@ -174,10 +176,24 @@ export default function MessagesPage() {
     return conversations.filter((conversation) => conversation.channel === channelFilter);
   }, [conversations, channelFilter]);
 
+  const loanOptions = useMemo(
+    () =>
+      Array.from(
+        new Map(
+          conversations.map((conversation) => [
+            conversation.loanApplicationId,
+            conversation,
+          ])
+        ).values()
+      ),
+    [conversations]
+  );
+
   async function submitMessage(values: z.infer<typeof newMessageSchema>) {
     setSending(true);
     try {
       await sendMessage({
+        loanApplicationId: values.loanApplicationId,
         channel: values.channel,
         to: values.to,
         body: values.body,
@@ -410,6 +426,22 @@ export default function MessagesPage() {
             void submitMessage(values);
           })}
         >
+          <div>
+            <label className="mb-2 block text-xs uppercase tracking-[0.08em] text-zinc-500">
+              Loan application
+            </label>
+            <select
+              className="h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 text-sm text-zinc-100"
+              {...form.register('loanApplicationId')}
+            >
+              <option value="">Select an application</option>
+              {loanOptions.map((conversation) => (
+                <option key={conversation.loanApplicationId} value={conversation.loanApplicationId}>
+                  {conversation.applicantName}
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="mb-2 block text-xs uppercase tracking-[0.08em] text-zinc-500">To</label>
             <Input {...form.register('to')} placeholder="+234..." />

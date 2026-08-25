@@ -18,6 +18,7 @@ import {
   verifyTwilioSignature,
 } from "@/lib/twilio";
 import { logger } from "@/lib/logger";
+import { buildKycUploadPersistence } from "@/lib/kyc/persistence";
 import { randomUUID } from "node:crypto";
 
 const MESSAGE_DEDUPE_TTL_SECONDS = 60 * 60 * 24;
@@ -122,13 +123,10 @@ async function upsertKycDocument(params: {
   if (existing) {
     await prisma.kycDocument.update({
       where: { id: existing.id },
-      data: {
-        documentUrl: params.documentUrl,
-        status: "PENDING",
-        metadata: {
-          messageSid: params.messageSid,
-        },
-      },
+      data: buildKycUploadPersistence({
+        fileUrl: params.documentUrl,
+        messageSid: params.messageSid,
+      }),
     });
     return;
   }
@@ -138,11 +136,10 @@ async function upsertKycDocument(params: {
       tenantId: params.tenantId,
       loanApplicationId: params.loanApplicationId,
       type: params.type,
-      status: "PENDING",
-      documentUrl: params.documentUrl,
-      metadata: {
+      ...buildKycUploadPersistence({
+        fileUrl: params.documentUrl,
         messageSid: params.messageSid,
-      },
+      }),
     },
   });
 }

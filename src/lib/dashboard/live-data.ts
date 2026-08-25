@@ -9,8 +9,7 @@ export interface LoanApplicationRecord {
   loanPurpose?: string | null;
   loanAmount: string | number;
   status: string;
-  rejectionReason?: string | null;
-  assignedOfficerId?: string | null;
+  assignedToId?: string | null;
   createdAt: string;
   updatedAt?: string;
   _count?: {
@@ -25,11 +24,11 @@ export interface KycDocumentRecord {
   loanApplicationId: string;
   type: string;
   status: string;
-  rejectionReason?: string | null;
-  verifiedBy?: string | null;
-  verifiedAt?: string | null;
-  documentUrl?: string | null;
-  metadata?: Record<string, unknown> | null;
+  fileUrl?: string | null;
+  fileHash?: string | null;
+  ocrData?: Record<string, unknown> | null;
+  reviewedById?: string | null;
+  reviewedAt?: string | null;
   createdAt: string;
   updatedAt?: string;
   loanApplication: {
@@ -131,7 +130,7 @@ export async function sendMessage(payload: {
   to: string;
   body: string;
   mediaUrl?: string;
-  loanApplicationId?: string;
+  loanApplicationId: string;
   templateId?: string;
   variables?: Record<string, string>;
 }) {

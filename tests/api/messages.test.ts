@@ -97,6 +97,16 @@ describe("messages api services", () => {
     );
   });
 
+  it("requires a loan application for every persisted message", () => {
+    expect(() =>
+      validateSendMessageInput({
+        channel: "WHATSAPP",
+        to: "+2348012345678",
+        body: "Hello Ada",
+      })
+    ).toThrow();
+  });
+
   it("returns grouped conversations with unread counts", async () => {
     mockPrisma.message.groupBy
       .mockResolvedValueOnce([
@@ -164,4 +174,3 @@ describe("messages api services", () => {
     expect(secondRun).toMatchObject({ deduped: true });
   });
 });
-

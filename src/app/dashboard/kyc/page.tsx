@@ -76,7 +76,7 @@ function isPriority(dateString: string): boolean {
 }
 
 function getOcrData(document: KycDocumentRecord): Record<string, string> {
-  const raw = document.metadata?.ocrData;
+  const raw = document.ocrData;
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
     return Object.fromEntries(
       Object.entries(raw).map(([key, value]) => [key, typeof value === 'string' ? value : String(value ?? '')]),
@@ -388,17 +388,17 @@ export default function KycPage() {
                     <Button variant="outline" size="sm" onClick={() => setViewerRotation((v) => v + 90)}>
                       <RotateCw className="size-4" />
                     </Button>
-                    {activeDoc.documentUrl ? (
-                      <a className="btn btn-ghost" href={activeDoc.documentUrl} download target="_blank" rel="noreferrer">
+                    {activeDoc.fileUrl ? (
+                      <a className="btn btn-ghost" href={activeDoc.fileUrl} download target="_blank" rel="noreferrer">
                         <ArrowDownToLine className="size-4" /> Download
                       </a>
                     ) : null}
                   </div>
                 </div>
                 <div className="flex min-h-[360px] items-center justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
-                  {activeDoc.documentUrl ? (
+                  {activeDoc.fileUrl ? (
                     <img
-                      src={activeDoc.documentUrl}
+                      src={activeDoc.fileUrl}
                       alt={`${activeDoc.loanApplication.applicantName} document`}
                       className="max-h-[360px] max-w-full origin-center object-contain transition-transform duration-200"
                       style={{ transform: `scale(${viewerZoom}) rotate(${viewerRotation}deg)` }}

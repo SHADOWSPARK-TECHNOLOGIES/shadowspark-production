@@ -5,6 +5,9 @@ const mockPrisma = vi.hoisted(() => ({
   user: {
     findFirst: vi.fn(),
   },
+  tenantMembership: {
+    findFirst: vi.fn(),
+  },
   loanApplication: {
     findFirst: vi.fn(),
     update: vi.fn(),
@@ -106,6 +109,12 @@ describe("loan service validators", () => {
   it("requires at least one field for loan updates", () => {
     expect(() => validatePatchLoanInput({})).toThrow(/At least one field is required/);
   });
+
+  it("normalizes patched loan amounts without floating-point persistence", () => {
+    expect(validatePatchLoanInput({ loanAmount: "250000.25" })).toMatchObject({
+      loanAmount: "250000.25",
+    });
+  });
 });
 
 describe("loan service write operations", () => {
@@ -206,5 +215,35 @@ describe("loan service write operations", () => {
         "user-1"
       )
     ).rejects.toThrow(/ASSIGNED_OFFICER_NOT_FOUND/);
+  });
+
+  it("maps an in-tenant officer assignment to the persisted schema field", async () => {
+    mockPrisma.loanApplication.findFirst.mockResolvedValue({
+      id: "loan-1",
+      tenantId: "tenant-1",
+      status: "SUBMITTED",
+    });
+    mockPrisma.tenantMembership.findFirst.mockResolvedValue({ id: "membership-1" });
+    mockPrisma.loanApplication.update.mockResolvedValue({ id: "loan-1" });
+
+    await patchLoanApplication(
+      "loan-1",
+      { assignedOfficerId: "officer-2" },
+      "tenant-1",
+      "user-1"
+    );
+
+    expect(mockPrisma.tenantMembership.findFirst).toHaveBeenCalledWith({
+      where: { tenantId: "tenant-1", userId: "officer-2" },
+      select: { id: true },
+    });
+    expect(mockPrisma.loanApplication.update).toHaveBeenCalledWith({
+      where: { id: "loan-1" },
+      data: { assignedToId: "officer-2" },
+    });
+  });
+
+  it("rejects patch fields that are not present in the current database schema", () => {
+    expect(() => validatePatchLoanInput({ interestRate: 12 })).toThrow();
   });
 });

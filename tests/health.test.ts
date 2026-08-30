@@ -16,6 +16,11 @@ import { GET } from "@/app/api/health/route";
 describe("health check", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.GEMINI_API_KEY;
+    delete process.env.OPENROUTER_API_KEY;
+    delete process.env.TWILIO_ACCOUNT_SID;
+    delete process.env.TWILIO_AUTH_TOKEN;
+    delete process.env.TWILIO_WHATSAPP_FROM;
   });
 
   it("reports connected services", async () => {
@@ -24,12 +29,18 @@ describe("health check", () => {
 
     const response = await GET();
     const body = (await response.json()) as {
+      ok: boolean;
       status: string;
+      llm: string;
+      twilioConfigured: boolean;
       services: { database: string; redis: string };
     };
 
     expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
     expect(body.status).toBe("ok");
+    expect(body.llm).toBe("script");
+    expect(body.twilioConfigured).toBe(false);
     expect(body.services).toEqual({ database: "connected", redis: "connected" });
   });
 
@@ -39,11 +50,13 @@ describe("health check", () => {
 
     const response = await GET();
     const body = (await response.json()) as {
+      ok: boolean;
       status: string;
       services: { database: string; redis: string };
     };
 
     expect(response.status).toBe(503);
+    expect(body.ok).toBe(false);
     expect(body.status).toBe("degraded");
     expect(body.services.redis).toBe("disconnected");
   });

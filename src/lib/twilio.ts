@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { redis } from "@/lib/redis";
 
 export interface TwilioWebhookPayload {
   from: string;
@@ -99,4 +100,73 @@ export function verifyTwilioSignature(
 
 export function twilioEmptyResponseXml(): string {
   return "<Response/>";
+}
+
+function escapeXml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
+export function twilioMessageResponseXml(message: string): string {
+  return `<Response><Message>${escapeXml(message)}</Message></Response>`;
+}
+
+const TWILIO_DAILY_OUTBOUND_CAP = 80;
+
+export async function reserveTwilioOutbound(): Promise<boolean> {
+  const now = new Date();
+  const day = now.toISOString().slice(0, 10);
+  const key = `twilio:outbound:${day}`;
+  const count = await redis.incr(key);
+  if (count === 1) await redis.expire(key, 60 * 60 * 48);
+  if (count <= TWILIO_DAILY_OUTBOUND_CAP) return true;
+  await redis.decr(key);
+  return false;
+}
+
+function twilioAddress(value: string): string {
+  const trimmed = value.trim();
+  return trimmed.startsWith("whatsapp:")
+    ? trimmed
+    : `whatsapp:${trimmed.startsWith("+") ? trimmed : `+${trimmed}`}`;
+}
+
+export async function sendTwilioMessage(
+  to: string,
+  body: string,
+): Promise<{ success: boolean; messageId?: string }> {
+  const accountSid = process.env.TWILIO_ACCOUNT_SID?.trim();
+  const authToken = process.env.TWILIO_AUTH_TOKEN?.trim();
+  const from = process.env.TWILIO_WHATSAPP_FROM?.trim();
+  if (!accountSid || !authToken || !from || !(await reserveTwilioOutbound())) {
+    return { success: false };
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          To: twilioAddress(to),
+          From: twilioAddress(from),
+          Body: body,
+        }).toString(),
+      },
+    );
+    const payload = (await response.json().catch(() => ({}))) as { sid?: string };
+    if (!response.ok) return { success: false };
+    return { success: true, messageId: payload.sid };
+  } catch (error) {
+    console.error("[twilio] outbound message failed", error instanceof Error ? error.message : "unknown error");
+    return { success: false };
+  }
 }

@@ -6,5 +6,5 @@ Qualifier: four turns persisted in Lead.metadata and tagged Hot, Warm, or Cold.
 Messaging: 24-hour freeform replies plus escaped TwiML prompts.
 Safety: Redis-backed 80 outbound-message UTC cap and one optional operator notice.
 Health: /api/health reports ok, llm provider, and twilioConfigured without secrets.
-Verification: 126 tests passed; production build passed; unrelated baseline tsc errors remain.
-Leftover: production deploy awaits protected entry of Gemini and Twilio secrets.
+Verification: 126 tests passed; production build passed; deployment is READY.
+Leftover: TWILIO_NOTIFY_TO is unset; add a valid whatsapp:+number to enable alerts.

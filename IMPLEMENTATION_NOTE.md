@@ -7,4 +7,4 @@ Messaging: 24-hour freeform replies plus escaped TwiML prompts.
 Safety: Redis-backed 80 outbound-message UTC cap and one optional operator notice.
 Health: /api/health reports ok, llm provider, and twilioConfigured without secrets.
 Verification: 126 tests passed; production build passed; unrelated baseline tsc errors remain.
-Leftover: production env/deploy requires Vercel CLI or connected deployment write access.
+Leftover: production deploy awaits protected entry of Gemini and Twilio secrets.

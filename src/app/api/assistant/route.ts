@@ -1,9 +1,19 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { streamText } from "ai";
+import { stepCountIs, streamText } from "ai";
+import { createHash } from "node:crypto";
 
+import { captureAssistantLead } from "@/lib/assistant/lead-capture";
+import { createAssistantLeadTools } from "@/lib/assistant/lead-tools";
+import {
+  assistantRequestSchema,
+  getLastUserMessage,
+  hasExplicitDemoAcceptance,
+} from "@/lib/assistant/request";
+import { scheduleDemoForLead } from "@/lib/demo-service";
 import { retrieveCompetitiveContext } from "@/lib/knowledge/rag-store";
 import { retrieveRagContext } from "@/lib/rag/retrieve";
 import { getGreetingFromAcceptLanguage } from "@/lib/i18n/greetings";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -44,19 +54,44 @@ function createGreetingPrefixedResponse(
 }
 
 export async function POST(req: Request) {
+  let requestBody: unknown;
+
+  const contentLength = Number(req.headers.get("content-length") ?? "0");
+  if (contentLength > 262_144) {
+    return new Response("Request body too large", { status: 413 });
+  }
+
+  const rateLimitResult = await rateLimit(req, "assistant", 20, "1 m");
+  if (!rateLimitResult.success) {
+    return new Response("Too many requests", {
+      status: 429,
+      headers: rateLimitResult.headers,
+    });
+  }
+
   try {
-    const { messages, slug } = await req.json();
+    const rawBody = await req.text();
+    if (new TextEncoder().encode(rawBody).byteLength > 262_144) {
+      return new Response("Request body too large", { status: 413 });
+    }
+    requestBody = JSON.parse(rawBody);
+  } catch {
+    return new Response("Invalid JSON request body", { status: 400 });
+  }
+
+  const parsedRequest = assistantRequestSchema.safeParse(requestBody);
+  if (!parsedRequest.success) {
+    return new Response("Invalid assistant message payload", { status: 400 });
+  }
+
+  try {
+    const { messages, slug } = parsedRequest.data;
     const greeting = getGreetingFromAcceptLanguage(
       req.headers.get("accept-language")
     );
 
-    const lastUserMsg =
-      Array.isArray(messages)
-        ? messages
-            .filter((m: { role: string; content: string }) => m.role === "user")
-            .pop()?.content || ""
-        : "";
-    const query = typeof lastUserMsg === "string" ? lastUserMsg : "";
+    const lastUserMsg = getLastUserMessage(messages);
+    const query = lastUserMsg;
 
     const rag = query
       ? await retrieveRagContext({ query, slug }).catch(() => null)
@@ -69,6 +104,15 @@ export async function POST(req: Request) {
     const hasLowConfidenceCompetitiveContext = trimmedCompetitiveContext.includes(
       "[Low Confidence Context]"
     );
+
+    const tools = createAssistantLeadTools({
+      captureLead: captureAssistantLead,
+      scheduleDemo: scheduleDemoForLead,
+      demoAccepted: hasExplicitDemoAcceptance(messages),
+      idempotencyKey:
+        req.headers.get("idempotency-key")?.trim() ||
+        createHash("sha256").update(JSON.stringify(parsedRequest.data)).digest("hex"),
+    });
 
     const result = await streamText({
       model: google("gemini-2.0-flash-exp"),
@@ -223,6 +267,8 @@ export async function POST(req: Request) {
       Keep it conversational, helpful, and real. 💙
     `,
       messages,
+      tools,
+      stopWhen: stepCountIs(5),
     });
 
     return createGreetingPrefixedResponse(result.textStream, greeting);

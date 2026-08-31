@@ -5,6 +5,7 @@ export interface AssistantLeadCaptureInput {
   phoneNumber?: string;
   intent?: string;
   metadata?: Record<string, unknown>;
+  idempotencyKey?: string;
 }
 
 export interface AssistantCapturedLead {
@@ -38,6 +39,7 @@ interface SystemEventCreateArgs {
     type: "TOOL_EXECUTION";
     message: string;
     metadata: Record<string, unknown>;
+    digest?: string;
   };
 }
 
@@ -47,6 +49,7 @@ interface LeadCaptureClient {
   };
   systemEvent: {
     create(args: SystemEventCreateArgs): Promise<unknown>;
+    findFirst?(args: { where: { digest: string; type: "TOOL_EXECUTION" } }): Promise<unknown>;
   };
 }
 
@@ -82,10 +85,23 @@ export function createLeadCaptureService(client: LeadCaptureClient) {
       },
     });
 
+    if (input.idempotencyKey && client.systemEvent.findFirst) {
+      const existingEvent = await client.systemEvent.findFirst({
+        where: { digest: input.idempotencyKey, type: "TOOL_EXECUTION" },
+      });
+      if (existingEvent) {
+        return {
+          success: true as const,
+          lead: { id: lead.id, email: lead.email },
+        };
+      }
+    }
+
     await client.systemEvent.create({
       data: {
         type: "TOOL_EXECUTION",
         message: "Lead captured via assistant tool",
+        ...(input.idempotencyKey ? { digest: input.idempotencyKey } : {}),
         metadata: {
           tool: "captureLead",
           leadId: lead.id,
@@ -107,5 +123,6 @@ export const captureAssistantLead = createLeadCaptureService({
   },
   systemEvent: {
     create: (args) => prisma.systemEvent.create(args),
+    findFirst: (args) => prisma.systemEvent.findFirst(args),
   },
 });

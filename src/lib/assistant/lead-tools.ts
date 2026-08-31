@@ -12,9 +12,10 @@ interface CaptureLeadResult {
 }
 
 interface AssistantLeadToolDependencies {
-  captureLead(input: AssistantLeadCaptureInput): Promise<CaptureLeadResult>;
+  captureLead(input: AssistantLeadCaptureInput & { idempotencyKey?: string }): Promise<CaptureLeadResult>;
   scheduleDemo(leadId: string, email: string | null): Promise<unknown>;
   demoAccepted: boolean;
+  idempotencyKey?: string;
 }
 
 const captureLeadSchema = z
@@ -22,7 +23,7 @@ const captureLeadSchema = z
     email: z.string().email().optional(),
     phoneNumber: z.string().min(5).max(40).optional(),
     intent: z.string().max(2_000).optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
+    metadata: z.record(z.string(), z.string().max(500)).max(10).optional(),
   })
   .strict()
   .refine((input) => Boolean(input.email || input.phoneNumber), {
@@ -33,6 +34,7 @@ export function createAssistantLeadTools({
   captureLead,
   scheduleDemo,
   demoAccepted,
+  idempotencyKey,
 }: AssistantLeadToolDependencies) {
   let requestLead: AssistantCapturedLead | null = null;
   let scheduledResult: Promise<unknown> | null = null;
@@ -43,7 +45,7 @@ export function createAssistantLeadTools({
         "Capture contact details and stated intent. Use this before scheduleDemo. This does not qualify, score, provision, or schedule the lead.",
       inputSchema: captureLeadSchema,
       execute: async (input) => {
-        const result = await captureLead(input);
+        const result = await captureLead({ ...input, idempotencyKey });
         requestLead = result.lead;
         return result;
       },

@@ -5,14 +5,14 @@ const assistantMessageSchema = z
     role: z.enum(["user", "assistant"]),
     content: z.string().min(1).max(20_000),
   })
-  .passthrough();
+  .strict();
 
 export const assistantRequestSchema = z
   .object({
     messages: z.array(assistantMessageSchema).min(1).max(50),
     slug: z.string().max(200).optional(),
   })
-  .passthrough();
+  .strict();
 
 export type AssistantMessage = z.infer<typeof assistantMessageSchema>;
 

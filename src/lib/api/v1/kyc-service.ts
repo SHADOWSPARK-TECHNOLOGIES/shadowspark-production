@@ -50,11 +50,17 @@ export async function getKycDocumentById(kycId: string, tenantId: string) {
 
   if (!doc) return null;
 
-  const ocrData = (doc.ocrData as Record<string, unknown> | null | undefined) ?? {};
+  const legacyMetadata = (doc as typeof doc & { metadata?: unknown }).metadata;
+  const storedData =
+    (doc.ocrData as Record<string, unknown> | null | undefined) ??
+    (legacyMetadata as Record<string, unknown> | null | undefined) ??
+    {};
+  const ocrData =
+    (storedData.ocrData as Record<string, unknown> | undefined) ?? storedData;
   return {
     ...doc,
     ocrData,
-    verificationResponse: ocrData.verificationResponse ?? null,
+    verificationResponse: storedData.verificationResponse ?? ocrData.verificationResponse ?? null,
   };
 }
 

@@ -50,11 +50,17 @@ export async function getKycDocumentById(kycId: string, tenantId: string) {
 
   if (!doc) return null;
 
-  const metadata = (doc.metadata as Record<string, unknown> | null | undefined) ?? {};
+  const legacyMetadata = (doc as typeof doc & { metadata?: unknown }).metadata;
+  const storedData =
+    (doc.ocrData as Record<string, unknown> | null | undefined) ??
+    (legacyMetadata as Record<string, unknown> | null | undefined) ??
+    {};
+  const ocrData =
+    (storedData.ocrData as Record<string, unknown> | undefined) ?? storedData;
   return {
     ...doc,
-    ocrData: metadata.ocrData ?? null,
-    verificationResponse: metadata.verificationResponse ?? null,
+    ocrData,
+    verificationResponse: storedData.verificationResponse ?? ocrData.verificationResponse ?? null,
   };
 }
 
@@ -67,7 +73,7 @@ export async function queueKycOcr(kycId: string, tenantId: string) {
     select: {
       id: true,
       loanApplicationId: true,
-      documentUrl: true,
+      fileUrl: true,
     },
   });
 
@@ -79,18 +85,19 @@ export async function queueKycOcr(kycId: string, tenantId: string) {
     tenantId,
     kycDocumentId: doc.id,
     loanApplicationId: doc.loanApplicationId,
-    documentUrl: doc.documentUrl,
+    documentUrl: doc.fileUrl,
   });
 }
 
-type VerifyInput = z.infer<typeof verifyInputSchema>;
+type VerifyInput = z.input<typeof verifyInputSchema>;
+type ParsedVerifyInput = z.output<typeof verifyInputSchema>;
 
 function normalizeVerifyArgs(
   a: string | { tenantId: string; kycId: string; actorUserId?: string; input: VerifyInput },
   b?: string,
   c?: VerifyInput | "VERIFIED" | "REJECTED",
   d?: string,
-): { tenantId: string; kycId: string; actorUserId?: string; input: VerifyInput } {
+): { tenantId: string; kycId: string; actorUserId?: string; input: ParsedVerifyInput } {
   if (typeof a === "object" && a !== null) {
     return {
       tenantId: a.tenantId,
@@ -150,19 +157,18 @@ export async function verifyKycDocument(
       return null;
     }
 
-    const existingMetadata =
-      (existing.metadata as Record<string, unknown> | null | undefined) ?? {};
+    const existingOcrData =
+      (existing.ocrData as Record<string, unknown> | null | undefined) ?? {};
     await tx.kycDocument.update({
       where: {
         id: existing.id,
       },
       data: {
         status: input.status,
-        rejectionReason: input.status === "REJECTED" ? input.rejectionReason ?? null : null,
-        verifiedBy: actorUserId ?? null,
-        verifiedAt: new Date(),
-        metadata: {
-          ...existingMetadata,
+        reviewedById: actorUserId ?? null,
+        reviewedAt: new Date(),
+        ocrData: {
+          ...existingOcrData,
           verificationResponse: {
             status: input.status,
             rejectionReason: input.rejectionReason ?? null,

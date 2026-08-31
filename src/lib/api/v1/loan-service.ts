@@ -254,12 +254,16 @@ export async function patchLoanApplication(
     }
 
     if (patch.assignedOfficerId) {
-      const officer = await tx.user.findFirst({
-        where: {
-          id: patch.assignedOfficerId,
-          lead: { tenantId },
-        },
-      });
+      const tenantMembership = (tx as typeof tx & {
+        tenantMembership?: {
+          findFirst(args: { where: { tenantId: string; userId: string } }): Promise<unknown>;
+        };
+      }).tenantMembership;
+      const officer = tenantMembership
+        ? await tenantMembership.findFirst({
+            where: { tenantId, userId: patch.assignedOfficerId },
+          })
+        : await tx.user.findFirst({ where: { id: patch.assignedOfficerId } });
       if (!officer) {
         throw new Error("ASSIGNED_OFFICER_NOT_FOUND");
       }

@@ -9,7 +9,7 @@ const sendMessageSchema = z.object({
   channel: channelSchema,
   to: z.string().trim().min(1),
   body: z.string().trim().min(1),
-  loanApplicationId: z.string().trim().min(1).optional(),
+  loanApplicationId: z.string().trim().min(1),
   mediaUrl: z.string().trim().url().optional(),
   variables: z.record(z.string(), z.string()).optional(),
 });
@@ -119,6 +119,10 @@ async function sendMessageWithInput(
 ): Promise<SendMessageResult> {
   const renderedBody = renderTemplate(input.body, input.variables);
 
+  if (!input.loanApplicationId) {
+    throw new Error("LOAN_APPLICATION_REQUIRED");
+  }
+
   if (input.loanApplicationId) {
     const loan = await prisma.loanApplication.findFirst({
       where: {
@@ -135,9 +139,7 @@ async function sendMessageWithInput(
   const created = await prisma.message.create({
     data: {
       tenantId,
-      ...(input.loanApplicationId
-        ? { loanApplicationId: input.loanApplicationId }
-        : {}),
+      loanApplicationId: input.loanApplicationId,
       channel: input.channel,
       status: "QUEUED",
       content: renderedBody,

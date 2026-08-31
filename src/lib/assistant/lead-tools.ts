@@ -23,7 +23,12 @@ const captureLeadSchema = z
     email: z.string().email().optional(),
     phoneNumber: z.string().min(5).max(40).optional(),
     intent: z.string().max(2_000).optional(),
-    metadata: z.record(z.string(), z.string().max(500)).max(10).optional(),
+    metadata: z
+      .record(z.string(), z.string().max(500))
+      .refine((metadata) => Object.keys(metadata).length <= 10, {
+        message: "Metadata may contain at most 10 fields.",
+      })
+      .optional(),
   })
   .strict()
   .refine((input) => Boolean(input.email || input.phoneNumber), {

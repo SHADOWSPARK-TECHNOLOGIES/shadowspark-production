@@ -123,9 +123,9 @@ async function upsertKycDocument(params: {
     await prisma.kycDocument.update({
       where: { id: existing.id },
       data: {
-        documentUrl: params.documentUrl,
+        fileUrl: params.documentUrl,
         status: "PENDING",
-        metadata: {
+        ocrData: {
           messageSid: params.messageSid,
         },
       },
@@ -139,8 +139,8 @@ async function upsertKycDocument(params: {
       loanApplicationId: params.loanApplicationId,
       type: params.type,
       status: "PENDING",
-      documentUrl: params.documentUrl,
-      metadata: {
+      fileUrl: params.documentUrl,
+      ocrData: {
         messageSid: params.messageSid,
       },
     },

@@ -135,7 +135,7 @@ async function sendMessageWithInput(
   const created = await prisma.message.create({
     data: {
       tenantId,
-      loanApplicationId: input.loanApplicationId ?? null,
+      loanApplicationId: input.loanApplicationId,
       channel: input.channel,
       status: "QUEUED",
       content: renderedBody,

@@ -257,7 +257,7 @@ export async function patchLoanApplication(
       const officer = await tx.user.findFirst({
         where: {
           id: patch.assignedOfficerId,
-          tenantId,
+          lead: { tenantId },
         },
       });
       if (!officer) {

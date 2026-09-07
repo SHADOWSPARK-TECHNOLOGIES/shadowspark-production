@@ -1,8 +1,4 @@
-type WorkerEnvironment = {
-  NEXT_RUNTIME?: string;
-  NEXT_PHASE?: string;
-  WORKERS_ENABLED?: string;
-};
+type WorkerEnvironment = Record<string, string | undefined>;
 
 export function shouldStartWorkers(env: WorkerEnvironment): boolean {
   return (

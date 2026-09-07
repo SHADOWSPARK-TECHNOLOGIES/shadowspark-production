@@ -1,6 +1,4 @@
-type WorkerServiceEnvironment = {
-  WORKERS_ENABLED?: string;
-};
+type WorkerServiceEnvironment = Record<string, string | undefined>;
 
 export function assertWorkerServiceEnabled(
   env: WorkerServiceEnvironment,

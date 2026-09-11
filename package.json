@@ -28,7 +28,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@ai-sdk/google": "3.0.62",
+    "@ai-sdk/google": "3.0.122",
     "@ai-sdk/react": "^3.0.160",
     "@anthropic-ai/sdk": "^0.100.1",
     "@dnd-kit/core": "^6.3.1",

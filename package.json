@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "next dev --webpack",
@@ -19,6 +19,7 @@
     "job:crawl": "pnpm rag:sync",
     "worker:crawl": "tsx src/workers/crawl-worker.ts",
     "worker:lead": "tsx src/workers/lead-worker.ts",
+    "worker:all": "tsx src/workers/all.ts",
     "worker:sniper": "tsx src/workers/sniper-worker.ts",
     "engine:crawl": "tsx --env-file=.env scripts/crawl-competitors.ts",
     "engine:embed": "tsx --env-file=.env scripts/generate-embeddings.ts",

@@ -12,7 +12,9 @@ export default auth((req) => {
   if (isOnDashboard || isOnOperator || isOnAdmin) {
     if (isLoggedIn) {
       // Role-based protection for admin surfaces
-      const userRole = (req.auth?.user as any)?.role?.toLowerCase();
+      const userRole = (
+        req.auth?.user as { role?: string } | undefined
+      )?.role?.toLowerCase();
       if ((isOnOperator || isOnAdmin) && userRole !== "admin") {
         return Response.redirect(new URL("/", req.nextUrl));
       }
@@ -23,5 +25,11 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|.*\\.png$).*)"],
+  matcher: [
+    "/dashboard/:path*",
+    "/operator/:path*",
+    "/admin/:path*",
+    "/finance/:path*",
+    "/support/:path*",
+  ],
 };

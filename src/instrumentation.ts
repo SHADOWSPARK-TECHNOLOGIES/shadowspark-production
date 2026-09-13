@@ -1,8 +1,24 @@
+type WorkerEnvironment = Record<string, string | undefined>;
+
+export function shouldStartWorkers(env: WorkerEnvironment): boolean {
+  return (
+    env.NEXT_RUNTIME === "nodejs" &&
+    env.NEXT_PHASE !== "phase-production-build" &&
+    env.WORKERS_ENABLED === "true"
+  );
+}
+
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { validateEnv } = await import("./lib/config/validateEnv");
     validateEnv();
-    console.log("Registered instrumentation, loading workers...");
+
+    if (!shouldStartWorkers(process.env)) {
+      console.log("Registered instrumentation; background workers are disabled.");
+      return;
+    }
+
+    console.log("Registered instrumentation, loading background workers...");
     // Dynamic import to avoid edge runtime issues
     const { crawlWorker } = await import("./workers/crawl-worker");
     const { leadWorker } = await import("./workers/lead-worker");

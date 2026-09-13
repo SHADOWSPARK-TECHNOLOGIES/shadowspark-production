@@ -63,9 +63,9 @@ export async function processKycDocumentJob(data: KycOcrJobData) {
         id: true,
         tenantId: true,
         status: true,
-        metadata: true,
+        ocrData: true,
         loanApplicationId: true,
-        documentUrl: true,
+        fileUrl: true,
       },
     });
 
@@ -73,14 +73,14 @@ export async function processKycDocumentJob(data: KycOcrJobData) {
       throw new Error("KYC_NOT_FOUND");
     }
 
-    const sourceUrl = data.documentUrl ?? kycDocument.documentUrl;
+    const sourceUrl = data.documentUrl ?? kycDocument.fileUrl;
     if (!sourceUrl) {
       throw new Error("KYC_DOCUMENT_URL_NOT_FOUND");
     }
 
     const ocrResult = await extractOcrData(sourceUrl);
-    const existingMetadata =
-      (kycDocument.metadata as Record<string, unknown> | null | undefined) ?? {};
+    const existingOcrData =
+      (kycDocument.ocrData as Record<string, unknown> | null | undefined) ?? {};
 
     const updatedDocument = await prisma.kycDocument.update({
       where: {
@@ -88,8 +88,8 @@ export async function processKycDocumentJob(data: KycOcrJobData) {
       },
       data: {
         status: "PENDING",
-        metadata: {
-          ...existingMetadata,
+        ocrData: {
+          ...existingOcrData,
           ocrData: {
             text: ocrResult.text,
             confidence: ocrResult.confidence,

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { sniperQueue } from "@/lib/sniper/queue";
+import { enqueueSniperTarget } from "@/lib/sniper/queue";
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     });
     
     // Dispatch to Cloud Tasks (via BullMQ) for Firecrawl/Gemini analysis
-    await sniperQueue.add("process-target", {
+    await enqueueSniperTarget({
       targetId: sniperTarget.id,
       domain: target.domain,
     });

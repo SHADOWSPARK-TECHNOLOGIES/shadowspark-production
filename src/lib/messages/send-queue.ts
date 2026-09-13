@@ -1,4 +1,6 @@
 import { Queue } from "bullmq";
+
+import { dispatchQueueJob } from "@/lib/queue-dispatch";
 import { redis } from "@/lib/redis";
 
 export const MESSAGE_SEND_QUEUE = "message-send";
@@ -18,6 +20,10 @@ export interface MessageSendJobData {
 let messageSendQueueInstance: Queue<MessageSendJobData> | null = null;
 
 function getMessageSendQueue(): Queue<MessageSendJobData> {
+  if (redis === null) {
+    throw new Error("Redis is not configured for BullMQ message delivery");
+  }
+
   if (!messageSendQueueInstance) {
     messageSendQueueInstance = new Queue<MessageSendJobData>(MESSAGE_SEND_QUEUE, {
       connection: redis,
@@ -33,6 +39,17 @@ function getMessageSendQueue(): Queue<MessageSendJobData> {
   return messageSendQueueInstance;
 }
 
+/** Queues message delivery or runs the existing delivery processor inline. */
 export async function enqueueMessageSend(data: MessageSendJobData) {
-  return getMessageSendQueue().add("message.send", data);
+  return dispatchQueueJob({
+    redisAvailable: redis !== null,
+    queueName: MESSAGE_SEND_QUEUE,
+    jobName: "message.send",
+    data,
+    enqueue: () => getMessageSendQueue().add("message.send", data),
+    runInline: async () => {
+      const { processMessageSendJob } = await import("@/workers/messaging.worker");
+      return processMessageSendJob(data);
+    },
+  });
 }

@@ -269,13 +269,9 @@ export async function POST(request: Request) {
     }
 
     dedupeKey = `twilio:${TENANT_ID}:${payload.messageSid}`;
-    const dedupeHit = await redis.set(
-      dedupeKey,
-      "1",
-      "EX",
-      MESSAGE_DEDUPE_TTL_SECONDS,
-      "NX"
-    );
+    const dedupeHit = redis
+      ? await redis.set(dedupeKey, "1", "EX", MESSAGE_DEDUPE_TTL_SECONDS, "NX")
+      : "OK";
 
     if (!dedupeHit) {
       return new NextResponse(twilioEmptyResponseXml(), {
@@ -284,6 +280,23 @@ export async function POST(request: Request) {
           "Content-Type": "text/xml; charset=utf-8",
         },
       });
+    }
+
+    if (redis === null) {
+      const existingAudit = await prisma.auditLog.findFirst({
+        where: {
+          tenantId: TENANT_ID,
+          action: "TWILIO_LOAN_CONVERSATION_ADVANCED",
+          metadata: { path: ["messageSid"], equals: payload.messageSid },
+        },
+        select: { id: true },
+      });
+      if (existingAudit) {
+        return new NextResponse(twilioEmptyResponseXml(), {
+          status: 200,
+          headers: { "Content-Type": "text/xml; charset=utf-8" },
+        });
+      }
     }
 
     await runWithTenantContext(TENANT_ID, async () => {
@@ -345,7 +358,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (dedupeKey) {
-      await redis.del(dedupeKey);
+      await redis?.del(dedupeKey);
     }
 
     return NextResponse.json(

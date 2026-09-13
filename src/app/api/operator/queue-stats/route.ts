@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { crawlQueue } from "@/lib/crawl/queue";
 import { leadSyncQueue } from "@/lib/leads/queue";
+import { redis } from "@/lib/redis";
 
 type QueueSnapshot = {
   waiting: number;
@@ -30,6 +31,22 @@ async function getQueueSnapshot(queue: {
 }
 
 export async function GET() {
+  if (redis === null) {
+    const inlineSnapshot: QueueSnapshot = {
+      waiting: 0,
+      active: 0,
+      completed: 0,
+      failed: 0,
+      delayed: 0,
+    };
+    return NextResponse.json({
+      mode: "inline",
+      crawl: inlineSnapshot,
+      leads: inlineSnapshot,
+      generatedAt: new Date().toISOString(),
+    });
+  }
+
   try {
     const [crawl, leads] = await Promise.all([
       getQueueSnapshot(crawlQueue),

@@ -27,7 +27,7 @@ const mockQueues = vi.hoisted(() => ({
 }));
 
 const mockRedis = vi.hoisted(() => ({
-  set: vi.fn(),
+  client: { set: vi.fn() } as { set: ReturnType<typeof vi.fn> } | null,
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -43,7 +43,9 @@ vi.mock("@/lib/workflows/queue", () => ({
 }));
 
 vi.mock("@/lib/redis", () => ({
-  redis: mockRedis,
+  get redis() {
+    return mockRedis.client;
+  },
 }));
 
 vi.mock("@/lib/twilio", () => ({
@@ -70,8 +72,9 @@ import { processTwilioWebhook } from "@/lib/api/v1/twilio-webhook-service";
 describe("messages api services", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRedis.client = { set: vi.fn() };
     mockQueues.enqueueMessageSend.mockResolvedValue({ id: "job-message-1" });
-    mockRedis.set.mockResolvedValue("OK");
+    mockRedis.client.set.mockResolvedValue("OK");
     mockPrisma.$executeRawUnsafe.mockResolvedValue(undefined);
     mockPrisma.$queryRaw.mockResolvedValue([]);
   });
@@ -153,7 +156,7 @@ describe("messages api services", () => {
       expect.objectContaining({ trigger: "MESSAGE_RECEIVED" })
     );
 
-    mockRedis.set.mockResolvedValue(null);
+    mockRedis.client?.set.mockResolvedValue(null);
     const secondRun = await processTwilioWebhook({
       rawBody: "Body=Hello&MessageSid=SM123&From=whatsapp:+2348012345678",
       requestUrl: "https://example.com/api/v1/webhooks/twilio",
@@ -163,5 +166,19 @@ describe("messages api services", () => {
 
     expect(secondRun).toMatchObject({ deduped: true });
   });
-});
 
+  it("uses the database MessageSid lookup when Redis is absent", async () => {
+    mockRedis.client = null;
+    mockPrisma.$queryRaw.mockResolvedValue([{ id: "message-inbound-1" }]);
+
+    const result = await processTwilioWebhook({
+      rawBody: "Body=Hello&MessageSid=SM123&From=whatsapp:+2348012345678",
+      requestUrl: "https://example.com/api/v1/webhooks/twilio",
+      twilioSignature: "valid-signature",
+      tenantId: "tenant-1",
+    });
+
+    expect(result).toEqual({ deduped: true });
+    expect(mockPrisma.message.create).not.toHaveBeenCalled();
+  });
+});

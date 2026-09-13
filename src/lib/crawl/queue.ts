@@ -1,5 +1,6 @@
 import { Queue } from "bullmq";
 
+import { dispatchQueueJob } from "@/lib/queue-dispatch";
 import { redis } from "@/lib/redis";
 
 export const CRAWL_QUEUE = "crawl-queue";
@@ -13,6 +14,10 @@ export type CrawlJobData = {
 let _crawlQueue: Queue<CrawlJobData> | null = null;
 
 export function getCrawlQueue(): Queue<CrawlJobData> {
+  if (redis === null) {
+    throw new Error("Redis is not configured for the crawl queue");
+  }
+
   if (!_crawlQueue) {
     _crawlQueue = new Queue<CrawlJobData>(CRAWL_QUEUE, {
       connection: redis,
@@ -34,5 +39,15 @@ export const crawlQueue = new Proxy({} as Queue<CrawlJobData>, {
 });
 
 export async function enqueueCrawl(data: CrawlJobData) {
-  return await getCrawlQueue().add("crawl-and-embed", data);
+  return dispatchQueueJob({
+    redisAvailable: redis !== null,
+    queueName: CRAWL_QUEUE,
+    jobName: "crawl-and-embed",
+    data,
+    enqueue: () => getCrawlQueue().add("crawl-and-embed", data),
+    runInline: async () => {
+      const { processCrawlJob } = await import("@/workers/crawl-worker");
+      return processCrawlJob(data);
+    },
+  });
 }

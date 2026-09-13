@@ -118,9 +118,17 @@ export async function processTwilioWebhook(params: {
   }
 
   const dedupeKey = `twilio:inbound:${params.tenantId}:${payload.messageSid}`;
-  const dedupeHit = await redis.set(dedupeKey, "1", "EX", TWILIO_DEDUPE_TTL_SECONDS, "NX");
-  if (!dedupeHit) {
-    return { deduped: true };
+  if (redis !== null) {
+    const dedupeHit = await redis.set(
+      dedupeKey,
+      "1",
+      "EX",
+      TWILIO_DEDUPE_TTL_SECONDS,
+      "NX"
+    );
+    if (!dedupeHit) {
+      return { deduped: true };
+    }
   }
 
   const existingMessageId = await getMessageIdByTwilioSid(params.tenantId, payload.messageSid);

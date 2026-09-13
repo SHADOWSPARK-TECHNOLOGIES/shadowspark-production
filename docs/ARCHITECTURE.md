@@ -24,7 +24,7 @@ This document reflects the current code in `shadowspark-production` as of PR #49
 | File / Folder | Role |
 | --- | --- |
 | `env.ts` | `optionalEnv`/`requireEnv` helpers used by server-side code paths. |
-| `redis.ts` | Singleton Redis client (ioredis) configured via `REDIS_URL` (defaults to `redis://localhost:6379`). |
+| `redis.ts` | Optional ioredis singleton. It is created only when `REDIS_URL` is configured; there is no localhost default. |
 | `leads/queue.ts` | Existing BullMQ lead-sync queue helper. |
 | `crawl/queue.ts` | New BullMQ crawl queue helper (`crawl-queue`). |
 | `queue.ts` | Barrel re-export for queues (`crawl` + `lead-sync`). |
@@ -69,6 +69,8 @@ flowchart LR
 
 * Queue: `src/lib/crawl/queue.ts` (`crawl-queue`).
 * Worker: `src/workers/crawl-worker.ts` runs `runRagSync()` for queued jobs.
+* When `REDIS_URL` is absent, queue producers execute the same processor inline and emit one process-level fallback warning. Loan idempotency uses the tenant-scoped database unique key, and conversation state uses a process-local TTL store.
+* Inline execution is synchronous and has no BullMQ retry, delay, or cross-process durability. Configure `REDIS_URL` to retain the existing asynchronous BullMQ behavior.
 
 ### Embedding Provider
 
@@ -90,6 +92,5 @@ flowchart LR
 
 * `FIRECRAWL_API_KEY`: required for crawl.
 * `GEMINI_API_KEY`: required for embeddings + assistant.
-* `REDIS_URL`: required in production for BullMQ worker/queues.
+* `REDIS_URL`: optional. When present, BullMQ queues and workers use Redis unchanged; when absent, jobs run inline.
 * `CRON_SECRET`: required to call `/api/cron/*` endpoints.
-

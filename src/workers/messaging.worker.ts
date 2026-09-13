@@ -6,9 +6,9 @@ import { MESSAGE_SEND_QUEUE, type MessageSendJobData } from "@/lib/messages/send
 
 const MESSAGE_SEND_DLQ = "message-send-dlq";
 
-const deliveryQueue = new Queue<MessageSendJobData>(MESSAGE_SEND_DLQ, {
-  connection: redis,
-});
+const deliveryQueue = redis
+  ? new Queue<MessageSendJobData>(MESSAGE_SEND_DLQ, { connection: redis })
+  : null;
 
 let messageTrackingColumnsPromise: Promise<void> | null = null;
 
@@ -98,77 +98,82 @@ async function sendEmailFallback(job: MessageSendJobData): Promise<{ messageSid:
   return { messageSid: syntheticMessageSid };
 }
 
-export const messagingWorker = new Worker<MessageSendJobData>(
-  MESSAGE_SEND_QUEUE,
-  async (job) => {
-    await ensureMessageTrackingColumns();
-    const { tenantId } = job.data;
+/** Processes one outbound message independently of BullMQ transport. */
+export async function processMessageSendJob(data: MessageSendJobData) {
+  await ensureMessageTrackingColumns();
+  const { tenantId } = data;
 
-    return runWithTenantContext(tenantId, async () => {
-      const message = await prisma.message.findFirst({
-        where: {
-          id: job.data.messageId,
-          tenantId,
-        },
-        select: {
-          id: true,
-          loanApplicationId: true,
-          status: true,
-        },
-      });
-
-      if (!message) {
-        throw new Error("MESSAGE_NOT_FOUND");
-      }
-
-      const deliveryResult =
-        job.data.channel === "EMAIL"
-          ? await sendEmailFallback(job.data)
-          : await sendViaTwilio(job.data);
-
-      await prisma.message.update({
-        where: {
-          id: message.id,
-        },
-        data: {
-          status: "SENT",
-        },
-      });
-
-      await prisma.$executeRawUnsafe(
-        'UPDATE "messages" SET "twilioMessageSid" = $1, "direction" = $2 WHERE "tenantId" = $3 AND "id" = $4',
-        deliveryResult.messageSid,
-        "OUTBOUND",
+  return runWithTenantContext(tenantId, async () => {
+    const message = await prisma.message.findFirst({
+      where: {
+        id: data.messageId,
         tenantId,
-        message.id
-      );
-
-      await prisma.auditLog.create({
-        data: {
-          tenantId,
-          loanApplicationId: message.loanApplicationId,
-          action: "MESSAGE_SENT",
-          metadata: {
-            messageId: message.id,
-            twilioMessageSid: deliveryResult.messageSid,
-            channel: job.data.channel,
-          },
-        },
-      });
-
-      return {
-        messageId: message.id,
-        messageSid: deliveryResult.messageSid,
-      };
+      },
+      select: {
+        id: true,
+        loanApplicationId: true,
+        status: true,
+      },
     });
-  },
-  {
-    connection: redis,
-    concurrency: 5,
-  }
-);
 
-messagingWorker.on("failed", async (job, error) => {
+    if (!message) {
+      throw new Error("MESSAGE_NOT_FOUND");
+    }
+
+    const deliveryResult =
+      data.channel === "EMAIL"
+        ? await sendEmailFallback(data)
+        : await sendViaTwilio(data);
+
+    await prisma.message.update({
+      where: {
+        id: message.id,
+      },
+      data: {
+        status: "SENT",
+      },
+    });
+
+    await prisma.$executeRawUnsafe(
+      'UPDATE "messages" SET "twilioMessageSid" = $1, "direction" = $2 WHERE "tenantId" = $3 AND "id" = $4',
+      deliveryResult.messageSid,
+      "OUTBOUND",
+      tenantId,
+      message.id
+    );
+
+    await prisma.auditLog.create({
+      data: {
+        tenantId,
+        loanApplicationId: message.loanApplicationId,
+        action: "MESSAGE_SENT",
+        metadata: {
+          messageId: message.id,
+          twilioMessageSid: deliveryResult.messageSid,
+          channel: data.channel,
+        },
+      },
+    });
+
+    return {
+      messageId: message.id,
+      messageSid: deliveryResult.messageSid,
+    };
+  });
+}
+
+export const messagingWorker = redis
+  ? new Worker<MessageSendJobData>(
+      MESSAGE_SEND_QUEUE,
+      async (job) => processMessageSendJob(job.data),
+      {
+        connection: redis,
+        concurrency: 5,
+      }
+    )
+  : null;
+
+messagingWorker?.on("failed", async (job, error) => {
   if (!job) {
     return;
   }
@@ -217,8 +222,10 @@ messagingWorker.on("failed", async (job, error) => {
     });
   });
 
-  await deliveryQueue.add("message.send.failed", job.data, {
-    removeOnComplete: true,
-    removeOnFail: false,
-  });
+  if (deliveryQueue) {
+    await deliveryQueue.add("message.send.failed", job.data, {
+      removeOnComplete: true,
+      removeOnFail: false,
+    });
+  }
 });

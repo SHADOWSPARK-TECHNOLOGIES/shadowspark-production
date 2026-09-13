@@ -13,6 +13,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:secrets": "node --test tests/security/credential-leak.test.mjs",
     "test:watch": "vitest",
     "rag:sync": "tsx --env-file=.env src/cli/rag-sync.ts",
     "search:kb": "tsx --env-file=.env src/cli/search.ts",

@@ -1,33 +1,38 @@
-# ShadowSpark Admin Reference File
-> Last updated: 2026-08-08 | Maintained by: Copilot CLI
+# ShadowSpark Operations Reference
+> Last reviewed: 2026-08-24
 
 ---
 
-## 🔐 Demo / Seed Credentials
+## Access Control
 
-| Resource | Value |
-|----------|-------|
-| Admin email | `admin@shadowspark.tech` |
-| Admin password | `Demo@2026!` |
-| Admin role | `ADMIN` |
-| Tenant ID | `tenant_demo` |
-| Tenant name | `ShadowSpark Demo` |
-| Company name | `ShadowSpark Technologies` |
+This repository must not contain login credentials, privileged account
+identifiers, production tokens, signing keys, or database connection strings.
 
----
-
-## 🌐 Production URLs
-
-| Service | URL | Status |
-|---------|-----|--------|
-| Backend API | `https://shadowspark-production-one.vercel.app` | ✅ Live |
-| Marketing site | `https://shadowspark-production.vercel.app` | ✅ Live |
-| Dashboard (app) | `https://app.shadowspark.tech` | ✅ Live |
-| Dashboard (vercel) | `https://shadowspark-dashboard.vercel.app` | ✅ Live |
+- Store production secrets in the hosting provider's encrypted environment or
+  the approved secret manager.
+- Store privileged identities in the authoritative identity and database
+  systems, not in operational documentation.
+- Use synthetic, non-production accounts for demos and tests.
+- Treat any value previously committed here as compromised and follow the
+  private incident-response process before relying on it.
 
 ---
 
-## 📡 Key API Endpoints
+## Production URLs
+
+These entries are a routing inventory, not proof of current health. Verify each
+service and its owner before an operational change.
+
+| Service | URL |
+|---------|-----|
+| Backend API | `https://shadowspark-production-one.vercel.app` |
+| Marketing site | `https://shadowspark-production.vercel.app` |
+| Dashboard (custom domain) | `https://app.shadowspark.tech` |
+| Dashboard (Vercel) | `https://shadowspark-dashboard.vercel.app` |
+
+---
+
+## Key API Endpoints
 
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
@@ -48,11 +53,10 @@
 
 ---
 
-## 🔑 Auth Flow
+## Auth Flow
 
-```
+```text
 POST /api/v1/auth/login
-  Body: { "email": "...", "password": "..." }
   Returns: { "user": {...}, "token": "<JWT>" }
 
 All protected routes:
@@ -62,123 +66,76 @@ Mutation routes additionally require:
   Header: Idempotency-Key: <unique-uuid-per-request>
 ```
 
-JWT is custom HMAC-SHA256. Payload: `{ sub, tenantId, role, email, iat, exp }`.  
-`JWT_SECRET` is stored in Vercel production env (encrypted).
+JWTs use HMAC-SHA256. Their payload contains `sub`, `tenantId`, `role`,
+`email`, `iat`, and `exp`. The signing key must exist only in the encrypted
+production environment or approved secret manager.
 
 ---
 
-## 🗃️ Database
+## Database
 
 | Item | Detail |
 |------|--------|
 | Provider | Neon PostgreSQL (serverless) |
-| ORM | Prisma v7.8.0 |
+| ORM | Prisma |
 | Client path | `src/generated/prisma/client` |
-| Adapter | `PrismaPg` (pg Pool — requires adapter in constructor) |
+| Adapter | `PrismaPg` (`pg` pool) |
 | Schema | `prisma/schema.prisma` |
-| Sync method | `prisma db push` (not migrate deploy — DB has pre-existing schema) |
 
-### Models
-`User`, `Tenant`, `TenantMembership`, `LoanApplication`, `KycDocument`, `Message`, `AuditLog`, `IdempotencyKey`
-
-### Seeded Data (production)
-- 10 loan applications (`loan_seed_1` → `loan_seed_10`)
-- Admin user (`admin@shadowspark.tech`)
-- Tenant (`tenant_demo`)
-- 1 audit log entry
+Database contents, tenant identifiers, seeded identities, and access values
+must be verified through the authoritative production account. Do not copy
+them into this repository.
 
 ---
 
-## 🏗️ Infrastructure
+## Infrastructure
 
 | Item | Detail |
 |------|--------|
 | Hosting | Vercel (serverless) |
-| Repo | `SHADOWSPARK-TECHNOLOGIES/shadowspark-production` |
-| Branch (prod) | `master` (Vercel watches this) |
-| Deploy command | `vercel --prod --yes` |
-| Build | `pnpm build` (webpack, not turbopack) |
-| Node.js | 22.x |
+| Repository | `SHADOWSPARK-TECHNOLOGIES/shadowspark-production` |
+| GitHub default branch | `main` |
+| Documented legacy production branch | `master` — verify before use |
+| Build | `pnpm build` |
 | Package manager | pnpm |
 
-### Vercel Env Vars (production)
+Required production variable names may be documented, but their values must
+not be committed:
+
 | Variable | Purpose |
 |----------|---------|
-| `DATABASE_URL` | Neon pooled connection (for Prisma at runtime) |
-| `DATABASE_URL_UNPOOLED` | Neon direct TCP (for migrations/seeds) |
-| `JWT_SECRET` | HMAC key for custom JWT signing |
-| `SEED_SECRET` | *(removed after use)* One-time seed endpoint auth |
+| `DATABASE_URL` | Pooled PostgreSQL connection |
+| `DATABASE_URL_UNPOOLED` | Direct PostgreSQL connection for controlled maintenance |
+| `JWT_SECRET` | Custom JWT signing key |
+| `NEXTAUTH_SECRET` | Auth.js session-signing secret |
+| `SEED_SECRET` | One-time seed authorization; remove after use |
 
 ---
 
-## 🔒 Security Notes
+## Security Invariants
 
-- CORS allowlist: `app.shadowspark.tech`, `shadowspark-dashboard.vercel.app`, `shadowspark-production.vercel.app`, `shadowspark-production-one.vercel.app`, `localhost:3000/3001`
-- JWT uses HMAC double-sign for `timingSafeEqual` (prevents length timing oracle)
-- HttpOnly cookie `shadowspark_token` set on login alongside JSON token
-- All mutation routes enforce `Idempotency-Key` header (400 if missing)
-- Multi-tenant: every model has `tenantId`; all queries scoped to tenant
-
----
-
-## 📋 Dashboard Pages (app.shadowspark.tech)
-
-| Route | Status | Data source |
-|-------|--------|-------------|
-| `/dashboard` | ✅ Live | Real loans from `/api/v1/loans` |
-| `/dashboard/kyc` | ✅ Live | `/api/v1/kyc/pending` |
-| `/dashboard/messages` | ✅ Live | `/api/v1/messages/conversations` |
-| `/dashboard/workflows` | ✅ Live | Workflow list + builder |
-| `/dashboard/analytics` | ✅ Live | `/api/v1/analytics/dashboard` |
-| `/dashboard/settings` | ✅ Live | Tenant + team + API keys |
-| `/login` | ✅ Live | JWT stored in localStorage |
+- Derive tenant identity from verified authentication context.
+- Require idempotency keys on retryable mutation routes.
+- Use HttpOnly, Secure, SameSite cookies for browser-held session tokens.
+- Never store authentication tokens in operational documentation.
+- Verify allowed origins against the currently deployed domains.
+- Rotate an exposed credential and invalidate affected sessions before closing
+  an incident; deleting documentation alone is not remediation.
 
 ---
 
-## 🗂️ Repos
-
-| Repo | Branch | Vercel Project | URL |
-|------|--------|----------------|-----|
-| `shadowspark-production` | `master` | `shadowspark-production` | `shadowspark-production-one.vercel.app` |
-| `shadowspark-dashboard` | `master` | `shadowspark-dashboard` | `app.shadowspark.tech` |
-
-`main` branch in `shadowspark-production` is GitHub default but has **no shared history** with `master`. Branch protection requires 1 review. Production deploys bypass GitHub using `vercel --prod --yes`.
-
----
-
-## 🧑‍💻 Developer Quick Start
+## Developer Quick Start
 
 ```bash
-# Clone and install
 git clone https://github.com/SHADOWSPARK-TECHNOLOGIES/shadowspark-production
 cd shadowspark-production
 pnpm install
-
-# Pull env vars
-vercel env pull .env.local
-
-# Run dev
 pnpm dev
-
-# Build check
+pnpm test
+pnpm typecheck
 pnpm build
-
-# TypeScript check
-npx tsc --noEmit
-
-# Deploy to production
-vercel --prod --yes
 ```
 
----
-
-## 📅 Operational History
-
-| Date | Event |
-|------|-------|
-| Apr 2026 | Initial platform built — marketing site, chatbot, operator dashboard |
-| Apr 2026 | Infrastructure hardened — keep-alive, DB SSL, Slack alerts |
-| Aug 2026 | Dashboard pages built: KYC, Messages, Workflows, Analytics, Settings |
-| Aug 2026 | Backend hardened: 7 Prisma models, idempotency middleware, real data services |
-| Aug 2026 | Seed script run — 10 loans + admin user in production DB |
-| Aug 2026 | All Tier 1 checks verified green |
+Obtain development-only environment variables through the approved onboarding
+process. Never pull or copy production values into a developer workstation or
+commit them to Git.

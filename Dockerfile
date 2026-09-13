@@ -1,5 +1,5 @@
 # ---------- Base ----------
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 RUN apk add --no-cache libc6-compat openssl curl
 RUN npm install -g pnpm
 WORKDIR /app
@@ -41,5 +41,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 RUN apk add --no-cache tini
 ENTRYPOINT ["/sbin/tini", "--"]
 
-# Default command — runs all three processes under tini
-CMD ["sh", "-c", "pnpm worker:crawl & pnpm worker:lead & pnpm start"]
+# Default command — runs only the Next.js web process under tini
+CMD ["pnpm", "start"]

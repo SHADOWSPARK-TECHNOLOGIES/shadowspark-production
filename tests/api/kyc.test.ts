@@ -99,7 +99,7 @@ describe("kyc service", () => {
       },
     });
 
-    expect(result.loanStatusUpdated).toBe(true);
+    expect(result?.loanStatusUpdated).toBe(true);
     expect(mockPrisma.loanApplication.update).toHaveBeenCalled();
     expect(mockQueues.enqueueWorkflowTrigger).toHaveBeenCalledWith(
       expect.objectContaining({ trigger: "CREDIT_CHECK" })
@@ -154,7 +154,7 @@ describe("kyc service", () => {
       },
     });
 
-    expect(result.loanStatusUpdated).toBe(true);
+    expect(result?.loanStatusUpdated).toBe(true);
     expect(mockPrisma.loanApplication.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ status: "KYC_PENDING" }),
@@ -195,4 +195,3 @@ describe("kyc service", () => {
     expect(mockQueues.enqueueMessageSend).toHaveBeenCalled();
   });
 });
-

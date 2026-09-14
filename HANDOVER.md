@@ -15,7 +15,7 @@ This document summarizes the strategic implementation, infrastructure hardening,
 
 ## 3. WhatsApp Chatbot Recovery (Autonomous)
 *   **Token Renewal:** Restored the offline chatbot by updating `META_ACCESS_TOKEN` in Secret Manager with the new permanent token.
-*   **Verify Token Fix:** Resolved the `WHATSAPP_VERIFY_TOKEN` mismatch; corrected value is `ShadowSpark_2026_Final`.
+*   **Verify Token:** Store the verification credential outside the repository; coordinate changes with the Meta app and the Cloud Run webhook service.
 *   **Integration Audit:** Verified end-to-end pulse via `GET /webhooks/whatsapp` and Meta Graph API account status checks.
 
 ## 4. Operator Dashboard Repair
@@ -43,9 +43,13 @@ This document summarizes the strategic implementation, infrastructure hardening,
 
 ## 7. Operational Credentials (GCP Secret Manager)
 *   `CRON_SECRET`: Auth for all internal maintenance jobs.
-*   `WHATSAPP_VERIFY_TOKEN`: `ShadowSpark_2026_Final`.
+*   `WHATSAPP_VERIFY_TOKEN`: `[stored in deployment secret manager]`.
 *   `DATABASE_URL`: Hardened with `connect_timeout=15`.
 
 ---
 **Status:** **FULLY OPERATIONAL / HARDENED**
 **Agent:** Gemini CLI (ShadowSpark Integration Architect)
+
+## Verification credential rotation
+
+Previously committed verification values must be treated as exposed. Generate a new random value in the secret manager, update the Next.js deployment and both health-check environments, update the separate Cloud Run webhook service and Meta webhook configuration, and confirm the new challenge succeeds. Do not copy the value into this document or logs. Removing it from the current tree does not revoke historical copies. GET challenge verification does not authenticate POST webhook deliveries.

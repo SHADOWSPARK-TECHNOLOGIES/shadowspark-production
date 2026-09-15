@@ -17,7 +17,6 @@ import { getBotReply } from "@/lib/ai/whatsapp-bot";
  * to production logs.
  */
 
-const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || "shadowspark-clawbot-v1";
 
 /** Redact a phone number for safe logging — keeps last 2 digits only. */
 function redactPhone(phone: string): string {
@@ -33,19 +32,23 @@ function redactText(text: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+  if (!verifyToken?.trim()) {
+    return new NextResponse("Webhook verification is not configured", { status: 503 });
+  }
   const searchParams = request.nextUrl.searchParams;
   const mode = searchParams.get("hub.mode");
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
   // Meta sends a verification request when setting up the webhook
-  if (mode === "subscribe" && token === VERIFY_TOKEN && challenge) {
+  if (mode === "subscribe" && token === verifyToken && challenge) {
     console.log("WhatsApp webhook verified successfully");
     return new NextResponse(challenge, { status: 200 });
   }
 
   // Verification failed — log only that it failed, not the token value
-  console.warn("WhatsApp webhook verification failed", { mode, tokenMatch: token === VERIFY_TOKEN });
+  console.warn("WhatsApp webhook verification failed", { mode, tokenMatch: token === verifyToken });
   return new NextResponse("Verification failed", { status: 403 });
 }
 

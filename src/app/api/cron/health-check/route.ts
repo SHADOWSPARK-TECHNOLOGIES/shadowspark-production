@@ -5,7 +5,6 @@ export const runtime = "nodejs";
 
 const BUSINESS_ID = "1416205687214106";
 const WEBHOOK_URL = "https://shadowspark-chatbot-524469712746.europe-central2.run.app/webhooks/whatsapp";
-const VERIFY_TOKEN = "ShadowSpark_2026_Final";
 
 async function sendSlackAlert(message: string, system: string = "WhatsApp Bot Health Alert") {
   const SLACK_WEBHOOK = process.env.SLACK_WEBHOOK_URL;
@@ -46,9 +45,17 @@ export async function GET(req: Request) {
     redis: "unknown"
   };
 
-  // 1. Webhook Challenge
+  // 1. Webhook Challenge: never fall back to a committed credential.
   try {
-    const res = await fetch(`${WEBHOOK_URL}?hub.mode=subscribe&hub.verify_token=${VERIFY_TOKEN}&hub.challenge=health_check`);
+    const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
+    if (!verifyToken?.trim()) {
+      throw new Error("WHATSAPP_VERIFY_TOKEN is not configured");
+    }
+    const webhookUrl = new URL(WEBHOOK_URL);
+    webhookUrl.searchParams.set("hub.mode", "subscribe");
+    webhookUrl.searchParams.set("hub.verify_token", verifyToken);
+    webhookUrl.searchParams.set("hub.challenge", "health_check");
+    const res = await fetch(webhookUrl.toString());
     const data = await res.text();
     if (data === "health_check") {
       status.webhook = "ok";

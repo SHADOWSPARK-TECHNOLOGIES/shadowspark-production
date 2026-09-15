@@ -26,6 +26,19 @@ function detectCredentialLeaks(content) {
   const lines = content.split(/\r?\n/);
 
   lines.forEach((line, index) => {
+    // Scan the value as well as the name: an env read with a literal fallback
+    // still commits a usable verification credential.
+    const verificationAssignment = line.match(/\b(?:[A-Z0-9_]*VERIFY_TOKEN|verifyToken)\b[`'"]?\s*[:=]\s*(.+)/i);
+    const verificationFallback = /\b[A-Z0-9_]*VERIFY_TOKEN\b.*(?:\|\||\?\?)\s*([`'"])(.*?)\1/i.exec(line);
+    const verificationTable = line.match(/^\s*\|\s*`?(?:[A-Z0-9_]*VERIFY_TOKEN|verify token)`?\s*\|\s*([^|]+)\|/i);
+    const verificationProse = /verify token.*?value is\s+([`'"])(.*?)\1/i.exec(line);
+    const candidate = verificationFallback?.[2] ?? verificationTable?.[1] ?? verificationProse?.[2] ?? verificationAssignment?.[1];
+    if (candidate !== undefined) {
+      const literal = candidate.match(/^([`'"])(.*?)\1/)?.[2] ?? candidate.replace(/[;.]+$/, "").trim();
+      if (!isPlaceholder(literal)) {
+        findings.push({ line: index + 1, rule: "plaintext-verification-token" });
+      }
+    }
     const markdownRow = line.match(/^\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|/);
     if (markdownRow) {
       const [, label, value] = markdownRow;
@@ -63,6 +76,34 @@ function trackedTextFiles() {
 test("flags a concrete password in an operational Markdown table", () => {
   const findings = detectCredentialLeaks("| Admin password | `synthetic-secret-value` |");
   assert.deepEqual(findings, [{ line: 1, rule: "plaintext-password-table" }]);
+});
+
+test("flags verification-token literals in code, env files and documentation", () => {
+  for (const content of [
+    'const VERIFY_TOKEN = "synthetic-verification-value";',
+    'WHATSAPP_VERIFY_TOKEN=synthetic-verification-value',
+    'const token = process.env.WHATSAPP_VERIFY_TOKEN || "synthetic-fallback";',
+    'const token = process.env.META_VERIFY_TOKEN ?? `synthetic-fallback`;',
+    '| WHATSAPP_VERIFY_TOKEN | `synthetic-verification-value` |',
+    '* `WHATSAPP_VERIFY_TOKEN`: `synthetic-verification-value`.',
+    '* **Verify Token Fix:** corrected value is `synthetic-verification-value`.',
+  ]) {
+    assert.deepEqual(detectCredentialLeaks(content), [
+      { line: 1, rule: "plaintext-verification-token" },
+    ]);
+  }
+});
+
+test("allows external verification-token reads and explicit placeholders", () => {
+  for (const content of [
+    'const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN;',
+    'const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN?.trim();',
+    '| WHATSAPP_VERIFY_TOKEN | `[redacted]` |',
+    'WHATSAPP_VERIFY_TOKEN=<set-in-secret-manager>',
+    'const VERIFY_TOKEN = "";',
+  ]) {
+    assert.deepEqual(detectCredentialLeaks(content), []);
+  }
 });
 
 test("allows operational documentation to point to an external secret store", () => {

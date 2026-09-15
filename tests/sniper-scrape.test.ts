@@ -9,9 +9,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@mendable/firecrawl-js", () => ({
-  default: vi.fn(() => ({
-    scrape: mocks.scrape,
-  })),
+  // Vitest 5 requires a real function/class when the route uses `new FirecrawlApp(...)`.
+  default: vi.fn(function FirecrawlApp(this: { scrape: typeof mocks.scrape }) {
+    this.scrape = mocks.scrape;
+  }),
 }));
 
 vi.mock("@/lib/logger", () => ({

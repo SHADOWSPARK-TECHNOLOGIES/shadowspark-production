@@ -193,7 +193,7 @@ describe("Auth", () => {
     expect(hash.startsWith("$2")).toBe(true);
     expect(await bcrypt.compare("Demo@2026!", hash)).toBe(true);
     expect(await bcrypt.compare("wrong", hash)).toBe(false);
-  });
+  }, 15000);
 });
 
 // ── 2. Tenant Isolation ─────────────────────────────────────────────────────

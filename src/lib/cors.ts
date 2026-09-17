@@ -1,5 +1,6 @@
 const ALLOWED_ORIGINS = [
   "https://shadowspark-dashboard.vercel.app",
+  "https://shadowspark-production.netlify.app",
   "https://app.shadowspark.tech",
   "http://localhost:3000",
 ];
@@ -7,7 +8,7 @@ const ALLOWED_ORIGINS = [
 function getAllowedOrigin(request: Request): string {
   const origin = request.headers.get("origin") ?? "";
   if (ALLOWED_ORIGINS.includes(origin)) return origin;
-  if (origin.endsWith(".vercel.app")) return origin;
+  if (origin.endsWith(".netlify.app") || origin.endsWith(".vercel.app")) return origin;
   return ALLOWED_ORIGINS[0];
 }
 

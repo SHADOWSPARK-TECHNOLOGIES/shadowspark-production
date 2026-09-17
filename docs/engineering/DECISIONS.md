@@ -17,3 +17,16 @@ RULING: Leave pre-existing untracked adapter/compliance files untouched and unco
 EVIDENCE: Recovery Git status and `.nvmrc`/package engines. Current backend contract has not been verified.
 
 RISK IF WRONG: Adapter tests remain provisional and must not be treated as proof of upstream compatibility.
+
+## 2026-09-17: Production Release Platform Target (Netlify + Render + Neon)
+
+RULING: Direct the production web frontend deployment path to Netlify. Deprecate Vercel as an active deployment path and release gate.
+
+TARGET TOPOLOGY:
+- Frontend: Netlify (OpenNext Next.js Runtime, preview deploy verified on PR #106)
+- Backend: Render / AI-ASSIST v1.1.0 upstream
+- Database: Neon PostgreSQL
+- CI: GitHub Actions (Code Coverage, Typecheck, Credential leak guard, CodeQL)
+
+VERCEL STATUS:
+DEPRECATED / EXTERNAL ACCOUNT BLOCKED / NOT RELEASE GATE. The Vercel account hold is an external administrative blocker that does not block application deployment to the approved Netlify target.

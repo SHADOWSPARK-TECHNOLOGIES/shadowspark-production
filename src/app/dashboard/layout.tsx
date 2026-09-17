@@ -23,16 +23,53 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   );
 }
 
+interface UserSessionInfo {
+  name: string;
+  role: string;
+  initial: string;
+}
+
 // ── Internal Sidebar component (memoized) ───────────────────────────────────
 const Sidebar = React.memo(function Sidebar({
   pathname,
   sidebarOpen,
-  onClose,
 }: {
   pathname: string;
   sidebarOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
 }) {
+
+
+  const [userInfo, setUserInfo] = useState<UserSessionInfo>({
+    name: 'Operator',
+    role: 'COMPLIANCE',
+    initial: 'O',
+  });
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/auth/session')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data?.user) return;
+        const u = data.user;
+        const displayName = u.name || (u.email ? u.email.split('@')[0] : 'Operator');
+        const displayRole = (u.role ? String(u.role) : 'COMPLIANCE').toUpperCase();
+        const initial = displayName.charAt(0).toUpperCase() || 'O';
+        setUserInfo({
+          name: displayName,
+          role: displayRole,
+          initial,
+        });
+      })
+      .catch(() => {
+        // Graceful fallback to default operator
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
       <div className="sidebar-logo">
@@ -51,17 +88,21 @@ const Sidebar = React.memo(function Sidebar({
           <div key={section}>
             <div className="sidebar-section-label">{section}</div>
             {NAV_ITEMS.filter(item => item.section === section).map(item => (
-              <NavLink key={item.href} item={item} active={pathname === item.href} />
+              <NavLink
+                key={item.href}
+                item={item}
+                active={pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))}
+              />
             ))}
           </div>
         ))}
       </nav>
       <div className="sidebar-footer">
         <div className="avatar-row">
-          <div className="avatar">S</div>
+          <div className="avatar">{userInfo.initial}</div>
           <div>
-            <div className="avatar-name">Stephen</div>
-            <div className="avatar-role">ARCHITECT</div>
+            <div className="avatar-name">{userInfo.name}</div>
+            <div className="avatar-role">{userInfo.role}</div>
           </div>
         </div>
       </div>
@@ -81,7 +122,26 @@ function Topbar({
   onToggleTheme: () => void;
   onMenuClick: () => void;
 }) {
+  const [dateDisplay] = useState<string>(() => {
+    try {
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+      return formatter.format(now);
+    } catch {
+      return new Date().toDateString();
+    }
+  });
+
   const currentLabel = useMemo(() => {
+
+    if (pathname.startsWith('/dashboard/reviews/')) {
+      return 'Exception Review Detail';
+    }
     const match = NAV_ITEMS.find(item => item.href === pathname);
     return match?.label ?? 'Command Centre';
   }, [pathname]);
@@ -98,7 +158,9 @@ function Topbar({
         </button>
         <div>
           <div className="page-title" id="page-title">{currentLabel}</div>
-          <div className="page-subtitle">Friday, 1 May 2026 · Owerri, NG</div>
+          <div className="page-subtitle">
+            {dateDisplay ? `${dateDisplay} · Owerri, NG` : 'Live Operations · Owerri, NG'}
+          </div>
         </div>
       </div>
       <div className="topbar-right">
@@ -116,6 +178,7 @@ function Topbar({
     </header>
   );
 }
+
 
 // ── Layout ──────────────────────────────────────────────────────────────────
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

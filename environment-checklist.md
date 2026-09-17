@@ -1,6 +1,6 @@
 # ShadowSpark Launch Environment Checklist
 
-Before pushing live traffic to Vercel/Railway, verify that the following Environment Variables are configured in your production settings:
+Before pushing live traffic to Netlify (Frontend), Render (Backend), and Neon (PostgreSQL), verify that the following Environment Variables are configured in your production settings:
 
 ### Critical for Monetization & Automations
 - [ ] `FIRECRAWL_API_KEY` - Required to trigger automated crawls upon successful Paystack checkout.

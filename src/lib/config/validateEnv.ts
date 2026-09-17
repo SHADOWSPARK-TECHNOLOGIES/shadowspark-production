@@ -2,6 +2,7 @@ export function validateEnv() {
   const required = [
     "DATABASE_URL",
     "AUTH_SECRET",
+    "JWT_SECRET",
   ];
 
   const conditionalOnPayments = [
@@ -24,7 +25,10 @@ export function validateEnv() {
   const missing: string[] = [];
 
   for (const key of required) {
-    if (!process.env[key]?.trim()) missing.push(key);
+    const val =
+      process.env[key]?.trim() ||
+      (key === "JWT_SECRET" && process.env.NODE_ENV === "test" ? process.env.AUTH_SECRET?.trim() : undefined);
+    if (!val) missing.push(key);
   }
 
   if (process.env.PAYMENTS_ENABLED === "true") {

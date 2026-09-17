@@ -3,6 +3,7 @@ import {
   Users,
   ShieldCheck,
   Eye,
+  ClipboardCheck,
   Gauge,
   MessageCircle,
   Crosshair,
@@ -22,8 +23,10 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Leads', href: '/dashboard/leads', icon: Users, badge: 12, section: 'Core' },
   { label: 'Audit Engine', href: '/dashboard/audit', icon: ShieldCheck, section: 'Compliance' },
   { label: 'Watchtower', href: '/dashboard/watchtower', icon: Eye, badge: 3, section: 'Compliance' },
+  { label: 'Exception Review', href: '/dashboard/reviews', icon: ClipboardCheck, section: 'Compliance' },
   { label: 'Lead Scoring', href: '/dashboard/scoring', icon: Gauge, section: 'AI & Ops' },
   { label: 'WhatsApp AI', href: '/dashboard/whatsapp', icon: MessageCircle, section: 'AI & Ops' },
   { label: 'Intel', href: '/dashboard/competitors', icon: Crosshair, section: 'AI & Ops' },
   { label: 'Settings', href: '/dashboard/settings', icon: Settings, section: 'System' },
 ];
+

@@ -13,3 +13,9 @@
 - **Verification**: `npm run test:secrets` (9 passed), `npx prisma generate` (success), `npm run typecheck` (0 errors), `npm run test` (39 suites, 276 tests passed), `npm run test:coverage` (100% pass), `npm run build` (80 routes compiled).
 - **Git Commit**: 0f625e6
 
+### [2026-09-17T20:51:00Z] Antigravity Primary Production Engineer
+- **Action**: Corrected `netlify.toml` build environment to include `NETLIFY_USE_PNPM = "false"`, preventing Netlify runner from attempting out-of-sync pnpm installations in the presence of root `pnpm-lock.yaml`. Re-verified typecheck and secret scans.
+- **Files Changed**: `netlify.toml`, `.agent-handoff/AGY_HANDOFF.md`, `docs/engineering/ANTIGRAVITY_LEDGER.md`
+- **Verification**: `npm run test:secrets` (9 passed), `npm run typecheck` (0 errors).
+- **Git Commit**: c27ab38
+

@@ -29,19 +29,9 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
-          include: { passkeys: true },
         });
 
         if (!user) return null;
-
-        // Passkey authentication bypass — the verify-login route
-        // uses this special marker when WebAuthn verification succeeded.
-        // SECURITY: Only allowed if the user has at least one verified passkey,
-        // preventing arbitrary session creation via this bypass.
-        if (credentials.password === "passkey-auth-bypass") {
-          if (!user.passkeys || user.passkeys.length === 0) return null;
-          return { id: user.id, email: user.email, role: user.role };
-        }
 
         if (!user.password) return null;
 

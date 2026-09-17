@@ -12,23 +12,15 @@
  */
 
 import type { NextAuthConfig } from "next-auth";
-import Credentials from "next-auth/providers/credentials";
 
 export const authConfig: NextAuthConfig = {
+  secret:
+    process.env.AUTH_SECRET ||
+    process.env.NEXTAUTH_SECRET ||
+    process.env.JWT_SECRET ||
+    "shadowspark-edge-auth-fallback-secret-2026",
   session: { strategy: "jwt" },
-  providers: [
-    // The Credentials provider is declared here so NextAuth recognises the
-    // provider in the middleware JWT-verification path.  The actual
-    // `authorize` function (which needs Prisma + bcrypt) is overridden in
-    // src/auth.ts — it will never be called from middleware.
-    Credentials({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-    }),
-  ],
+  providers: [],
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = Boolean(auth?.user);

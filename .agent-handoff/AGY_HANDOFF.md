@@ -87,9 +87,8 @@
 ---
 
 ## Remaining Blockers
-1. **Docker Hub Secrets in GitHub (`docker-publish.yml`)**: `DOCKER_USERNAME` / `DOCKER_PAT` are unauthorized on Docker Hub, causing the post-merge push container build workflow to fail. Action required: Repo admin must rotate or update the Docker Hub personal access token in GitHub repository secrets.
-2. **Passkey Sign-in Containment (Non-blocking for general auth)**: Passkey assertion endpoint (`src/app/api/auth/verify-login/route.ts`) returns HTTP 503 by design until WebAuthn ceremony cryptographic verification is implemented. Password authentication and OAuth providers (GitHub, Google) are fully operational and verified.
-3. **Vercel Account Hold (Non-blocking)**: External administrative hold; mitigated by routing production release to Netlify.
+1. **Passkey Sign-in Containment (Non-blocking for general auth)**: Passkey assertion endpoint (`src/app/api/auth/verify-login/route.ts`) returns HTTP 503 by design until WebAuthn ceremony cryptographic verification is implemented. Password authentication and OAuth providers (GitHub, Google) are fully operational and verified.
+2. **Vercel Account Hold (Non-blocking)**: External administrative hold; mitigated by routing production release to Netlify.
 
 ---
 
@@ -97,6 +96,7 @@
 - Branch: `agent/agy-production-readiness`
 - Working tree: Clean
 - Recent local commits:
+  - `013faad`: `docs: finalize Antigravity handoff and ledger with verified state`
   - `c27ab38`: `fix(deploy): enforce npm on Netlify builds via NETLIFY_USE_PNPM=false`
   - `8265f9f`: `docs: add Antigravity production engineering handoff and update ledger`
   - `0f625e6`: `test(security): increase timeout for bcrypt hash test to prevent flake under load`
@@ -104,5 +104,6 @@
 ---
 
 ## Next Highest-Value Action
-1. Coordinate rotation of GitHub repository secret `DOCKER_PAT` for Docker Hub container publishing in `.github/workflows/docker-publish.yml`.
+1. Open PR for branch `agent/agy-production-readiness` to merge verified fixes to `main`.
 2. Perform live smoke test of the Netlify production release URL against live upstream AI-ASSIST v1.1.0 endpoints.
+

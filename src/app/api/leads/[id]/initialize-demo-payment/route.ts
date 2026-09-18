@@ -96,33 +96,13 @@ export async function POST(
     const isMockMode = !secretKey || secretKey.startsWith("mock") || secretKey === "";
 
     if (isMockMode) {
-      // Mock mode — create a pending payment and return a fake URL
-      const mockReference = `demo_${id}_${Date.now()}`;
-
-      await prisma.payment.create({
-        data: {
-          amount: amountKobo,
-          status: "pending",
-          reference: mockReference,
-          leadId: id,
+      return NextResponse.json(
+        {
+          error: "Online checkout is currently unavailable. Contact us to start your pilot.",
+          code: "PAYMENT_UNAVAILABLE",
         },
-      });
-
-      await prisma.lead.update({
-        where: { id },
-        data: { paymentRef: mockReference },
-      });
-
-      const mockUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/success?reference=${mockReference}`;
-
-      return NextResponse.json({
-        authorization_url: mockUrl,
-        access_code: `mock_${id}`,
-        reference: mockReference,
-        amount_kobo: amountKobo,
-        tier,
-        is_mock: true,
-      });
+        { status: 503 }
+      );
     }
 
     // Real Paystack mode

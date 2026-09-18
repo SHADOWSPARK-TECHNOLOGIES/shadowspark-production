@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL;
 
@@ -29,6 +30,16 @@ async function proxy(request: Request, method: string, slug?: string[]) {
     headers.delete("host");
     headers.delete("content-length");
     headers.delete("content-encoding");
+    headers.delete("x-tenant-id");
+    headers.delete("x-tenant-slug");
+
+    const membership = await prisma.tenantMembership.findFirst({
+      where: { userId: session.user.id },
+      select: { tenantId: true },
+    });
+    if (membership?.tenantId) {
+      headers.set("x-tenant-id", membership.tenantId);
+    }
 
     const response = await fetch(url, {
       method,

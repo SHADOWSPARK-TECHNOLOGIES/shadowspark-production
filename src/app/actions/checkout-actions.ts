@@ -11,28 +11,7 @@ export async function processCheckout(leadId: string, data: {
 }) {
   if (!data.termsAccepted) throw new Error("Terms must be accepted");
 
-  const demoDepositAmountKobo = 1500000; // ₦15,000 in kobo per SHADOWSPARK_RULES.md
-  const demoDepositAmountUsd = 1;
-  const mockPaystackLink = `https://checkout.paystack.com/test_${leadId}_${Date.now()}?amount=${demoDepositAmountKobo}`;
-
-  await prisma.lead.update({
-    where: { id: leadId },
-    data: {
-      termsAccepted: true,
-      miniAuditData: {
-        companyName: data.companyName,
-        goal: data.goal,
-        leadVolume: data.leadVolume,
-        painPoint: data.painPoint,
-        selectedPackage: data.packageId,
-        demoDepositUsd: demoDepositAmountUsd,
-        creditedToFinal: true
-      },
-      paymentRef: mockPaystackLink,
-    }
-  });
-
-  return { paymentUrl: mockPaystackLink };
+  throw new Error("Online checkout is currently unavailable. Contact us to start your pilot.");
 }
 
 export async function getLeadForPayment(leadId: string) {

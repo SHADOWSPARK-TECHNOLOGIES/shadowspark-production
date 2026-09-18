@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 import { redis } from "../lib/redis";
 import { prisma } from "../lib/prisma";
 import { qualifyLead } from "../lib/leads/qualification";
+import { redactPhone } from "@/lib/utils/redact";
 
 const WORKER_NAME = "lead-sync-worker";
 const ANYTHING_LLM_URL = process.env.ANYTHING_LLM_URL || "http://localhost:3001/api/v1/workspace/shadowspark-w/chat";
@@ -48,7 +49,7 @@ async function analyzeLeadIntent(leadMessage: string): Promise<{ score: number, 
 
 async function triggerApexLeadActions(leadData: any, score: number) {
   console.log(`\n[WARLORD TRIGGER] 🚀 APEX LEAD DETECTED! Score: ${score}`);
-  console.log(`[WARLORD TRIGGER] Routing lead ${leadData.phone || leadData.phoneNumber} to immediate operator escalation pipeline.\n`);
+  console.log(`[WARLORD TRIGGER] Routing lead ${redactPhone(leadData.phone || leadData.phoneNumber)} to immediate operator escalation pipeline.\n`);
   // TODO: Implement actual Slack/WhatsApp webhook
 }
 
@@ -59,7 +60,7 @@ export const leadWorker = new Worker(
     const { phone, name, businessType, goals, source, intent, message, lastMessage } = job.data;
     const leadMessage = message || lastMessage || goals || "";
 
-    console.log(`[SES] Processing lead: ${phone} from ${source}`);
+    console.log(`[SES] Processing lead: ${redactPhone(phone)} from ${source}`);
 
     // 1. PIS (Predictive Intent Scoring) via Local AnythingLLM
     const analysis = await analyzeLeadIntent(leadMessage);

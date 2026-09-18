@@ -30,7 +30,8 @@ describe("health check", () => {
 
     expect(response.status).toBe(200);
     expect(body.status).toBe("ok");
-    expect(body.services).toEqual({ database: "connected", redis: "connected" });
+    expect(body.services).toEqual({ database: "connected", redis: "connected", aiAssist: "unconfigured" });
+    expect(typeof (body as any).uptime).toBe("number");
   });
 
   it("reports degraded status when redis is unavailable", async () => {

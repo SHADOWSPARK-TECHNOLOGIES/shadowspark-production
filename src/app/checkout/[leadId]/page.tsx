@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { trackCheckoutView } from "@/app/actions/track-checkout";
 import { getLeadForPayment, verifyPayment } from "@/app/actions/checkout-actions";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { usePaystackPayment } from 'react-paystack';
 
 export default function CheckoutPage() {
@@ -150,17 +151,18 @@ export default function CheckoutPage() {
               </div>
             )}
 
-            {/* Paystack / Payment Integration */}
-            <button
-              className="w-full rounded-full bg-emerald-600 px-6 py-4 text-base font-bold text-white transition-all hover:bg-emerald-500 hover:scale-[1.02] shadow-[0_0_30px_rgba(16,149,106,0.3)] disabled:opacity-50 disabled:hover:scale-100 disabled:hover:bg-emerald-600"
-              onClick={handlePayment}
-              disabled={processing || !leadEmail}
-            >
-              {processing ? "Verifying..." : "Pay ₦15,000"}
-            </button>
-            {!leadEmail && (
-              <p className="text-center text-xs text-zinc-400 mt-3">Enter your email above to complete payment.</p>
-            )}
+            {/* Paystack / Payment Integration Fallback */}
+            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 text-center space-y-3">
+              <p className="text-sm font-medium text-amber-200">
+                Online checkout is currently unavailable. Contact us to start your pilot.
+              </p>
+              <Link
+                href={leadId ? `/contact?leadId=${encodeURIComponent(leadId)}` : "/contact"}
+                className="inline-flex w-full items-center justify-center rounded-full bg-emerald-600 px-6 py-4 text-base font-bold text-white transition-all hover:bg-emerald-500 shadow-[0_0_30px_rgba(16,149,106,0.3)]"
+              >
+                Contact us to start your pilot
+              </Link>
+            </div>
           </div>
         </div>
 

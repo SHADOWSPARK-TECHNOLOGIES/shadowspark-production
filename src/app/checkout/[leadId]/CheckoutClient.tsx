@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { PRICING_PACKAGES } from "@/config/pricing";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function CheckoutClient({ leadId }: { leadId: string }) {
   const [step, setStep] = useState<1 | 2>(1);
@@ -180,13 +181,20 @@ export default function CheckoutClient({ leadId }: { leadId: string }) {
           </div>
         </div>
 
-        <div className="flex gap-4">
-          <Button type="button" onClick={() => setStep(1)} variant="outline" className="w-1/3">
-            Back
-          </Button>
-          <Button disabled={loading || !termsAccepted} type="submit" className="w-2/3 bg-emerald-600 text-white hover:bg-emerald-500">
-            {loading ? "Processing..." : "Pay ₦15,000 & Configure My Demo"}
-          </Button>
+        <div className="space-y-3">
+          <p className="text-xs text-amber-300 text-center font-medium">
+            Online checkout is currently unavailable. Contact us to start your pilot.
+          </p>
+          <div className="flex gap-4">
+            <Button type="button" onClick={() => setStep(1)} variant="outline" className="w-1/3">
+              Back
+            </Button>
+            <Button asChild className="w-2/3 bg-emerald-600 text-white hover:bg-emerald-500">
+              <Link href="/contact">
+                Contact us to start your pilot
+              </Link>
+            </Button>
+          </div>
         </div>
       </form>
     </div>

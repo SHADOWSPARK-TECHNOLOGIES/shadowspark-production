@@ -13,7 +13,8 @@ export async function POST(req: Request) {
   try {
     // 1. Authorization Guard
     const authHeader = req.headers.get("authorization");
-    if (authHeader !== `Bearer ${process.env.WORKER_SECRET}`) {
+    const secret = process.env.WORKER_SECRET?.trim();
+    if (!secret || authHeader !== `Bearer ${secret}`) {
       return NextResponse.json({ error: "Unauthorized access to Lethal Analysis Engine" }, { status: 401 });
     }
 

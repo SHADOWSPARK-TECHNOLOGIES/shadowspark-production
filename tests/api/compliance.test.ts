@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { execFileSync } from "node:child_process";
+
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
@@ -561,11 +561,12 @@ describe("compliance AI-ASSIST adapter routes", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("leaves the generic proxy unchanged", () => {
+  it("verifies the generic proxy requires authentication (C3 fix)", () => {
     const proxyPath = "src/app/api/proxy/[[...slug]]/route.ts";
-    const diff = execFileSync("git", ["diff", "--", proxyPath], { encoding: "utf8" });
-    expect(diff).toBe("");
-    const tracked = execFileSync("git", ["show", `HEAD:${proxyPath}`], { encoding: "utf8" });
-    expect(readFileSync(proxyPath, "utf8")).toBe(tracked);
+    const content = readFileSync(proxyPath, "utf8");
+    // The proxy must import auth and check the session before forwarding
+    expect(content).toContain('import { auth } from "@/auth"');
+    expect(content).toContain("await auth()");
+    expect(content).toContain("UNAUTHORIZED");
   });
 });

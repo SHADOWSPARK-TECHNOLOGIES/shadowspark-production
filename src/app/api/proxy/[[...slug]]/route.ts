@@ -1,8 +1,18 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 const BACKEND_API_URL = process.env.BACKEND_API_URL;
 
 async function proxy(request: Request, method: string, slug?: string[]) {
+  // Fail closed: require authenticated session before proxying any request (C3 fix)
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { success: false, error: { code: "UNAUTHORIZED", message: "Authentication required" } },
+      { status: 401 }
+    );
+  }
+
   if (!BACKEND_API_URL) {
     return NextResponse.json(
       { success: false, error: { code: "SERVICE_UNAVAILABLE", message: "Backend temporarily unavailable" } },

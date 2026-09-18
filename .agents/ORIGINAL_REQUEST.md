@@ -275,3 +275,82 @@ OPERATING RULES:
 
 Start from the first incomplete integration milestone. Skip completed milestones — do not re-verify what is already done unless a freshness check reveals a real conflict.
 
+## 2026-09-18T11:17:15Z
+
+Finish production-readiness hardening and customer-launch readiness across Security, Product, Observability, E2E, and Commercial tracks. Paystack is blocked externally; implement a safe fallback UX.
+
+Working directory: /home/moronto/AgentOps/worktrees/shadowspark-agy
+Integrity mode: development
+
+## Verification Resources
+- Existing `vitest` test suites (run via `npm run test` or `npx vitest run`).
+- Security scan scripts (run via `npm run test:secrets`).
+- Product gate matrix and engineering ledgers in `docs/engineering/` and `.agent-handoff/AGY_PRODUCT.md`.
+
+## Execution Strategy & Priorities
+- **Tracks:** Run parallel read/review agents for A) SECURITY, B) PRODUCT/UX, C) OBSERVABILITY, D) E2E CUSTOMER JOURNEY, E) PAYMENT FALLBACK/COMMERCIAL.
+- **Topology:** MANY READERS, ONE OVERLAPPING WRITER.
+- **Prioritization:** Only implement P0 SECURITY, P1 CUSTOMER BLOCKER, P1 RELIABILITY BLOCKER, P1 REVENUE BLOCKER. Everything else goes to backlog. Do not add speculative features.
+
+## Additional Execution Rule: Ponytail Discipline
+Apply Ponytail-style minimalism to implementation work:
+1. Do not add functionality that is not required for the current P0/P1 blocker.
+2. Reuse existing code before creating new abstractions.
+3. Prefer standard library / platform-native capability before new dependencies.
+4. Prefer already-installed dependencies before adding new ones.
+5. Make the smallest correct change.
+
+HOWEVER: Ponytail minimalism is subordinate to tests, security, validation, auth, tenant isolation, accessibility, data integrity, observability, rollback safety, and release verification.
+**MINIMUM IMPLEMENTATION != MINIMUM VERIFICATION.**
+If a smaller implementation removes tests, weakens validation, bypasses security, or creates hidden failure modes, reject it. Use this rule across all writer agents.
+
+## Requirements
+
+### R1. Security
+Ensure zero unresolved P0/P1 security findings. Protected routes must fail closed. Verify auth/session behavior, authoritative tenant isolation, zero credential exposure, and that AI-ASSIST service credentials are server-only.
+
+### R2. Product & Payment Fallback
+Ensure landing page, demo/contact CTA, login, dashboard, and core compliance/AI review workflows are operational with useful empty/error states. 
+**Paystack Fallback:** The operator cannot complete Paystack onboarding. Do NOT fabricate credentials, bypass KYC, or use test mode as production. The app must fail safely if Paystack is unavailable. Hide/disable the broken checkout. Expose an intentional state: "Online checkout is currently unavailable. Contact us to start your pilot." and route this into the existing demo/contact workflow. Prepare a temporary operator-managed payment path (manual invoice/bank-transfer) without automating it. Document Paystack as an external dependency.
+
+### R3. Observability
+Configure health endpoints, production error visibility, and useful structured logs (including Netlify/Render/Neon operational visibility). Ensure no secrets or sensitive customer information are logged.
+
+### R4. E2E Customer Journey
+Verify the complete end-to-end flow: visitor → demo/contact → login → dashboard → core workflow → pilot onboarding → manual payment path → customer success signal. Ensure WhatsApp-related flows work or fail clearly/safely.
+
+### R5. Commercial Readiness
+Ensure demo runbook, pilot offer, onboarding runbook, customer evidence tracking, and manual invoicing/payment fallback are documented and ready.
+
+## Acceptance Criteria & Final Report Format
+
+The final teamwork report must explicitly return the following exact structure:
+
+```
+SECURITY_READY=YES|NO
+PRODUCT_READY=YES|NO
+OBSERVABILITY_READY=YES|NO
+E2E_READY=YES|NO
+
+PAYSTACK_STATUS=EXTERNAL_BUSINESS_ONBOARDING_BLOCKER
+PAYMENT_FALLBACK_READY=YES|NO
+
+DEMO_READY=YES|NO
+PILOT_READY=YES|NO
+CUSTOMER_READY=YES|NO
+
+P0_BLOCKERS
+P1_BLOCKERS
+EXTERNAL_BLOCKERS
+
+FILES_CHANGED
+TESTS
+BUILD
+SECURITY
+
+NEXT_EXACT_ACTION
+```
+- [ ] All required tests (`vitest`), builds, and security scans (`npm run test:secrets`) pass cleanly and are reported in the final output.
+- [ ] No Paystack mock data/test credentials are used in production configurations.
+
+

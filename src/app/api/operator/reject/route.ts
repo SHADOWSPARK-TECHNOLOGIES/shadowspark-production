@@ -4,7 +4,8 @@ import { auth } from "@/auth";
 
 export async function PATCH(req: Request) {
   const session = await auth();
-  if (session?.user?.role !== "admin") {
+  const userRole = (session?.user as { role?: string } | undefined)?.role?.toLowerCase();
+  if (userRole !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

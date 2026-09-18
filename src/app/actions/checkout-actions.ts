@@ -11,28 +11,7 @@ export async function processCheckout(leadId: string, data: {
 }) {
   if (!data.termsAccepted) throw new Error("Terms must be accepted");
 
-  const demoDepositAmountKobo = 100; // $1 Demo Deposit (in kobo)
-  const demoDepositAmountUsd = 1;
-  const mockPaystackLink = `https://checkout.paystack.com/test_${leadId}_${Date.now()}?amount=${demoDepositAmountKobo}`;
-
-  await prisma.lead.update({
-    where: { id: leadId },
-    data: {
-      termsAccepted: true,
-      miniAuditData: {
-        companyName: data.companyName,
-        goal: data.goal,
-        leadVolume: data.leadVolume,
-        painPoint: data.painPoint,
-        selectedPackage: data.packageId,
-        demoDepositUsd: demoDepositAmountUsd,
-        creditedToFinal: true
-      },
-      paymentRef: mockPaystackLink,
-    }
-  });
-
-  return { paymentUrl: mockPaystackLink };
+  throw new Error("Online checkout is currently unavailable. Contact us to start your pilot.");
 }
 
 export async function getLeadForPayment(leadId: string) {
@@ -50,7 +29,7 @@ export async function verifyPayment(leadId: string, reference: string) {
     // For now, we update the lead and record the payment.
     await prisma.payment.create({
       data: {
-        amount: 100, // $1 Demo Deposit (in kobo)
+        amount: 1500000, // ₦15,000 in kobo per SHADOWSPARK_RULES.md
         status: "success",
         reference,
         leadId,
@@ -60,10 +39,29 @@ export async function verifyPayment(leadId: string, reference: string) {
     await prisma.lead.update({
       where: { id: leadId },
       data: {
-        status: "Paid - Awaiting Deployment",
+        status: "PAID",
+        demoApproved: true,
         paymentRef: reference,
       }
     });
+
+    // Ensure Demo record exists for lead so /demo/[leadId] resolves immediately
+    const existingDemo = await prisma.demo.findFirst({ where: { leadId } });
+    if (!existingDemo) {
+      await prisma.demo.create({
+        data: {
+          leadId,
+          slug: leadId,
+          approved: true,
+          config: { tier: "SEMANTIC_GROWTH", plan: "audit" },
+        },
+      });
+    } else {
+      await prisma.demo.update({
+        where: { id: existingDemo.id },
+        data: { approved: true },
+      });
+    }
 
     await prisma.systemEvent.create({
       data: {

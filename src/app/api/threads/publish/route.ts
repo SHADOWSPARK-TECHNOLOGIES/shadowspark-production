@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createThreadsPost } from "@/lib/threads-api";
+import { auth } from "@/auth";
 
 const publishSchema = z.object({
   text: z.string().min(1).max(500),
@@ -9,6 +10,12 @@ const publishSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const session = await auth();
+  const userRole = (session?.user as { role?: string } | undefined)?.role?.toLowerCase();
+  if (userRole !== "admin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const payload = await request.json().catch(() => null);
   const parsed = publishSchema.safeParse(payload);
   if (!parsed.success) {

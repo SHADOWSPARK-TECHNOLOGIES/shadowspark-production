@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const lead = await prisma.lead.upsert({
       where: { phoneNumber: data.phone },
       update: {
-        
+        ...(data.email ? { email: data.email } : {}),
         miniAuditData: {
           ...data,
           source: "Web Qualification Form"
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       },
       create: {
         phoneNumber: data.phone,
-        
+        ...(data.email ? { email: data.email } : {}),
         status: "QUALIFIED",
         intent: "WEB_FORM",
         miniAuditData: {

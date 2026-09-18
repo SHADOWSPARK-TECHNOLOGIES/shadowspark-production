@@ -3,6 +3,7 @@ import { redis } from "@/lib/redis";
 import { prisma } from "@/lib/prisma";
 import { sendPaymentLinkWhatsApp, sendTextWhatsApp } from "@/lib/whatsapp/send-payment-link";
 import { WHATSAPP_NUDGE_QUEUE, type NudgeJobData } from "@/lib/whatsapp/nudge-queue";
+import { redactPhone } from "@/lib/utils/redact";
 
 const WORKER_NAME = "nudge-worker";
 
@@ -19,7 +20,7 @@ export const nudgeWorker = new Worker<NudgeJobData>(
   async (job) => {
     const { leadId, phoneNumber, authorizationUrl, amountKobo, tier } = job.data;
 
-    console.log(`[NudgeWorker] Processing nudge for lead ${leadId} (${phoneNumber})`);
+    console.log(`[NudgeWorker] Processing nudge for lead ${leadId} (${redactPhone(phoneNumber)})`);
 
     // 1. Verify lead is still in demo_scheduled status
     const lead = await prisma.lead.findUnique({
@@ -77,7 +78,7 @@ Need help? Just reply to this message.`;
 
       const textResult = await sendTextWhatsApp(phoneNumber, text);
       if (!textResult.success) {
-        console.error(`[NudgeWorker] Failed to send WhatsApp to ${phoneNumber}:`, textResult.error);
+        console.error(`[NudgeWorker] Failed to send WhatsApp to ${redactPhone(phoneNumber)}:`, textResult.error);
         return { sent: false, error: textResult.error };
       }
     }
@@ -86,7 +87,7 @@ Need help? Just reply to this message.`;
     await prisma.systemEvent.create({
       data: {
         type: "PAYMENT_NUDGE_SENT",
-        message: `Payment nudge sent to ${phoneNumber} for ${amountNgn} (${tier})`,
+        message: `Payment nudge sent to ${redactPhone(phoneNumber)} for ${amountNgn} (${tier})`,
         metadata: {
           leadId,
           amountKobo,
@@ -96,7 +97,7 @@ Need help? Just reply to this message.`;
       },
     });
 
-    console.log(`[NudgeWorker] ✅ Payment nudge sent to ${phoneNumber}`);
+    console.log(`[NudgeWorker] ✅ Payment nudge sent to ${redactPhone(phoneNumber)}`);
     return { sent: true };
   },
   {

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { sendOutreach } from "@/lib/email/send-outreach";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
+import { redactEmail } from "@/lib/utils/redact";
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -18,7 +19,7 @@ export async function processFollowUp(leadId: string) {
     return { success: false, reason: "Lead already in advanced stage" };
   }
 
-  console.log(`[FOLLOW-UP] Processing lead: ${lead.email} (Score: ${lead.leadScore})`);
+  console.log(`[FOLLOW-UP] Processing lead: ${redactEmail(lead.email)} (Score: ${lead.leadScore})`);
 
   try {
     const { text: emailBody } = await generateText({
@@ -54,7 +55,7 @@ export async function processFollowUp(leadId: string) {
     await prisma.systemEvent.create({
       data: {
         type: "FOLLOW_UP_SENT",
-        message: `Automated follow-up sent to ${lead.email}`,
+        message: `Automated follow-up sent to ${redactEmail(lead.email)}`,
         metadata: { leadId: lead.id }
       }
     });
@@ -80,7 +81,7 @@ export async function recoverAbandonedCheckout(leadId: string) {
      return { success: false, reason: "Not high intent enough for recovery" };
   }
 
-  console.log(`[RECOVERY] Firing abandoned checkout sequence for: ${lead.email}`);
+  console.log(`[RECOVERY] Firing abandoned checkout sequence for: ${redactEmail(lead.email)}`);
 
   try {
     const subject = `Your ShadowSpark System Audit`;
@@ -95,7 +96,7 @@ export async function recoverAbandonedCheckout(leadId: string) {
     await prisma.systemEvent.create({
       data: {
         type: "RECOVERY_SENT",
-        message: `Checkout recovery sent to ${lead.email}`,
+        message: `Checkout recovery sent to ${redactEmail(lead.email)}`,
         metadata: { leadId: lead.id }
       }
     });

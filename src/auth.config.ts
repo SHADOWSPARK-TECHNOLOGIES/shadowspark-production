@@ -17,20 +17,26 @@ export const authConfig: NextAuthConfig = {
   secret:
     process.env.AUTH_SECRET ||
     process.env.NEXTAUTH_SECRET ||
-    process.env.JWT_SECRET ||
-    "shadowspark-edge-auth-fallback-secret-2026",
+    process.env.JWT_SECRET,
+  trustHost: Boolean(
+    process.env.AUTH_TRUST_HOST ||
+    process.env.VERCEL ||
+    process.env.NETLIFY ||
+    process.env.NODE_ENV === "production"
+  ),
   session: { strategy: "jwt" },
   providers: [],
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = Boolean(auth?.user);
-      const isOnDashboard =
+      const isProtected =
         nextUrl.pathname.startsWith("/dashboard") ||
+        nextUrl.pathname.startsWith("/operator") ||
         nextUrl.pathname.startsWith("/admin") ||
         nextUrl.pathname.startsWith("/finance") ||
         nextUrl.pathname.startsWith("/support");
 
-      if (isOnDashboard) {
+      if (isProtected) {
         if (isLoggedIn) return true;
         return false; // Redirect unauthenticated users to login page
       }
@@ -41,7 +47,7 @@ export const authConfig: NextAuthConfig = {
       if (user && user.id) {
         token.sub = user.id;
         if ("role" in user && user.role) {
-          token.role = user.role as string;
+          token.role = typeof user.role === "string" ? user.role.toLowerCase() : user.role;
         }
       }
       return token;
@@ -49,15 +55,13 @@ export const authConfig: NextAuthConfig = {
     async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub;
-        // Role is stored as a string in the JWT. The full auth.ts overrides
-        // this callback with the Prisma Role enum cast. For the Edge-only
-        // middleware path we cast through unknown to avoid importing the
-        // Prisma Role enum (which pulls in Node.js modules).
+        // Role is normalized to lowercase string in session.
         (session.user as unknown as Record<string, unknown>).role =
-          token.role;
+          typeof token.role === "string" ? token.role.toLowerCase() : token.role;
       }
       return session;
     },
+
   },
   pages: {
     signIn: "/login",

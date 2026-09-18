@@ -31,7 +31,8 @@ function normalizeStatus(lead: {
 
 export default async function OperatorDashboard() {
   const session = await auth();
-  if (session?.user?.role !== "admin") {
+  const userRole = (session?.user as { role?: string } | undefined)?.role?.toLowerCase();
+  if (userRole !== "admin") {
     redirect("/dashboard");
   }
 

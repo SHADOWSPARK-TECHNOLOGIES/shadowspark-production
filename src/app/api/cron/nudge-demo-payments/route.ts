@@ -90,11 +90,11 @@ export async function GET(req: Request) {
         const config = (demo.config ?? {}) as Record<string, unknown>;
         const tier = (config.tier as string) ?? "starter";
         const amounts: Record<string, number> = {
-          starter: 149_00,
-          pro: 349_00,
-          enterprise: 599_00,
+          starter: 1_500_000,   // ₦15,000 in kobo per SHADOWSPARK_RULES.md
+          pro: 3_500_000,       // ₦35,000 in kobo
+          enterprise: 6_000_000 // ₦60,000 in kobo
         };
-        const amountKobo = amounts[tier] ?? 149_00;
+        const amountKobo = amounts[tier] ?? 1_500_000;
 
         // Build email fallback
         const email =
@@ -111,26 +111,14 @@ export async function GET(req: Request) {
         let reference: string;
 
         if (isMockMode) {
-          // Mock mode
-          reference = `demo_${lead.id}_${Date.now()}`;
-          accessCode = `mock_${lead.id}`;
-          authorizationUrl = `${
-            process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-          }/checkout/success?reference=${reference}`;
-
-          await prisma.payment.create({
-            data: {
-              amount: amountKobo,
-              status: "pending",
-              reference,
-              leadId: lead.id,
-            },
+          console.log("[NudgeCron] Paystack unavailable. Skipping automated link creation.");
+          results.skipped++;
+          results.details.push({
+            leadId: lead.id,
+            status: "skipped",
+            reason: "payment_gateway_unavailable",
           });
-
-          await prisma.lead.update({
-            where: { id: lead.id },
-            data: { paymentRef: reference },
-          });
+          continue;
         } else {
           // Real Paystack mode
           const paystackResponse = await fetch(

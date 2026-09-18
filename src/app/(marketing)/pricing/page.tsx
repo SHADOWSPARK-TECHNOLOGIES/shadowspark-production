@@ -36,8 +36,8 @@ const tiers: Tier[] = [
       "Email support",
       "Up to 1,000 verifications/month",
     ],
-    cta: "Get Started",
-    href: "/checkout/new",
+    cta: "Start Pilot",
+    href: "/contact?plan=starter",
   },
   {
     name: "Professional",
@@ -54,8 +54,8 @@ const tiers: Tier[] = [
       "Priority support",
       "Up to 10,000 verifications/month",
     ],
-    cta: "Start Free Trial",
-    href: "/checkout/new",
+    cta: "Start Pilot",
+    href: "/contact?plan=professional",
   },
   {
     name: "Enterprise",
@@ -83,7 +83,7 @@ const faqs = [
   },
   {
     q: "What payment methods do you accept?",
-    a: "We accept all major Nigerian bank transfers, Paystack payments, and international wire transfers. Enterprise clients can request invoicing with net-30 terms.",
+    a: "We onboard pilot partners via corporate bank transfer and invoicing. Contact our team to activate your pilot instance.",
   },
   {
     q: "Is there a setup fee?",

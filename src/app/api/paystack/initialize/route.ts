@@ -3,34 +3,55 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
-    const { email, amount, leadId } = await req.json();
+    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+    if (!secretKey || secretKey.startsWith("mock") || secretKey.trim() === "") {
+      return NextResponse.json(
+        {
+          status: false,
+          error: "Online checkout is currently unavailable. Contact us to start your pilot.",
+          code: "PAYMENT_UNAVAILABLE",
+        },
+        { status: 503 }
+      );
+    }
+
+    const { email, amount, leadId, metadata } = await req.json();
+
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
+
+    // Ensure a valid Lead record exists to satisfy foreign key constraint
+    let lead = leadId && leadId !== "new"
+      ? await prisma.lead.findUnique({ where: { id: leadId } })
+      : null;
+
+    if (!lead && email) {
+      lead = await prisma.lead.findFirst({ where: { email } });
+    }
+
+    if (!lead) {
+      lead = await prisma.lead.create({
+        data: {
+          email,
+          status: "NEW",
+          intent: "DIRECT_CHECKOUT",
+          miniAuditData: metadata || {},
+        },
+      });
+    }
+
+    const targetLeadId = lead.id;
     
     // Create a pending payment record
     const payment = await prisma.payment.create({
       data: {
         amount,
         status: "pending",
-        reference: `mock_${leadId}_${Date.now()}`, // Temporary reference
-        leadId,
+        reference: `pay_${targetLeadId}_${Date.now()}`,
+        leadId: targetLeadId,
       },
     });
-
-    const secretKey = process.env.PAYSTACK_SECRET_KEY;
-
-    // If no real Paystack key, return a mock URL for development
-    if (!secretKey || secretKey.startsWith("mock") || secretKey === "") {
-      const mockUrl = `/checkout/success?reference=${payment.reference}`;
-      
-      // Update lead immediately in mock mode
-      await prisma.lead.update({
-        where: { id: leadId },
-        data: { paymentRef: payment.reference }
-      });
-      
-      return NextResponse.json({ 
-        data: { authorization_url: mockUrl, reference: payment.reference } 
-      });
-    }
 
     const paystackResponse = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
@@ -47,7 +68,7 @@ export async function POST(req: Request) {
             {
               display_name: "Lead ID",
               variable_name: "leadId",
-              value: leadId,
+              value: targetLeadId,
             }
           ]
         },
@@ -64,7 +85,7 @@ export async function POST(req: Request) {
       });
       
       await prisma.lead.update({
-        where: { id: leadId },
+        where: { id: targetLeadId },
         data: { paymentRef: data.data.reference }
       });
     }

@@ -17,7 +17,7 @@ async function handleRequest(req: Request) {
   const authHeader = (req.headers.get("authorization") || "").trim();
   const secret = (process.env.CRON_SECRET || "").trim();
   const session = await auth();
-  const isAdmin = session?.user?.role === "admin";
+  const isAdmin = (session?.user as { role?: string } | undefined)?.role?.toLowerCase() === "admin";
   const hasCronSecret = Boolean(secret) && authHeader === `Bearer ${secret}`;
 
   if (!hasCronSecret && !isAdmin) {

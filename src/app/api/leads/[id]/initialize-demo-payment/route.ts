@@ -31,18 +31,24 @@ export async function POST(
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
 
-    if (lead.status !== "demo_scheduled") {
+    const eligibleStatuses = new Set(["demo_scheduled", "QUALIFIED", "NEW", "won", "in_review"]);
+    if (!eligibleStatuses.has(lead.status)) {
       return NextResponse.json(
-        { error: `Lead status is '${lead.status}', expected 'demo_scheduled'` },
+        { error: `Lead status is '${lead.status}', not eligible for demo payment nudge` },
         { status: 400 }
       );
     }
 
-    if (!lead.demo) {
-      return NextResponse.json(
-        { error: "Lead has no Demo record. Run scheduleDemoForLead() first." },
-        { status: 400 }
-      );
+    let demo = lead.demo;
+    if (!demo) {
+      demo = await prisma.demo.create({
+        data: {
+          leadId: lead.id,
+          slug: `demo-${lead.id}`,
+          approved: false,
+          config: { tier: "starter", plan: "audit" },
+        },
+      });
     }
 
     // 2. Dedupe guard: reject if lead already has an unresolved paymentRef
@@ -59,9 +65,8 @@ export async function POST(
       if (existingPayment) {
         return NextResponse.json(
           {
-            error: "Lead already has an active payment reference",
+            error: "A payment is already pending for this lead",
             existingReference: lead.paymentRef,
-            message: "Use the existing payment link or wait for the current one to expire",
           },
           { status: 409 }
         );
@@ -73,15 +78,15 @@ export async function POST(
       );
     }
 
-    // 3. Determine amount from demo config tier, fall back to DEMO_FEE_USD
-    const config = (lead.demo.config ?? {}) as Record<string, unknown>;
+    // 3. Determine amount from demo config tier (₦15,000 / 1,500,000 kobo per SHADOWSPARK_RULES.md)
+    const config = (demo.config ?? {}) as Record<string, unknown>;
     const tier = (config.tier as string) ?? "starter";
     const amounts: Record<string, number> = {
-      starter: 149_00,   // $149 in kobo
-      pro: 349_00,       // $349 in kobo
-      enterprise: 599_00, // $599 in kobo
+      starter: 1_500_000,   // ₦15,000 in kobo per SHADOWSPARK_RULES.md
+      pro: 3_500_000,       // ₦35,000 in kobo
+      enterprise: 6_000_000 // ₦60,000 in kobo
     };
-    const amountKobo = amounts[tier] ?? DEMO_FEE_USD * 100; // fallback: $10 * 100 = 1000 kobo
+    const amountKobo = amounts[tier] ?? 1_500_000;
 
     // 3. Build email fallback if lead has no email
     const email = lead.email ?? `${lead.phoneNumber?.replace(/[^0-9]/g, "") ?? "unknown"}@shadowspark-demo.com`;
@@ -91,33 +96,13 @@ export async function POST(
     const isMockMode = !secretKey || secretKey.startsWith("mock") || secretKey === "";
 
     if (isMockMode) {
-      // Mock mode — create a pending payment and return a fake URL
-      const mockReference = `demo_${id}_${Date.now()}`;
-
-      await prisma.payment.create({
-        data: {
-          amount: amountKobo,
-          status: "pending",
-          reference: mockReference,
-          leadId: id,
+      return NextResponse.json(
+        {
+          error: "Online checkout is currently unavailable. Contact us to start your pilot.",
+          code: "PAYMENT_UNAVAILABLE",
         },
-      });
-
-      await prisma.lead.update({
-        where: { id },
-        data: { paymentRef: mockReference },
-      });
-
-      const mockUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/success?reference=${mockReference}`;
-
-      return NextResponse.json({
-        authorization_url: mockUrl,
-        access_code: `mock_${id}`,
-        reference: mockReference,
-        amount_kobo: amountKobo,
-        tier,
-        is_mock: true,
-      });
+        { status: 503 }
+      );
     }
 
     // Real Paystack mode
@@ -135,7 +120,7 @@ export async function POST(
           currency: "NGN",
           metadata: {
             leadId: id,
-            demoSlug: lead.demo.slug,
+            demoSlug: lead.demo?.slug || "",
             tier,
             // Also nest in custom_fields for webhook fallback parsing
             custom_fields: [
@@ -147,7 +132,7 @@ export async function POST(
               {
                 display_name: "Demo Slug",
                 variable_name: "demoSlug",
-                value: lead.demo.slug,
+                value: lead.demo?.slug || "",
               },
             ],
           },

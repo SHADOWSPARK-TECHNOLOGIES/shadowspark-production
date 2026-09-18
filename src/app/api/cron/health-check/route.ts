@@ -29,11 +29,7 @@ export async function GET(req: Request) {
   const expected = "Bearer " + secret;
   
   if (!secret || authHeader !== expected) {
-    console.log("Auth Failure:", { 
-      received: authHeader, 
-      expected: expected ? "EXISTS" : "MISSING",
-      secretLength: secret.length 
-    });
+    console.warn("[cron/health-check] Auth failure: invalid or missing Bearer token");
     return new NextResponse("Unauthorized", { status: 401 });
   }
 

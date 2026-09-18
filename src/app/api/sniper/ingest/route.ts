@@ -20,7 +20,8 @@ const UniversalTargetSchema = z.object({
 export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.INGEST_API_KEY}`) {
+    const secret = process.env.INGEST_API_KEY?.trim();
+    if (!secret || authHeader !== `Bearer ${secret}`) {
       return NextResponse.json({ error: "Unauthorized ingestion request" }, { status: 401 });
     }
 

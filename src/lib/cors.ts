@@ -5,24 +5,32 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 
-function getAllowedOrigin(request: Request): string {
-  const origin = request.headers.get("origin") ?? "";
-  if (ALLOWED_ORIGINS.includes(origin)) return origin;
-  if (origin.endsWith(".netlify.app") || origin.endsWith(".vercel.app")) return origin;
-  return ALLOWED_ORIGINS[0];
+const PREVIEW_REGEX = /^https:\/\/(shadowspark-[a-z0-9-]+--shadowspark-production\.netlify\.app|deploy-preview-\d+--shadowspark-production\.netlify\.app)$/;
+
+function getAllowedOrigin(request: Request): string | null {
+  const origin = request.headers.get("origin");
+  if (!origin) return null;
+  if (ALLOWED_ORIGINS.includes(origin) || PREVIEW_REGEX.test(origin)) {
+    return origin;
+  }
+  return null;
 }
 
 export function corsHeaders(
   request: Request,
   methods = "GET, POST, OPTIONS",
-): HeadersInit {
-  return {
-    "Access-Control-Allow-Origin": getAllowedOrigin(request),
+): Record<string, string> {
+  const allowed = getAllowedOrigin(request);
+  const headers: Record<string, string> = {
     "Access-Control-Allow-Methods": methods,
     "Access-Control-Allow-Headers":
       "Content-Type, Authorization, X-Tenant-ID, Idempotency-Key",
-    "Access-Control-Allow-Credentials": "true",
   };
+  if (allowed) {
+    headers["Access-Control-Allow-Origin"] = allowed;
+    headers["Access-Control-Allow-Credentials"] = "true";
+  }
+  return headers;
 }
 
 export function handleCorsPreflight(

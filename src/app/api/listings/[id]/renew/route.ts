@@ -20,7 +20,8 @@ export async function POST(
   }
 
   // Only the owner or an admin may renew
-  if (listing.ownerId !== session.user.id && session.user.role !== "admin") {
+  const userRole = (session.user as { role?: string }).role?.toLowerCase();
+  if (listing.ownerId !== session.user.id && userRole !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

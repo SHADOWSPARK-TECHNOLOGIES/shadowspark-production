@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 import { crawlQueue } from "@/lib/crawl/queue";
 import { leadSyncQueue } from "@/lib/leads/queue";
@@ -30,6 +31,11 @@ async function getQueueSnapshot(queue: {
 }
 
 export async function GET() {
+  const session = await auth();
+  const userRole = (session?.user as { role?: string } | undefined)?.role?.toLowerCase();
+  if (userRole !== "admin") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const [crawl, leads] = await Promise.all([
       getQueueSnapshot(crawlQueue),

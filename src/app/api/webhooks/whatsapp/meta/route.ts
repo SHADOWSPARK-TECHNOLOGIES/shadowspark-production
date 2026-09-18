@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { sendTextWhatsApp } from "@/lib/whatsapp/send-payment-link";
 import { getBotReply } from "@/lib/ai/whatsapp-bot";
@@ -82,8 +83,55 @@ async function handleIncomingMessage(from: string, text: string, msgType: string
 }
 
 export async function POST(request: NextRequest) {
+  const appSecret = process.env.WHATSAPP_APP_SECRET || process.env.META_APP_SECRET;
+  if (!appSecret?.trim()) {
+    console.error("WhatsApp webhook secret is not configured");
+    return NextResponse.json(
+      { error: "Webhook signature verification not configured" },
+      { status: 503 }
+    );
+  }
+
+  const signatureHeader = request.headers.get("x-hub-signature-256");
+  if (!signatureHeader || !signatureHeader.startsWith("sha256=")) {
+    console.warn("WhatsApp webhook missing or malformed signature header");
+    return NextResponse.json(
+      { error: "Missing or malformed signature" },
+      { status: 401 }
+    );
+  }
+
+  let rawBody: string;
   try {
-    const body = await request.json();
+    rawBody = await request.text();
+  } catch {
+    return NextResponse.json(
+      { error: "Failed to read request body" },
+      { status: 400 }
+    );
+  }
+
+  const signature = signatureHeader.slice(7);
+  const expectedSignature = createHmac("sha256", appSecret.trim())
+    .update(rawBody, "utf8")
+    .digest("hex");
+
+  const sigBuffer = Buffer.from(signature, "hex");
+  const expectedBuffer = Buffer.from(expectedSignature, "hex");
+
+  if (
+    sigBuffer.length !== expectedBuffer.length ||
+    !timingSafeEqual(sigBuffer, expectedBuffer)
+  ) {
+    console.warn("WhatsApp webhook signature mismatch");
+    return NextResponse.json(
+      { error: "Invalid webhook signature" },
+      { status: 403 }
+    );
+  }
+
+  try {
+    const body = JSON.parse(rawBody);
 
     // Log webhook event metadata only — never the full payload (may contain PII)
     const entryCount = body?.entry?.length ?? 0;
@@ -124,7 +172,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "ok" }, { status: 200 });
   } catch (error) {
     console.error("WhatsApp webhook error:", error);
-    return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ status: "error", message: "Invalid payload or internal error" }, { status: 400 });
   }
 }
 

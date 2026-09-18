@@ -173,7 +173,7 @@ Direct code and repository evidence collected across the end-to-end customer jou
 - **GET Verification Handler (lines 35–54)**:
   - Validates `WHATSAPP_VERIFY_TOKEN`.
   - If token is missing/empty: returns HTTP 503 `Webhook verification is not configured`.
-  - If `hub.mode === "subscribe"` and `hub.verify_token === token`: returns HTTP 200 echoing `hub.challenge`.
+  - If `hub.mode === "subscribe"` and the token header matches the configured env value: returns HTTP 200 echoing `hub.challenge`.
   - If token mismatch: returns HTTP 403 `Verification failed`.
   - Fails closed and redacts token comparisons.
 - **POST Inbound Webhook Handler (lines 85–177)**:

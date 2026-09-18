@@ -13,14 +13,14 @@ const META_API_VERSION = "v21.0";
 const META_GRAPH_URL = "https://graph.facebook.com";
 
 function getConfig() {
-  const token = process.env.META_ACCESS_TOKEN;
-  const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
+  const token = process.env.META_ACCESS_TOKEN || process.env.WHATSAPP_API_TOKEN;
+  const phoneNumberId = process.env.META_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_NUMBER_ID;
 
   if (!token) {
-    throw new Error("META_ACCESS_TOKEN is not set");
+    throw new Error("META_ACCESS_TOKEN or WHATSAPP_API_TOKEN is not set");
   }
   if (!phoneNumberId) {
-    throw new Error("META_PHONE_NUMBER_ID is not set");
+    throw new Error("META_PHONE_NUMBER_ID or WHATSAPP_PHONE_NUMBER_ID is not set");
   }
 
   return { token, phoneNumberId };

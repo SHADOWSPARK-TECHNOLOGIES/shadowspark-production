@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -8,10 +9,37 @@ export async function POST(req: Request) {
     return Response.json({ error: "Missing required fields" }, { status: 400 });
   }
 
+  // Persist contact inquiry to database so lead is never lost
+  try {
+    await prisma.lead.upsert({
+      where: { email: email.trim() },
+      update: {
+        miniAuditData: { name, company, whatsapp, message, source: "Contact Form" },
+        status: "NEW",
+      },
+      create: {
+        email: email.trim(),
+        phoneNumber: whatsapp?.trim() || null,
+        status: "NEW",
+        intent: "CONTACT_FORM",
+        miniAuditData: { name, company, whatsapp, message, source: "Contact Form" },
+      },
+    });
+    await prisma.systemEvent.create({
+      data: {
+        type: "CONTACT_INQUIRY",
+        message: `Inquiry from ${name} (${company || email})`,
+        metadata: { email, name, company, whatsapp },
+      },
+    });
+  } catch (dbErr) {
+    console.error("[contact] DB persistence error:", dbErr);
+  }
+
   const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
   if (!RESEND_API_KEY) {
-    console.log("[contact] inquiry received — no RESEND_API_KEY configured");
+    console.log("[contact] inquiry received and saved to DB — no RESEND_API_KEY configured");
     return Response.json({
       success: true,
       degraded: true,

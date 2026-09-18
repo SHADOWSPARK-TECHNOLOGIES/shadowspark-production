@@ -28,8 +28,8 @@ export default function CheckoutClient({ leadId }: { leadId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email,
-          amount: 100, // $1 Demo Deposit (in kobo)
-          leadId: leadId === "new" ? `new_${Date.now()}` : leadId,
+          amount: 1500000, // ₦15,000 in kobo per SHADOWSPARK_RULES.md
+          leadId: leadId === "new" ? "" : leadId,
           metadata: { companyName, goal, packageId }
         }),
       });
@@ -166,16 +166,16 @@ export default function CheckoutClient({ leadId }: { leadId: string }) {
         <div className="bg-zinc-800 p-5 rounded-lg border border-zinc-700">
           <div className="flex justify-between items-center mb-2">
             <span className="font-medium text-white">Demo Deposit</span>
-            <span className="text-xl font-bold text-white">$1</span>
+            <span className="text-xl font-bold text-white">₦15,000</span>
           </div>
           <p className="text-sm text-zinc-400 mb-4">
-            This $1 deposit secures your environment and is <strong>fully credited toward your final deployment</strong>. We use it to prepare a tailored ShadowSpark instance and a guided walkthrough of your funnel.
+            This ₦15,000 deposit secures your environment and is <strong>fully credited toward your final deployment</strong>. We use it to prepare a tailored ShadowSpark instance and a guided walkthrough of your funnel.
           </p>
           
           <div className="flex items-start gap-3 mt-4 pt-4 border-t border-zinc-700">
             <input required type="checkbox" id="terms" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)} className="mt-1 w-4 h-4" />
             <label htmlFor="terms" className="text-sm text-zinc-400">
-              I accept the Terms and Privacy Policy, and I understand this $1 deposit is fully credited toward my first invoice if I deploy ShadowSpark.
+              I accept the Terms and Privacy Policy, and I understand this ₦15,000 deposit is fully credited toward my first invoice if I deploy ShadowSpark.
             </label>
           </div>
         </div>
@@ -185,7 +185,7 @@ export default function CheckoutClient({ leadId }: { leadId: string }) {
             Back
           </Button>
           <Button disabled={loading || !termsAccepted} type="submit" className="w-2/3 bg-emerald-600 text-white hover:bg-emerald-500">
-            {loading ? "Processing..." : "Pay $1 & Configure My Demo"}
+            {loading ? "Processing..." : "Pay ₦15,000 & Configure My Demo"}
           </Button>
         </div>
       </form>

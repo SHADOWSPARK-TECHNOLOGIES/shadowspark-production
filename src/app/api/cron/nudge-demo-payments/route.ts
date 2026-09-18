@@ -90,11 +90,11 @@ export async function GET(req: Request) {
         const config = (demo.config ?? {}) as Record<string, unknown>;
         const tier = (config.tier as string) ?? "starter";
         const amounts: Record<string, number> = {
-          starter: 149_00,
-          pro: 349_00,
-          enterprise: 599_00,
+          starter: 1_500_000,   // ₦15,000 in kobo per SHADOWSPARK_RULES.md
+          pro: 3_500_000,       // ₦35,000 in kobo
+          enterprise: 6_000_000 // ₦60,000 in kobo
         };
-        const amountKobo = amounts[tier] ?? 149_00;
+        const amountKobo = amounts[tier] ?? 1_500_000;
 
         // Build email fallback
         const email =

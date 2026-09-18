@@ -27,7 +27,7 @@ export async function GET(request: Request) {
 
   if (format === 'json') {
     const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.MOBILE_OPERATOR_KEY}`) {
+    if (!process.env.MOBILE_OPERATOR_KEY || authHeader !== `Bearer ${process.env.MOBILE_OPERATOR_KEY}`) {
       return NextResponse.json({ error: "Unauthorized mobile request" }, { status: 401 });
     }
 
@@ -52,7 +52,8 @@ export async function GET(request: Request) {
   }
 
   const session = await auth();
-  if (session?.user?.role !== "admin") {
+  const userRole = (session?.user as { role?: string } | undefined)?.role?.toLowerCase();
+  if (userRole !== "admin") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

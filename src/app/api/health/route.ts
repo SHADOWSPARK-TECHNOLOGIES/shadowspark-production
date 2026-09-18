@@ -6,6 +6,15 @@ import { redis } from "@/lib/redis";
 export const runtime = "nodejs";
 const THRESHOLD = 0.6;
 
+const DB_TIMEOUT_MS = 4000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
+  ]);
+}
+
 export async function GET() {
   const checks = {
     status: "ok" as "ok" | "degraded",
@@ -20,7 +29,7 @@ export async function GET() {
   };
 
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await withTimeout(prisma.$queryRaw`SELECT 1`, DB_TIMEOUT_MS, "Database ping timeout");
     checks.services.database = "connected";
   } catch {
     checks.services.database = "disconnected";

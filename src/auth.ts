@@ -41,7 +41,7 @@ export const { auth, signIn, signOut, handlers } = NextAuth({
         );
 
         if (passwordsMatch) {
-          return { id: user.id, email: user.email, role: user.role };
+          return { id: user.id, email: user.email, role: user.role?.toLowerCase() };
         }
 
         return null;

@@ -49,12 +49,19 @@ function CheckoutSkeleton() {
   );
 }
 
-export default function NewCheckoutPage() {
+export default async function NewCheckoutPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ leadId?: string }>;
+}) {
+  const resolvedParams = searchParams ? await searchParams : undefined;
+  const leadId = resolvedParams?.leadId || "new";
+
   return (
     <div className="min-h-screen bg-[#050505]">
       <div className="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center gap-8 p-4 lg:flex-row lg:items-start">
         <Suspense fallback={<CheckoutSkeleton />}>
-          <CheckoutClient leadId="new" />
+          <CheckoutClient leadId={leadId} />
         </Suspense>
 
         {/* Trust signals sidebar */}
@@ -62,7 +69,7 @@ export default function NewCheckoutPage() {
           <div className="rounded-[2rem] border border-emerald-500/20 bg-emerald-500/5 p-6">
             <h3 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-emerald-400">
               <Lock className="h-4 w-4" />
-              Your $1 Demo Deposit
+              Your ₦15,000 Demo Deposit
             </h3>
             <ul className="mt-4 space-y-3">
               {[
@@ -78,7 +85,7 @@ export default function NewCheckoutPage() {
               ))}
             </ul>
             <p className="mt-4 rounded-lg border border-emerald-500/10 bg-emerald-500/5 p-3 text-xs leading-5 text-emerald-400/80">
-              Your $1 deposit is fully credited toward your deployment&mdash;you are not paying for a demo, you are reserving engineering time for a tailored ShadowSpark environment.
+              Your ₦15,000 deposit is fully credited toward your deployment&mdash;you are not paying for a demo, you are reserving engineering time for a tailored ShadowSpark environment.
             </p>
           </div>
 

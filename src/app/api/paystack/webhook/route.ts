@@ -11,12 +11,18 @@ export async function POST(req: Request) {
   const body = await req.text();
   const signature = req.headers.get("x-paystack-signature");
 
-  if (!signature) return new Response("No signature", { status: 400 });
+  const secret = process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_WEBHOOK_SECRET;
+  if (!secret || !signature) {
+    return new Response("Unauthorized or unconfigured", { status: 401 });
+  }
 
-  const secret = process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_WEBHOOK_SECRET || "";
-  const hash = crypto.createHmac("sha512", secret).update(body).digest("hex");
+  const expectedDigest = crypto.createHmac("sha512", secret).update(body).digest();
+  const providedDigest = Buffer.from(signature, "hex");
 
-  if (hash !== signature) {
+  if (
+    providedDigest.length !== expectedDigest.length ||
+    !crypto.timingSafeEqual(providedDigest, expectedDigest)
+  ) {
     return new Response("Invalid signature", { status: 400 });
   }
 

@@ -30,6 +30,12 @@ function isAuthorized(role?: string | null): boolean {
 export async function resolveComplianceAuth(request: Request): Promise<ComplianceAuthResult> {
   const authResult = await requireAuthContext(request);
   if (authResult.ok) {
+    if (!isAuthorized(authResult.context.role)) {
+      return {
+        ok: false,
+        response: errorResponse(403, "FORBIDDEN", "Unauthorized role for compliance operations"),
+      };
+    }
     return {
       ok: true,
       context: {

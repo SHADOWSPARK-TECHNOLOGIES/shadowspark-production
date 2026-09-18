@@ -5,7 +5,8 @@ import { evaluateFlags } from "@/lib/trust/fraudDetection";
 
 export async function GET(request: Request) {
   const session = await auth();
-  if (session?.user?.role !== "admin") {
+  const userRole = (session?.user as { role?: string } | undefined)?.role?.toLowerCase();
+  if (userRole !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -35,9 +36,10 @@ export async function GET(request: Request) {
 
 export async function POST(req: Request) {
   const session = await auth();
-  if (session?.user?.role !== "admin") {
+  if (!session?.user?.id || session.user.role?.toLowerCase() !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
 
   const body = await req.json().catch(() => ({}));
   const { targetType, targetId, severity, reason } = body as {

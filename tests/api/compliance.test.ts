@@ -468,6 +468,29 @@ describe("compliance AI-ASSIST adapter routes", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("fails closed with 403 when Bearer token has an unauthorized role", async () => {
+    mockRequireAuthContext.mockResolvedValue({
+      ok: true as const,
+      context: {
+        userId: "user-1",
+        tenantId: "tenant-1",
+        role: "user",
+        email: "user@example.com",
+      },
+    });
+
+    const response = await listReviews(
+      new Request("http://localhost/api/compliance/reviews", {
+        headers: { Authorization: "Bearer valid-token-unauthorized-role" },
+      })
+    );
+
+    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(body.error.code).toBe("FORBIDDEN");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("GET /api/compliance/reviews strictly enforces JWT tenant over spoofed headers", async () => {
     fetchMock.mockResolvedValue(
       jsonResponse(200, { items: [], total: 0, limit: 50, offset: 0 })
@@ -511,6 +534,30 @@ describe("compliance AI-ASSIST adapter routes", () => {
     const body = await response.json();
     expect(body.error.message).toBe("Invalid token signature");
     expect(mockTenantMembershipFindFirst).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("GET /api/compliance/reviews rejects Bearer token with unauthorized role", async () => {
+    mockRequireAuthContext.mockResolvedValue({
+      ok: true as const,
+      context: {
+        userId: "user-unauthorized",
+        tenantId: "tenant-1",
+        role: "USER",
+        email: "user@example.com",
+      },
+    });
+
+    const response = await listReviews(
+      new Request("http://localhost/api/compliance/reviews", {
+        headers: { Authorization: "Bearer valid-token-but-unauthorized-role" },
+      })
+    );
+
+    expect(response.status).toBe(403);
+    const body = await response.json();
+    expect(body.error.code).toBe("FORBIDDEN");
+    expect(body.error.message).toContain("Unauthorized role");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

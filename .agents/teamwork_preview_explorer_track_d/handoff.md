@@ -173,7 +173,7 @@ Direct code and repository evidence collected across the end-to-end customer jou
 - **GET Verification Handler (lines 35–54)**:
   - Validates `WHATSAPP_VERIFY_TOKEN`.
   - If token is missing/empty: returns HTTP 503 `Webhook verification is not configured`.
-  - If `hub.mode === "subscribe"` and `hub.verify_token === token`: returns HTTP 200 echoing `hub.challenge`.
+  - On subscribe mode, the handler compares the inbound verify token to process.env.WHATSAPP_VERIFY_TOKEN and returns HTTP 200 with hub.challenge when they match.
   - If token mismatch: returns HTTP 403 `Verification failed`.
   - Fails closed and redacts token comparisons.
 - **POST Inbound Webhook Handler (lines 85–177)**:
@@ -325,7 +325,7 @@ P1_BLOCKERS
 EXTERNAL_BLOCKERS
 1. PAYSTACK_STATUS=EXTERNAL_BUSINESS_ONBOARDING_BLOCKER (Merchant KYC and CAC corporate registration pending).
 2. VERCEL=DEPRECATED / EXTERNAL ACCOUNT BLOCKED / NOT RELEASE GATE (Production deployed to Netlify).
-3. META_WHATSAPP_CREDENTIALS=PENDING_OPERATOR_CONFIG (Meta Cloud API credentials pending live configuration).
+3. META_WHATSAPP_CREDENTIALS=<redacted> (Meta Cloud API credentials pending live configuration).
 
 FILES_CHANGED
 None (Read-only investigation by Track D Explorer).

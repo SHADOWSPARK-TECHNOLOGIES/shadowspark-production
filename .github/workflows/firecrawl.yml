@@ -31,7 +31,7 @@ jobs:
         env:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          RAG_CRAWL_ROOT_URL: https://shadowspark-tech.com/blog
+          RAG_CRAWL_ROOT_URL: https://shadowspark-tech.com
           RAG_CRAWL_LIMIT: "25"
         run: pnpm rag:sync
 

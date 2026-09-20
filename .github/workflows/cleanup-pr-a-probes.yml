@@ -1,0 +1,26 @@
+name: cleanup-pr-a-probes
+on:
+  push:
+    branches: [fix/next-auth-beta-32]
+    paths: ['.github/workflows/cleanup-pr-a-probes.yml']
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/next-auth-beta-32
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove probe leftovers
+        run: |
+          rm -rf .pr-a-lock-b64 .pr-a-lock-hex
+          rm -f .pr-a-size-probe-5k.txt Downloading Overwriting
+          rm -f .github/workflows/cleanup-pr-a-probes.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo nothing; exit 0; fi
+          git commit -m "chore: remove remaining lockfile upload probe leftovers"
+          git push origin HEAD:fix/next-auth-beta-32

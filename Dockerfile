@@ -17,8 +17,8 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Build the Next.js application
-RUN pnpm build
+# Rebuild Prisma client after COPY . . wipes gitignored src/generated
+RUN pnpm exec prisma generate && pnpm build
 
 # ---------- Runner ----------
 FROM base AS runner

@@ -1,7 +1,7 @@
 # ---------- Base ----------
 FROM node:24-alpine AS base
 RUN apk add --no-cache libc6-compat openssl curl
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 

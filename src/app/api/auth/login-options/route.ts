@@ -10,6 +10,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { assertWebauthnEnabled } from "@/lib/auth/webauthn-guard";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { rateLimit } from "@/lib/rate-limit";
@@ -23,6 +24,10 @@ const loginOptionsSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const disabled = assertWebauthnEnabled();
+  if (disabled) return disabled;
+
+
   try {
     const { success: allowed, headers: rateLimitHeaders } = await rateLimit(
       request,

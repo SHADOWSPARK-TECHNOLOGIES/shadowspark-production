@@ -47,5 +47,7 @@ export const config = {
     paymentsEnabled: process.env.PAYMENTS_ENABLED === "true",
     oauthEnabled: process.env.OAUTH_ENABLED === "true",
     whatsappEnabled: process.env.WHATSAPP_ENABLED === "true",
+    // Opt-in only: incomplete assertion verify / RP parity — keep passkeys off until Sec clears.
+    webauthnEnabled: process.env.WEBAUTHN_ENABLED === "true",
   },
 } as const;

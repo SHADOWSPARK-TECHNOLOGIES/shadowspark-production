@@ -2,12 +2,12 @@
 import { registerUser } from "@/app/actions/auth"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { PasskeyClient } from "@/components/auth/PasskeyClient"
 
 export default function RegisterPage() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [usePasskey, setUsePasskey] = useState(false)
+  // Passkeys disabled until WEBAUTHN_ENABLED=true + Sec clearance (API also 503).
+  const usePasskey = false
   const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -35,36 +35,9 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Mode toggle — passkey-first emphasis */}
-        <div className="flex rounded-lg border border-slate-700 p-0.5">
-          <button
-            onClick={() => setUsePasskey(true)}
-            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all ${
-              usePasskey
-                ? "bg-emerald-500/20 text-emerald-400 shadow-sm"
-                : "text-slate-500 hover:text-slate-300"
-            }`}
-          >
-            Passkey
-          </button>
-          <button
-            onClick={() => setUsePasskey(false)}
-            className={`flex-1 rounded-md px-3 py-1.5 text-xs font-mono uppercase tracking-wider transition-all ${
-              !usePasskey
-                ? "bg-emerald-500/20 text-emerald-400 shadow-sm"
-                : "text-slate-500 hover:text-slate-300"
-            }`}
-          >
-            Password
-          </button>
-        </div>
+        
 
-        {usePasskey ? (
-          <PasskeyClient
-            mode="register"
-            onSuccess={() => router.push("/login")}
-          />
-        ) : (
+        
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             {error && <div className="rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">{error}</div>}
             
@@ -87,7 +60,7 @@ export default function RegisterPage() {
               {loading ? "Creating Account..." : "Create Account"}
             </button>
           </form>
-        )}
+        
 
         <p className="text-center text-sm text-slate-400">Already have an account? <a href="/login" className="font-medium text-cyan-400 hover:text-cyan-300">Sign in</a></p>
       </div>

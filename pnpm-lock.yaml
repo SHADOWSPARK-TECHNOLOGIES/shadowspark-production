@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  shell-quote: '>=1.8.4'
+  websocket-driver: '>=0.7.5'
+
 importers:
 
   .:
@@ -5177,8 +5181,8 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
-  shell-quote@1.8.3:
-    resolution: {integrity: sha512-ObmnIF4hXNg1BqhnHmgbDETF8dLPCggZWBjkQfhZpbszZnYur5DUljTcCHii5LC3J5E0yeO/1LIMyH+UvHQgyw==}
+  shell-quote@1.10.0:
+    resolution: {integrity: sha512-w1aiOKwKuRgtwAReIIj89puqg+I7GvX4IbLrvmhXbzQsj1+Zwi4VO3+fa6ZF91TWSjIxoEkKnMeHcLEODK5ZXA==}
     engines: {node: '>= 0.4'}
 
   side-channel-list@1.0.1:
@@ -5847,8 +5851,8 @@ packages:
       webpack-cli:
         optional: true
 
-  websocket-driver@0.7.4:
-    resolution: {integrity: sha512-b17KeDIQVjvb0ssuSDF2cYXSg2iztliJ4B9WdsuB6J952qCPKmnVq4DyW5motImXHDC1cBT/1UezrJVsKw5zjg==}
+  websocket-driver@0.7.5:
+    resolution: {integrity: sha512-ZL2+3c7kMBdIRCMz6l8jQMHyGVxj+UL+xVk74Ombiciboca8rHa15L86B19E5oh1pL9Ii/uj54gtsIrZGMo6zA==}
     engines: {node: '>=0.8.0'}
 
   websocket-extensions@0.1.4:
@@ -8974,7 +8978,7 @@ snapshots:
 
   faye-websocket@0.11.4:
     dependencies:
-      websocket-driver: 0.7.4
+      websocket-driver: 0.7.5
 
   fdir@6.5.0(picomatch@4.0.7):
     optionalDependencies:
@@ -9788,7 +9792,7 @@ snapshots:
   launch-editor@2.13.2:
     dependencies:
       picocolors: 1.1.1
-      shell-quote: 1.8.3
+      shell-quote: 1.10.0
 
   levn@0.4.1:
     dependencies:
@@ -11364,7 +11368,7 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
-  shell-quote@1.8.3: {}
+  shell-quote@1.10.0: {}
 
   side-channel-list@1.0.1:
     dependencies:
@@ -11404,7 +11408,7 @@ snapshots:
     dependencies:
       faye-websocket: 0.11.4
       uuid: 8.3.2
-      websocket-driver: 0.7.4
+      websocket-driver: 0.7.5
 
   sonic-boom@4.2.1:
     dependencies:
@@ -12101,7 +12105,7 @@ snapshots:
       - esbuild
       - uglify-js
 
-  websocket-driver@0.7.4:
+  websocket-driver@0.7.5:
     dependencies:
       http-parser-js: 0.5.10
       safe-buffer: 5.2.1

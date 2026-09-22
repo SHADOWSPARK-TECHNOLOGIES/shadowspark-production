@@ -110,5 +110,11 @@
   "prisma": {
     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
-  "type": "module"
+  "type": "module",
+  "pnpm": {
+    "overrides": {
+      "shell-quote": ">=1.8.4",
+      "websocket-driver": ">=0.7.5"
+    }
+  }
 }

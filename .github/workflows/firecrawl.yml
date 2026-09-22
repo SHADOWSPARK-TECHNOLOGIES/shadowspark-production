@@ -11,6 +11,7 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,6 +30,8 @@ jobs:
 
       - name: RAG sync (crawl -> embed -> data/rag/index.json)
         env:
+          RAG_SYNC_SKIP_QUEUE: "true"
+          CI: "true"
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           RAG_CRAWL_ROOT_URL: https://shadowspark-tech.com

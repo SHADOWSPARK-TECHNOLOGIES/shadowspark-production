@@ -29,7 +29,7 @@ export async function registerUser(input: RegisterInput) {
 
   return prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
-      data: { email: input.email, password: passwordHash, name: input.name, role: "ADMIN" },
+      data: { email: input.email, password: passwordHash, name: input.name, role: "user" },
       select: { id: true, email: true, name: true, role: true },
     });
 
@@ -38,9 +38,10 @@ export async function registerUser(input: RegisterInput) {
       select: { id: true },
     });
 
+    // First user owns this tenant only (tenant-scoped). Global User.role stays "user".
     await tx.tenantMembership.create({ data: { tenantId: tenant.id, userId: user.id, role: "ADMIN" } });
 
-    const token = await signAuthToken({ sub: user.id, tenantId: tenant.id, email: user.email, role: user.role ?? "ADMIN" });
+    const token = await signAuthToken({ sub: user.id, tenantId: tenant.id, email: user.email, role: user.role ?? "user" });
     return { user, tenant: { id: tenant.id }, token };
   });
 }

@@ -1,0 +1,35 @@
+---
+description: Auth, WebAuthn disabled-by-default, tenant isolation, open axios PR
+globs: src/auth.ts,src/lib/auth.ts,src/app/api/**,middleware.ts,src/app/(auth)/**
+alwaysApply: true
+---
+
+# 20 — Security / auth
+
+## WebAuthn (#118)
+
+Passkeys are **disabled by default**. Gate is `WEBAUTHN_ENABLED` (opt-in, default false). Register/login options and verify-registration must 503 when off. Password-only register UI until assertion verify + RP/origin parity is cleared.
+
+Do not “complete” WebAuthn by turning the flag on in production.
+
+## Registration (#117)
+
+`registerUser` must **not** set `User.role = ADMIN`. Schema default is `"user"`. First tenant owner may be tenant-scoped ADMIN via membership, not a global role.
+
+JWT/session callbacks must not fall back to global ADMIN.
+
+## Tenant isolation (existing AGENTS.md)
+
+- Tenant id only from verified session + `TenantMembership`.
+- Never from body, query, or untrusted headers.
+- Fail closed: 401/403.
+
+## Secrets
+
+- `#105` removed committed WhatsApp verification credentials. Do not put them back.
+- Run `npm run test:secrets` / `pnpm test:secrets` equivalent before done.
+- Drive backups of `.env*` are exposed; rotate in providers, never copy values here.
+
+## Open advisory at capture
+
+PR **#121** `fix(deps): override axios >=1.16.0 (high)` was **open**. Check live state. Do not leave a duplicate PR. Do not claim it merged.

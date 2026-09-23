@@ -275,3 +275,91 @@ OPERATING RULES:
 
 Start from the first incomplete integration milestone. Skip completed milestones — do not re-verify what is already done unless a freshness check reveals a real conflict.
 
+## 2026-09-17T15:24:03Z
+
+Execute the complete ShadowSpark Commercial Conversion & Pilot Enablement Suite: automate multi-channel prospect outreach delivery and tracking for the 10 target Nigerian fintechs, build a self-service interactive demo sandbox with instant isolated trial tenant provisioning, and execute an automated red-team security verification under SEC Circular 26-1 controls.
+
+Working directory: /home/moronto/Documents/Codex/2026-09-14/re/work/shadowspark-production
+Integrity mode: development
+
+## Requirements
+
+### R1. Commercial Outreach Delivery & Pipeline Automation
+Implement an automated multi-channel dispatch, delivery tracking, and follow-up logging engine for the 10 qualified Nigerian fintech targets (FairMoney, Carbon, Renmoney, Branch, Kuda, PalmPay, Quidax, Busha, Yellow Card, Flitaa) based on `docs/OUTREACH_CAMPAIGN_BATCH_01.md`, recording real-time delivery telemetry and pilot scheduling without fake metrics in `docs/CUSTOMER_EVIDENCE.md` and `docs/FIRST_5_CUSTOMERS.md`.
+
+### R2. Self-Service Demo Sandbox & Instant Trial Tenant Provisioning
+Build an interactive, low-friction self-service demo and pilot onboarding flow on the live application. Qualified compliance operators must be able to provision a cryptographically isolated trial tenant partition, explore pre-populated synthetic transaction exceptions, and complete the Exception Review co-pilot workflow with live AI-ASSIST advisory briefs in under 3 minutes.
+
+### R3. SEC Circular 26-1 Red-Team Compliance & Security Stress-Testing
+Implement an automated compliance stress-testing suite that red-teams the platform against adversarial inputs: prompt injections in transaction notes (LLM01:2026), cross-tenant leakage attempts, unauthorized IDOR brief retrieval, and tampering with audit trails, verifying that all decisions produce immutable, mathematically non-repudiable audit logs ready for CBN/SEC regulatory inspection.
+
+### R4. Controlled Stack & Tenant Safeguards
+All modifications must respect bounded write domains and production safeguards: preserve strict server-authoritative tenant isolation derived exclusively from verified authentication context, maintain exact monetary precision with Prisma Decimal, enforce fail-closed authorization, and never expose service credentials to client browsers.
+
+## Verification Resources
+
+- Existing automated test suite: `npm test` (39 test files, 276 Vitest tests)
+- Security credential leak guard: `npm run test:secrets` (9/9 automated checks)
+- Static type verification: `npm run typecheck`
+- Live production demo test suite: `scripts/demo-verification-runbook.ts`
+- Upstream AI-ASSIST contract and simulator: `tests/e2e/upstream-simulator.ts`
+
+## Acceptance Criteria
+
+### Commercial Conversion Engine
+- [ ] Outreach delivery and response tracking mechanism operational for all 10 Batch 01 target institutions.
+- [ ] Customer evidence telemetry in `docs/CUSTOMER_EVIDENCE.md` and `docs/FIRST_5_CUSTOMERS.md` accurately tracks real prospect pipeline states without simulated data.
+
+### Self-Service Onboarding & Demo Sandbox
+- [ ] Trial tenant provisioning creates isolated `Tenant` and `TenantMembership` records in Neon PostgreSQL.
+- [ ] The self-service demo environment renders all Exception Review states (`pending_review`, `annotated`, loading, error) and supports submitting annotations with live audit logging.
+- [ ] Time-to-first-reviewed-exception takes under 3 minutes for a newly onboarded user.
+
+### Compliance & Red-Team Security
+- [ ] Zero cross-tenant data leakage under multi-tenant replay tests.
+- [ ] Adversarial prompt injections in transaction notes are flagged without mutating source-of-record status.
+- [ ] Credential leak scan (`npm run test:secrets`) passes with 0 leaks.
+- [ ] Static type check (`npm run typecheck`), full test suite (`npm test`), and production build pass with zero errors.
+
+## 2026-09-17T20:54:18Z
+
+Finalize the full production and revenue gate for ShadowSpark Technologies: verify and integrate trial sandbox provisioning (M-R2), customer outreach pipeline (M-R1), SEC Circular 26-1 red-team compliance (M-R3), and execute full production builds and test verification across both worktrees.
+
+Working directory: /home/moronto/Documents/Codex/2026-09-14/re/work/shadowspark-production
+Integrity mode: development
+
+## Requirements
+
+### R1. Trial Sandbox Provisioning & Onboarding (M-R2)
+- Provide instant, isolated demo tenant provisioning with atomic PostgreSQL transactions.
+- Seed synthetic loan exceptions using strict Prisma Decimal monetary precision.
+- Seed upstream AI-ASSIST briefs in `pending_review` state for immediate trial access.
+- Reject unauthenticated account linkage on email collision with HTTP 409 `EMAIL_ALREADY_EXISTS`.
+- Log immutable audit trails in database on operator compliance actions.
+
+### R2. Commercial Outreach & Telemetry Pipeline (M-R1)
+- Automate multi-channel outreach dispatch for Batch 01 target institutions.
+- Maintain webhook handlers for delivery and read status receipts with strict signature and mode verification.
+- Prevent duplicate outreach dispatches through idempotent processing.
+
+### R3. SEC Circular 26-1 Red-Team Compliance & Security (M-R3)
+- Verify strict tenant isolation across all endpoints: zero cross-tenant data leakage or tenant override from untrusted parameters.
+- Verify adversarial stress resilience under concurrent provisioning and high-volume compliance reviews.
+- Maintain fail-closed authorization semantics on all compliance routes.
+
+### R4. Production Verification & Dual-Worktree Stability (M-R4)
+- Ensure all CPU-intensive security tests have adequate timeouts to prevent concurrency test flakes.
+- Verify `npm run typecheck` (`tsc --noEmit`) passes with 0 errors across the codebase.
+- Verify full test suite (`npm test` / `vitest run`) passes 100% across all 44 test suites.
+- Verify `npm run test:secrets` passes 9/9 with zero high-confidence credential leaks.
+- Verify `npm run build` succeeds cleanly for Netlify production deployment.
+
+## Acceptance Criteria
+
+### Automated Verification
+- [ ] `npx prisma generate` succeeds and types are up-to-date.
+- [ ] `npm run typecheck` exits with code 0 across the entire repository.
+- [ ] `npm test` passes all 44 test suites (including sandbox, outreach, and challenger stress harnesses) without timeouts.
+- [ ] `npm run test:secrets` reports 0 detected secrets or credentials.
+- [ ] `npm run build` compiles all 80 application routes cleanly with 0 build errors.
+- [ ] Forensic integrity audit verifies no dummy, mocked, or bypassed implementations.

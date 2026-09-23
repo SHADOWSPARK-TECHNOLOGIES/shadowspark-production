@@ -1,44 +1,81 @@
-# Repository Agent Instructions
+# AGENTS.md — ShadowSpark Production
 
-Act as a senior software engineer. Prefer correctness, maintainability, security, and clear reasoning over complexity.
+You are working in **`SHADOWSPARK-TECHNOLOGIES/shadowspark-production`**.
 
-## Evidence discipline
+This file supersedes stale stack claims in `SHADOWSPARK_RULES.md`. It extends, and does not discard, the existing evidence / tenant / idempotency charter already in this repository’s `AGENTS.md` at capture. After install, this file is the Cursor-facing charter.
 
-- Never invent files, functions, APIs, commands, test results, or completed actions.
-- Inspect relevant repository files before making claims or changes.
-- Distinguish observed facts, reasoned inferences, assumptions, and unknowns.
-- Do not claim a test, build, deployment, or command succeeded unless its output was directly observed in the current session.
-- Verify claims from other agents or historical documentation against current repository state before acting on them.
+## Entropy
 
-## Engineering method
+Default to **E0 (read-only Truth Auditor)** in a new session.
 
-1. **Understand requirements and constraints**: Review task specifications, architecture decisions, and repository rules before planning changes.
-2. **Inspect state before acting**: Check git status, branch, working tree, existing tests, and configuration before modifying files.
-3. **Respect bounded write domains**: Modify only files within your assigned write boundary. Never touch files owned by other agents or unrelated domains.
-4. **Make minimal, technically sound changes**: Follow the minimal-change principle. Do not perform opportunistic "while I'm here" refactoring or unsolicited stylistic rewrites.
-5. **Test-driven discipline**: Add or update focused tests for changed behavior. Follow TDD (red-green-refactor) whenever feasible.
-6. **Verify thoroughly**: Run relevant unit/integration tests, type checks (`npm run typecheck`), linting (`npm run lint`), and build (`npm run build`). Never self-certify without running the actual commands.
-7. **Review diffs**: Inspect `git diff` for unintended edits, regressions, dead code, or accidental credential leaks.
-8. **Report transparently**: Report exact changes made, commands executed with verbatim outcomes, and any remaining risks or unknowns.
+```text
+E0  Truth Auditor          read-only
+E1  Senior Fixer           one bounded unit
+E2  Principal panel        architecture / security / data / QA
+E3  Coordinator            multi-repo — not an unlimited writer
+```
 
-## Repository safeguards
+Read `SNAPSHOT.md` and `.cursor/rules/` before writing.
 
-- **Protected instructions**: Never modify `.github/copilot-instructions.md`.
-- **Secret hygiene**: Do not commit secrets, credentials, API keys, tokens, generated environment files (`.env`, `.env.local`), or production data. Always run credential leak tests (`npm run test:secrets`) before declaring completion.
-- **Multi-tenant isolation**:
-  - Preserve strict tenant isolation across all authenticated APIs, background jobs, and database queries.
-  - Derive tenant identity exclusively from verified server-side authentication context (e.g. NextAuth session or verified token paired with authoritative `TenantMembership` database lookup).
-  - NEVER trust or accept tenant identity (`tenantId`, `tenantSlug`) from client-supplied request bodies, URL query parameters, or untrusted headers.
-  - Fail closed: If authentication or tenant membership cannot be verified, return 401 Unauthorized or 403 Forbidden immediately.
-- **Monetary precision with Prisma `Decimal`**:
-  - Keep money values exact using Prisma `Decimal` (and arbitrary-precision decimal representations).
-  - Do NOT use JavaScript IEEE-754 floating-point arithmetic (`number`) for persisted monetary amounts, ledger balances, or financial calculations.
-- **Idempotency**:
-  - Require idempotency for mutating public and external API operations where retries could duplicate work or financial side-effects.
-  - Validate and enforce idempotency using unique `Idempotency-Key` headers and database-backed idempotency tracking.
-- **Pull request authorization**:
-  - Do NOT merge pull requests unless the user explicitly authorizes it.
-- **Synchronized contracts**:
-  - Keep API validation schemas (Zod), error responses, database schemas (Prisma), audit records, and documentation synchronized with implementation.
-- **Fail-closed security**:
-  - In authentication, authorization, RBAC, and tenant resolution, default to deny / fail closed if validation fails or context is ambiguous.
+## Captured main (historical)
+
+```text
+487350dc7c074ecbff12d9e5344f8bb2237abb06
+fix(deps): override critical shell-quote and websocket-driver (#120)
+```
+
+Re-fetch `origin/main` before acting.
+
+## Actual stack (from package.json @ captured SHA)
+
+| Piece | Observed |
+|---|---|
+| Node | `24.x` (`engines`) |
+| Next | **16.3.4** (devDependency — do not “correct” to 15) |
+| React | 19.2.4 |
+| Prisma | 7.7.x + `@prisma/adapter-pg` + `pg` Pool |
+| Auth | `next-auth` **5.0.0-beta.32** |
+| Queues | BullMQ 5.73.x, ioredis 5.10.x |
+| Crawl | `@mendable/firecrawl-js` ^4.18.2 |
+| Pay | `react-paystack` |
+| Email | `resend` ^6.12.2 |
+| Tests | Vitest ^5, plus `npm run test:secrets` |
+
+`SHADOWSPARK_RULES.md` still says Next.js 15, Cloud SQL proxy 5433, and “BullMQ (to be replaced)”. **Manifest + tree win.**
+
+## Structure
+
+This is a **single Next.js App Router repo** at `src/app/`, not `apps/lodgist`. Routes include `(auth)`, `(marketing)`, `api`, `dashboard`, `checkout`, `admin`, `operator`.
+
+## Recent real work (do not regress)
+
+- **#118** WebAuthn/passkeys **disabled by default**. `WEBAUTHN_ENABLED` opt-in. Do not re-enable without RP/origin parity evidence.
+- **#119** Firecrawl `rag:sync` must skip BullMQ when `CI`, `RAG_SYNC_SKIP_QUEUE`, or no `REDIS_URL`. Nightly CI has no Redis; importing the worker hung ~75 minutes.
+- **#120** pnpm overrides for `shell-quote` and `websocket-driver` are load-bearing. Keep them.
+- **#117** Open registration must not grant global `ADMIN`. Tenant-owner ADMIN only.
+- **#116** `rag:sync` must not use `tsx --env-file=.env` in CI (exit 9).
+- **#121** axios `>=1.16.0` override was **open** at capture. Check if still open before duplicating it.
+- **#91** “make Redis optional” was still open. Do not assume Redis is required for the web request path.
+
+## Evidence discipline (keep from prior AGENTS.md)
+
+- Never invent files, APIs, commands, or test results.
+- Distinguish observed / inferred / unknown / stale.
+- Tenant identity only from verified server-side auth + `TenantMembership`. Never from body/query/untrusted headers.
+- Money: Prisma `Decimal`, not IEEE-754 `number`.
+- Mutating external APIs: idempotency keys.
+- Fail closed on auth/RBAC/tenant miss → 401/403.
+- Do not merge PRs unless the human explicitly authorizes it.
+- Do not commit `.env*`. Run credential-leak tests before calling a change done.
+- Do not modify `.github/copilot-instructions.md`.
+
+## Write rules
+
+- One overlapping surface per writer.
+- No Edge/`middleware.ts` Prisma, `pg`, or Node crypto.
+- `npx prisma generate` after schema changes (Prisma 7 adapter path).
+- Prefer `pnpm` scripts already in package.json (`test`, `typecheck`, `lint`, `test:secrets`).
+
+## First output
+
+Local vs remote audit, then one next safe unit. Do not start a feature dump.

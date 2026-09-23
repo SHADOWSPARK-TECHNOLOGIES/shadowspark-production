@@ -1,0 +1,25 @@
+.env
+.env.*
+.env.local
+.env.production
+.env.vercel
+*.key
+*.pem
+*.p12
+id_rsa
+id_ed25519
+github.authkey
+**/credentials.json
+**/service-account*.json
+node_modules/
+.pnpm-store/
+.next/
+dist/
+coverage/
+.turbo/
+*.log
+pnpm-debug.log*
+.DS_Store
+# lockfiles are huge; inspect on demand, do not dump into context
+pnpm-lock.yaml
+package-lock.json

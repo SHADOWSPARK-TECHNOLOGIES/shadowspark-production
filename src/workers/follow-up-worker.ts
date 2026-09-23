@@ -23,19 +23,19 @@ export async function processFollowUp(leadId: string) {
   try {
     const { text: emailBody } = await generateText({
       model: google("gemini-2.0-flash-exp"),
-      system: `You are ShadowWeaver, a senior infrastructure architect at ShadowSpark.
-      Write a concise, high-conversion follow-up email to a lead who hasn't finalized their $10 system audit yet.
+      system: `You are a senior compliance solutions architect at ShadowSpark.
+      Write a concise, professional follow-up email to a financial institution compliance leader evaluating ShadowSpark for SEC Circular 26-1 and CBN compliance exception review.
       
       RULES:
       - Max 3 sentences.
-      - Acknowledge their initial interest.
-      - Push the $10 system audit link: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/checkout?leadId=${lead.id}&plan=audit
-      - No corporate fluff. Be direct.
-      - Sign off as "The ShadowSpark Team"`,
+      - Acknowledge their evaluation of automated compliance exception review and regulatory audit trails.
+      - Invite them to schedule a 10-minute live demonstration or activate their 14-day guided pilot: ${process.env.NEXT_PUBLIC_APP_URL || 'https://shadowspark-production.netlify.app'}/dashboard/reviews
+      - Professional, institutional B2B tone. No consumer fluff.
+      - Sign off as "The ShadowSpark Compliance Team"`,
       prompt: `Lead info: Status is ${lead.status}, Tier is ${lead.tier}. Score is ${lead.leadScore}.`
     });
 
-    const subject = `Your ShadowSpark System Audit`;
+    const subject = `ShadowSpark: SEC Circular 26-1 Compliance Review & 14-Day Pilot`;
 
     await sendOutreach({
       leadId: lead.id,
@@ -83,8 +83,8 @@ export async function recoverAbandonedCheckout(leadId: string) {
   console.log(`[RECOVERY] Firing abandoned checkout sequence for: ${lead.email}`);
 
   try {
-    const subject = `Your ShadowSpark System Audit`;
-    const body = `Your ShadowSpark audit slot is still reserved. Happy to walk you through the infrastructure assessment — just reply here if you have any questions.\n\nOtherwise, you can finalize the refundable deposit here: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/checkout/${lead.id}\n\n— The ShadowSpark Team`;
+    const subject = `ShadowSpark: 14-Day Production Pilot Activation`;
+    const body = `Your institution's 14-day ShadowSpark pilot environment reservation is ready. We can walk your compliance team through the SEC Circular 26-1 exception review queue and immutable audit trails — simply reply to this email to coordinate.\n\nYou can also review the live platform at: ${process.env.NEXT_PUBLIC_APP_URL || 'https://shadowspark-production.netlify.app'}/dashboard/reviews\n\n— The ShadowSpark Compliance Team`;
 
     await sendOutreach({
       leadId: lead.id,

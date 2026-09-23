@@ -1,0 +1,28 @@
+---
+description: Stack truth — Next 16.3.4 not 15; Prisma 7 adapter; NextAuth v5 beta.32
+alwaysApply: true
+---
+
+# 10 — Stack truth
+
+`SHADOWSPARK_RULES.md` is **stale** on stack:
+
+| Claim in SHADOWSPARK_RULES.md | Observed in package.json @ 487350dc |
+|---|---|
+| Next.js 15 | **Next 16.3.4** |
+| NextAuth (JWT) unnamed version | **next-auth 5.0.0-beta.32** |
+| BullMQ (to be replaced) | BullMQ **^5.73.5 still present** and used by workers |
+| Cloud SQL proxy 127.0.0.1:5433 | Use current env/Prisma adapter; do not assume the proxy |
+
+Also observed:
+
+- React **19.2.4**
+- Prisma **7.7.x** with `@prisma/adapter-pg` and `pg`
+- Node **24.x**
+- Firecrawl **^4.18.2** (website is 4.32.x — do not mix lockfiles)
+- Vitest **^5** (website is ^3.2.6 after their #45 — do not mix)
+- `next` is a **devDependency** here. Weird but true. Do not silently relocate it.
+
+`CLAUDE.md` folder map (`apps/lodgist`, `apps/shadowspark-site`) **does not match** this repo. Current tree is `src/app`.
+
+When those files conflict with the tree, say so explicitly and follow the tree.

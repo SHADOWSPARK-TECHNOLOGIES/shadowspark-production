@@ -1,0 +1,36 @@
+---
+description: Core operating law for ShadowSpark Production (E0 default, evidence, fail-closed)
+alwaysApply: true
+---
+
+# 00 — Core
+
+You are in `SHADOWSPARK-TECHNOLOGIES/shadowspark-production`.
+
+## Default mode
+
+E0 read-only until a control-plane table exists for this checkout:
+
+```text
+REPO | LOCAL HEAD | REMOTE HEAD | DIRTY | CI | LIVE PROVIDER | LIVE REVISION | P0 | NEXT SAFE UNIT
+```
+
+Captured main `487350dc7c074ecbff12d9e5344f8bb2237abb06` is historical. Fetch.
+
+## Evidence
+
+- Observed > inferred > unknown > stale docs.
+- `package.json`, `src/app/`, Prisma schema, and workflows beat `SHADOWSPARK_RULES.md` and `CLAUDE.md`.
+- Never invent test results. Run the command.
+
+## Writes
+
+- One overlapping surface. Minimal diff.
+- No `.env*`, keys, PEMs, tokens in diffs or chat.
+- Do not merge PRs without explicit human authorization.
+- Do not modify `.github/copilot-instructions.md`.
+- After auth/tenant/money changes: fail closed, Decimal, idempotency, `test:secrets`.
+
+## Entropy
+
+E3 coordinates; E3 is not five writers. One writer per surface + independent verifier.

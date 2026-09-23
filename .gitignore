@@ -73,3 +73,6 @@ shadowspark-production/
 # Local Claude permissions overrides — never commit
 allow_all.yaml
 global_allow.yaml
+
+# Local Netlify folder
+.netlify

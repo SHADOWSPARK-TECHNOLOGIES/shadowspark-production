@@ -84,57 +84,63 @@ async function updateLeadNurture(leadId: string, nextStep: number, hoursToWait: 
 async function sendFollowUpEmail1(email: string, businessName: string) {
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0A0A0A; color: #E4E4E7; border: 1px solid #27272A; border-radius: 12px;">
-      <h2 style="color: #FFFFFF;">How is your audit, ${businessName}?</h2>
+      <h2 style="color: #FFFFFF;">Streamlining Compliance Review for ${businessName}</h2>
       <p style="font-size: 16px; line-height: 1.6; color: #A1A1AA;">
-        You recently ran a ShadowSpark audit. We've been analyzing your goals and the recommended architecture for your business.
+        Under SEC Circular 26-1 and CBN AML/CFT Directives, handling transaction anomalies and KYC verification edge cases requires audit-grade precision without slowing customer onboarding.
       </p>
       <p style="font-size: 16px; line-height: 1.6; color: #A1A1AA;">
-        Do you have any questions about the suggested features or the deployment process?
+        ShadowSpark provides a dedicated compliance control plane paired with AI-ASSIST: an advisory co-pilot that prepares sign-off-ready briefs in under two minutes while maintaining strict cryptographic tenant isolation and human-in-the-loop decision authority.
       </p>
-      <a href="https://shadowspark-tech.org/contact" style="display: inline-block; background-color: #00E5FF; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 20px;">
-        Talk to an Engineer
+      <a href="https://shadowspark-production.netlify.app/dashboard/reviews" style="display: inline-block; background-color: #00E5FF; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 20px;">
+        Schedule 10-Min Demo
       </a>
     </div>
   `;
 
-  await sendEmail(email, `[ShadowSpark] Your audit for ${businessName}`, html);
+  await sendEmail(email, `[ShadowSpark] SEC Circular 26-1 exception review architecture for ${businessName}`, html);
 }
 
 async function sendFollowUpEmail2(email: string, businessName: string) {
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0A0A0A; color: #E4E4E7; border: 1px solid #27272A; border-radius: 12px;">
-      <h2 style="color: #FFFFFF;">Closing the Revenue Gap</h2>
+      <h2 style="color: #FFFFFF;">Audit-Ready Exception Triage & Non-Repudiation</h2>
       <p style="font-size: 16px; line-height: 1.6; color: #A1A1AA;">
-        Most businesses lose 40-70% of leads due to slow response times. For ${businessName}, this could mean millions in leaked revenue.
+        Compliance officers at Nigerian digital lenders and VASPs spend hundreds of hours monthly manually reconciling identity velocity flags, BVN mismatches, and fiat-crypto narrative discrepancies.
       </p>
       <p style="font-size: 16px; line-height: 1.6; color: #A1A1AA;">
-        ShadowSpark's autonomous nodes ensure zero-wait qualification. Your system is ready for deployment.
+        ShadowSpark eliminates this bottleneck by generating immutable non-repudiation audit trails ready for CBN and SEC regulatory inspection. Transparent local pricing (₦150,000/mo Starter or ₦450,000/mo Professional) applies after your 14-day zero-risk trial.
       </p>
-      <a href="https://shadowspark-tech.org/checkout/new" style="display: inline-block; background-color: #00E5FF; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 20px;">
-        Deploy Demo Environment
+      <a href="https://shadowspark-production.netlify.app/dashboard/reviews" style="display: inline-block; background-color: #00E5FF; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 20px;">
+        Explore Live Reviews Queue
       </a>
     </div>
   `;
 
-  await sendEmail(email, `[ShadowSpark] Scaling ${businessName} with AI`, html);
+  await sendEmail(email, `[ShadowSpark] Reducing exception triage overhead for ${businessName}`, html);
 }
 
 async function sendFollowUpEmail3(email: string, businessName: string) {
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0A0A0A; color: #E4E4E7; border: 1px solid #27272A; border-radius: 12px;">
-      <h2 style="color: #FFFFFF;">Special Activation Offer</h2>
+      <h2 style="color: #FFFFFF;">14-Day Guided Pilot Cohort Reservation</h2>
       <p style="font-size: 16px; line-height: 1.6; color: #A1A1AA;">
-        We want to see ${businessName} thrive with sovereign AI infrastructure. 
+        We have reserved a 14-day guided production pilot slot for ${businessName}.
       </p>
       <div style="background-color: #18181B; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px dashed #00E5FF;">
-        <p style="color: #00E5FF; font-weight: bold; margin: 0;">PROMO CODE: ACTIVATION20</p>
-        <p style="font-size: 14px; margin: 5px 0 0 0;">20% off your first 3 months of any Growth or Autonomous system.</p>
+        <p style="color: #00E5FF; font-weight: bold; margin: 0;">PILOT INCLUSIONS</p>
+        <p style="font-size: 14px; margin: 5px 0 0 0; color: #D4D4D8;">
+          • Cryptographically isolated tenant sandbox<br/>
+          • Pre-configured SEC Circular 26-1 & CBN AML rules<br/>
+          • Live AI-ASSIST exception co-pilot with immutable audit logging<br/>
+          • Zero financial risk: trial period with complete regulatory readiness
+        </p>
       </div>
-      <a href="https://shadowspark-tech.org/checkout/new" style="display: inline-block; background-color: #00E5FF; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none;">
-        Claim Your Offer
+      <a href="https://shadowspark-production.netlify.app/dashboard/reviews" style="display: inline-block; background-color: #00E5FF; color: #000000; font-weight: bold; padding: 12px 24px; border-radius: 8px; text-decoration: none;">
+        Activate Pilot Cohort Slot
       </a>
     </div>
   `;
 
-  await sendEmail(email, `[ShadowSpark] Special offer for ${businessName}`, html);
+  await sendEmail(email, `[ShadowSpark] 14-Day Production Pilot reservation for ${businessName}`, html);
 }
+

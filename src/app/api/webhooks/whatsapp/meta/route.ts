@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendTextWhatsApp } from "@/lib/whatsapp/send-payment-link";
 import { getBotReply } from "@/lib/ai/whatsapp-bot";
+import { prisma } from "@/lib/prisma";
 
 /**
  * WhatsApp Meta Cloud API Webhook
@@ -17,6 +18,102 @@ import { getBotReply } from "@/lib/ai/whatsapp-bot";
  * to production logs.
  */
 
+interface WhatsAppStatusUpdate {
+  id?: string;
+  recipient_id?: string;
+  status: "sent" | "delivered" | "read" | "failed" | string;
+  timestamp?: string;
+  errors?: any[];
+}
+
+/**
+ * Persist incoming delivery statuses (delivered, read, failed) into Lead.metadata.channels.whatsapp
+ */
+async function persistWhatsAppStatus(
+  status: WhatsAppStatusUpdate,
+  client: any = prisma
+): Promise<boolean> {
+  const recipientPhone = status.recipient_id;
+  const messageId = status.id;
+  const deliveryStatus = status.status;
+
+  if (!recipientPhone && !messageId) {
+    return false;
+  }
+
+  try {
+    let lead: any = null;
+
+    if (recipientPhone) {
+      const cleanPhone = recipientPhone.trim();
+      const phoneVariations = [
+        cleanPhone,
+        cleanPhone.startsWith("+") ? cleanPhone.slice(1) : `+${cleanPhone}`,
+      ];
+
+      lead = await client.lead.findFirst({
+        where: {
+          phoneNumber: { in: phoneVariations },
+        },
+      });
+    }
+
+    if (!lead && messageId) {
+      // Fallback search by messageId in metadata if supported
+      try {
+        lead = await client.lead.findFirst({
+          where: {
+            metadata: {
+              path: ["channels", "whatsapp", "messageId"],
+              equals: messageId,
+            },
+          },
+        });
+      } catch {
+        lead = null;
+      }
+    }
+
+    if (!lead) {
+      return false;
+    }
+
+    const existingMetadata =
+      lead.metadata && typeof lead.metadata === "object"
+        ? (lead.metadata as Record<string, any>)
+        : {};
+    const existingChannels = existingMetadata.channels || {};
+    const existingWhatsapp = existingChannels.whatsapp || {};
+
+    const updatedWhatsapp = {
+      ...existingWhatsapp,
+      deliveryStatus,
+      lastStatusTimestamp: status.timestamp || new Date().toISOString(),
+      messageId: messageId || existingWhatsapp.messageId,
+      ...(status.errors ? { errors: status.errors } : {}),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await client.lead.update({
+      where: { id: lead.id },
+      data: {
+        metadata: {
+          ...existingMetadata,
+          channels: {
+            ...existingChannels,
+            whatsapp: updatedWhatsapp,
+          },
+        },
+        updatedAt: new Date(),
+      },
+    });
+
+    return true;
+  } catch (error) {
+    console.error("[WhatsApp Status Update] Error updating lead:", error);
+    return false;
+  }
+}
 
 /** Redact a phone number for safe logging — keeps last 2 digits only. */
 function redactPhone(phone: string): string {
@@ -118,6 +215,9 @@ export async function POST(request: NextRequest) {
     if (value.statuses) {
       for (const status of value.statuses) {
         console.log(`WhatsApp status update: ${status.status} for message ${redactPhone(status.id ?? "")}`);
+        await persistWhatsAppStatus(status, prisma).catch((err) => {
+          console.error(`[WhatsApp Status Update] Failed to persist status for ${redactPhone(status.id ?? "")}:`, err);
+        });
       }
     }
 
@@ -127,6 +227,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
 }
+
 
 // Required for Meta webhook
 export const dynamic = "force-dynamic";

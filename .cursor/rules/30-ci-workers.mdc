@@ -1,0 +1,42 @@
+---
+description: Firecrawl nightly, BullMQ/Redis hang, pnpm overrides, CI workflows
+globs: src/cli/**,src/workers/**,src/lib/firecrawl.ts,.github/workflows/**,package.json
+alwaysApply: true
+---
+
+# 30 — CI / Firecrawl / workers
+
+## Firecrawl nightly
+
+Workflow: `.github/workflows/firecrawl.yml`.
+
+CI historically failed in this sequence:
+
+1. `tsx --env-file=.env` → exit 9 when `.env` absent (#116)
+2. BullMQ worker import with no `REDIS_URL` → ioredis default `localhost:6379` hang ~75m (#119)
+
+Required behaviour:
+
+- `rag:sync` must not require a `.env` file in Actions (secrets are injected).
+- Skip the queue when `CI=true` **or** `RAG_SYNC_SKIP_QUEUE=true` **or** `REDIS_URL` unset; call `runRagSync` directly.
+- Workflow timeout 30m is a cap, not a success signal.
+- A cancelled hung run is **not** a pass.
+
+Live Redis was **not** configured on the 2026-08-25 health check. Do not assume queues work in production until you see `REDIS_URL` actually set (without printing it).
+
+## Dependency overrides (#120)
+
+Keep pnpm overrides:
+
+```json
+"shell-quote": ">=1.8.4",
+"websocket-driver": ">=0.7.5"
+```
+
+They close Dependabot alerts #80 and #108 (transitive via webpack-dev-server / launch-editor / sockjs).
+
+## Other CI
+
+- `credential-leak.yml` is load-bearing. Do not weaken it to hide a secret.
+- Docker publish exists; Prisma client must be generated after COPY (#115).
+- Typecheck workflow exists; do not set `ignoreBuildErrors`.

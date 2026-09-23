@@ -6,6 +6,7 @@ import { resolveComplianceAuth } from "@/lib/ai-assist/server-auth";
 import { readIdempotencyKey, resolveRequestId } from "@/lib/ai-assist/auth";
 import { addComplianceAnnotation } from "@/lib/ai-assist/client";
 import { aiAssistErrorResponse } from "@/lib/ai-assist/errors";
+import { prisma } from "@/lib/prisma";
 
 const METHODS = "POST, OPTIONS";
 
@@ -72,6 +73,23 @@ export async function POST(
       requestId: resolveRequestId(request),
       idempotencyKey,
     });
+
+    if (prisma.auditLog?.create) {
+      await prisma.auditLog.create({
+        data: {
+          tenantId: auth.context.tenantId,
+          actorId: auth.context.userId,
+          action: "COMPLIANCE_ANNOTATION_SUBMITTED",
+          metadata: {
+            briefId: briefId.trim(),
+            annotation: rawAnnotation.trim(),
+            idempotencyKey,
+            submittedAt: new Date().toISOString(),
+          },
+        },
+      });
+    }
+
     return withCors(successResponse({ success: true, data }), request, METHODS);
   } catch (error) {
     return withCors(aiAssistErrorResponse(error), request, METHODS);

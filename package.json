@@ -114,7 +114,8 @@
   "pnpm": {
     "overrides": {
       "shell-quote": ">=1.8.4",
-      "websocket-driver": ">=0.7.5"
+      "websocket-driver": ">=0.7.5",
+      "axios": ">=1.16.0"
     }
   }
 }

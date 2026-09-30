@@ -52,6 +52,9 @@ reports/firecrawl-preview/*.json
 node_modules/
 docs/research/
 
+# Saved browser/reference dumps. Keep out of future commits.
+docs/reference-uploads/
+
 # Security — never commit credentials or keys
 sa-key.json
 shadowspark-key*.json

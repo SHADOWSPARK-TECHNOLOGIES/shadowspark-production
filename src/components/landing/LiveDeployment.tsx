@@ -49,7 +49,7 @@ export function LiveDeployment() {
 
             {/* CTA */}
             <Link
-              href="https://lodgist.com.ng" /* TODO: confirm real Lodgist URL */
+              href="https://lodgist.online"
               target="_blank"
               rel="noopener noreferrer"
               className="self-start inline-flex items-center gap-2 rounded-xl border border-white/30 px-6 py-3 text-sm font-bold text-white hover:border-white/60 hover:bg-white/5 transition-colors"

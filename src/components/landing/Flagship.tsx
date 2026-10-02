@@ -77,7 +77,7 @@ export function Flagship() {
 
         <div className="mt-10 flex flex-col items-start gap-3">
           <Link
-            href="https://lodgist.com.ng" /* TODO: needs real value from operator — confirm live URL */
+            href="https://lodgist.online"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 rounded-xl bg-[#FF6F3C] px-8 py-4 text-sm font-bold text-white hover:bg-[#e85e2c] transition-colors"

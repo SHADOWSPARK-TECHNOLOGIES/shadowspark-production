@@ -18,9 +18,8 @@ export function Footer() {
             <p className="text-xs font-semibold tracking-widest uppercase text-[#94A3B8] mb-4">Products</p>
             <ul className="flex flex-col gap-2">
               <li>
-                {/* TODO: needs real value from operator — confirm live Lodgist URL */}
                 <Link
-                  href="https://lodgist.com.ng"
+                  href="https://lodgist.online"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-[#94A3B8] hover:text-white transition-colors"

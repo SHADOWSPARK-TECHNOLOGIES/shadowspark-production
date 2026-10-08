@@ -1,0 +1,7 @@
+.git
+.next
+node_modules
+coverage
+cloud-sql-proxy
+assumego
+granted_*.tar.gz

@@ -33,7 +33,10 @@ describe("dedicated worker runtime", () => {
     expect(packageJson.scripts["worker:all"]).toBe(
       "tsx src/workers/all.ts",
     );
-    expect(dockerfile).toMatch(/CMD \["pnpm", "start"\]/);
+    expect(dockerfile).toMatch(/pnpm exec prisma generate && pnpm build/);
+    expect(dockerfile).toMatch(/CMD \["node", "server\.js"\]/);
+    expect(dockerfile).not.toMatch(/npm install -g pnpm/);
+    expect(dockerfile).not.toMatch(/COPY --from=builder \/app \.\/\s*$/m);
     expect(dockerfile).not.toMatch(/worker:crawl|worker:lead|worker:all/);
   });
 });

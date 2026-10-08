@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   allowedDevOrigins: ["10.140.170.127", "localhost:3000"],
   serverExternalPackages: ["undici", "bullmq", "ioredis"],
 };

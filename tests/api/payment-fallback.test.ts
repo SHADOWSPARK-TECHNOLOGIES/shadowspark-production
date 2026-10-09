@@ -151,7 +151,8 @@ describe("Paystack Fallback & System Hardening", () => {
       expect(data.services.database).toBe("connected");
       expect(data.services.redis).toBe("connected");
       expect(data.services.aiAssist).toBe("unconfigured");
-      expect(["netlify", "render", "local"]).toContain(data.platform.provider);
+      expect(["railway", "render", "local"]).toContain(data.platform.provider);
+      expect(data.platform.provider).not.toBe("netlify");
     });
 
     it("GET /api/ready returns 200 ready when health check passes", async () => {

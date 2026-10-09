@@ -129,7 +129,7 @@ const MARKUP = String.raw`
       <span class="tech-tag"><span class="dot"></span>Paystack</span>
       <span class="tech-tag"><span class="dot"></span>NextAuth.js</span>
       <span class="tech-tag"><span class="dot"></span>Google Cloud</span>
-      <span class="tech-tag"><span class="dot"></span>Vercel</span>
+      <span class="tech-tag"><span class="dot"></span>Railway</span>
       <span class="tech-tag"><span class="dot"></span>Gemini CLI</span>
       <span class="tech-tag"><span class="dot"></span>Node.js</span>
       <span class="tech-tag"><span class="dot"></span>REST APIs</span>
@@ -146,7 +146,7 @@ const MARKUP = String.raw`
       <span class="tech-tag"><span class="dot"></span>Paystack</span>
       <span class="tech-tag"><span class="dot"></span>NextAuth.js</span>
       <span class="tech-tag"><span class="dot"></span>Google Cloud</span>
-      <span class="tech-tag"><span class="dot"></span>Vercel</span>
+      <span class="tech-tag"><span class="dot"></span>Railway</span>
       <span class="tech-tag"><span class="dot"></span>Gemini CLI</span>
       <span class="tech-tag"><span class="dot"></span>Node.js</span>
       <span class="tech-tag"><span class="dot"></span>REST APIs</span>
@@ -181,7 +181,7 @@ const MARKUP = String.raw`
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
           </div>
           <h3 class="service-title">Cloud Architecture</h3>
-          <p class="service-desc">Production infrastructure on AWS (ECR, App Runner, Bedrock), GCP, and Vercel. Containerised microservices, CI/CD pipelines, and multi-cloud strategies that actually hold up under load.</p>
+          <p class="service-desc">Production infrastructure on AWS (ECR, App Runner, Bedrock), GCP, and Railway. Containerised microservices, CI/CD pipelines, and multi-cloud strategies that actually hold up under load.</p>
           <div class="service-tags">
             <span class="tag">AWS</span>
             <span class="tag">Docker</span>
@@ -267,7 +267,7 @@ const MARKUP = String.raw`
               <span class="tag">Prisma</span>
               <span class="tag">Neon PostgreSQL</span>
               <span class="tag">Paystack</span>
-              <span class="tag">Vercel</span>
+              <span class="tag">Railway</span>
               <span class="tag">Google OAuth</span>
               <span class="tag">AI Search</span>
             </div>
@@ -443,7 +443,7 @@ const MARKUP = String.raw`
           <ul class="bento-list" aria-label="Infrastructure tools">
             <li>AWS (ECR, App Runner, IAM)</li>
             <li>Docker + Copilot CLI</li>
-            <li>Vercel Edge Network</li>
+            <li>Railway</li>
             <li>GitHub Actions CI/CD</li>
             <li>Neon Serverless Postgres</li>
           </ul>

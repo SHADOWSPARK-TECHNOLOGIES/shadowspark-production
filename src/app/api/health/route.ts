@@ -8,6 +8,26 @@ const THRESHOLD = 0.6;
 
 const DB_TIMEOUT_MS = 4000;
 
+function platformContext(env: NodeJS.ProcessEnv = process.env): {
+  provider: "railway" | "render" | "local";
+  commit: string;
+  env: string;
+} {
+  const onRailway = Boolean(
+    env.RAILWAY_ENVIRONMENT ||
+      env.RAILWAY_ENVIRONMENT_NAME ||
+      env.RAILWAY_PROJECT_ID ||
+      env.RAILWAY_SERVICE_ID ||
+      env.RAILWAY_PUBLIC_DOMAIN,
+  );
+  const provider = onRailway ? "railway" : env.RENDER ? "render" : "local";
+  const commit = (env.RAILWAY_GIT_COMMIT_SHA || env.RENDER_GIT_COMMIT || "HEAD").slice(0, 7);
+  const environment =
+    env.RAILWAY_ENVIRONMENT_NAME || env.RAILWAY_ENVIRONMENT || env.NODE_ENV || "development";
+
+  return { provider, commit, env: environment };
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return Promise.race([
     promise,
@@ -29,11 +49,7 @@ export async function GET() {
       redis: "unknown" as "connected" | "disconnected" | "unknown",
       aiAssist: "unknown" as "connected" | "disconnected" | "degraded" | "unconfigured" | "unknown",
     },
-    platform: {
-      provider: process.env.NETLIFY ? "netlify" : process.env.RENDER ? "render" : "local",
-      commit: (process.env.COMMIT_REF || process.env.RENDER_GIT_COMMIT || "HEAD").slice(0, 7),
-      env: process.env.CONTEXT || process.env.NODE_ENV || "development",
-    },
+    platform: platformContext(),
   };
 
   const dbStart = Date.now();

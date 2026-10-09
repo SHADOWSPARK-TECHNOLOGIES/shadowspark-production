@@ -1,16 +1,12 @@
 const ALLOWED_ORIGINS = [
-  "https://shadowspark-dashboard.vercel.app",
-  "https://shadowspark-production.netlify.app",
   "https://app.shadowspark.tech",
   "http://localhost:3000",
 ];
 
-const PREVIEW_REGEX = /^https:\/\/(shadowspark-[a-z0-9-]+--shadowspark-production\.netlify\.app|deploy-preview-\d+--shadowspark-production\.netlify\.app)$/;
-
 function getAllowedOrigin(request: Request): string | null {
   const origin = request.headers.get("origin");
   if (!origin) return null;
-  if (ALLOWED_ORIGINS.includes(origin) || PREVIEW_REGEX.test(origin)) {
+  if (ALLOWED_ORIGINS.includes(origin)) {
     return origin;
   }
   return null;

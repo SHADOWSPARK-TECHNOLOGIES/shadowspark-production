@@ -27,6 +27,8 @@ const RAILWAY_RUNTIME_KEYS = [
   "RAILWAY_STATIC_URL",
 ] as const;
 
+type AuthEnv = Record<string, string | undefined>;
+
 function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
   for (const value of values) {
     const trimmed = value?.trim();
@@ -44,18 +46,18 @@ function originFromHost(value: string | undefined): string | undefined {
   return withScheme.replace(/\/$/, "");
 }
 
-export function shouldTrustAuthHost(env: NodeJS.ProcessEnv = process.env): boolean {
+export function shouldTrustAuthHost(env: AuthEnv = process.env): boolean {
   const onRailway = RAILWAY_RUNTIME_KEYS.some((key) => Boolean(env[key]));
   return Boolean(env.AUTH_TRUST_HOST || onRailway || env.NODE_ENV === "production");
 }
 
-export function resolveAuthUrl(env: NodeJS.ProcessEnv = process.env): string | undefined {
+export function resolveAuthUrl(env: AuthEnv = process.env): string | undefined {
   const explicit = firstNonEmpty(env.AUTH_URL, env.NEXTAUTH_URL);
   if (explicit) return explicit;
   return originFromHost(env.RAILWAY_PUBLIC_DOMAIN) ?? originFromHost(env.RAILWAY_STATIC_URL);
 }
 
-export function applyResolvedAuthUrl(env: NodeJS.ProcessEnv = process.env): void {
+export function applyResolvedAuthUrl(env: AuthEnv = process.env): void {
   if (firstNonEmpty(env.AUTH_URL, env.NEXTAUTH_URL)) return;
   const resolved = resolveAuthUrl(env);
   if (resolved) env.AUTH_URL = resolved;

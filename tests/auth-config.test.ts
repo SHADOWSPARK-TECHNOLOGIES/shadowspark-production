@@ -5,7 +5,7 @@ import { applyResolvedAuthUrl, authConfig, resolveAuthUrl, shouldTrustAuthHost }
 describe("Railway auth host trust", () => {
   it("trusts the host in production without Vercel or Netlify", () => {
     expect(
-      shouldTrustAuthHost({ NODE_ENV: "production" } as NodeJS.ProcessEnv),
+      shouldTrustAuthHost({ NODE_ENV: "production" }),
     ).toBe(true);
   });
 
@@ -15,7 +15,7 @@ describe("Railway auth host trust", () => {
         NODE_ENV: "test",
         RAILWAY_ENVIRONMENT: "production",
         RAILWAY_PUBLIC_DOMAIN: "shadowspark-production.up.railway.app",
-      } as NodeJS.ProcessEnv),
+      }),
     ).toBe(true);
   });
 
@@ -24,7 +24,7 @@ describe("Railway auth host trust", () => {
       shouldTrustAuthHost({
         NODE_ENV: "test",
         AUTH_TRUST_HOST: "true",
-      } as NodeJS.ProcessEnv),
+      }),
     ).toBe(true);
   });
 
@@ -33,19 +33,19 @@ describe("Railway auth host trust", () => {
       shouldTrustAuthHost({
         NODE_ENV: "development",
         VERCEL: "1",
-      } as NodeJS.ProcessEnv),
+      }),
     ).toBe(false);
     expect(
       shouldTrustAuthHost({
         NODE_ENV: "development",
         NETLIFY: "true",
-      } as NodeJS.ProcessEnv),
+      }),
     ).toBe(false);
   });
 
   it("does not trust the host in local development", () => {
     expect(
-      shouldTrustAuthHost({ NODE_ENV: "development" } as NodeJS.ProcessEnv),
+      shouldTrustAuthHost({ NODE_ENV: "development" }),
     ).toBe(false);
   });
 
@@ -61,7 +61,7 @@ describe("Railway auth URL resolution", () => {
         AUTH_URL: "https://auth.example.com",
         NEXTAUTH_URL: "https://next.example.com",
         RAILWAY_PUBLIC_DOMAIN: "app.up.railway.app",
-      } as NodeJS.ProcessEnv),
+      }),
     ).toBe("https://auth.example.com");
   });
 
@@ -70,7 +70,7 @@ describe("Railway auth URL resolution", () => {
       resolveAuthUrl({
         NEXTAUTH_URL: "https://next.example.com",
         RAILWAY_PUBLIC_DOMAIN: "app.up.railway.app",
-      } as NodeJS.ProcessEnv),
+      }),
     ).toBe("https://next.example.com");
   });
 
@@ -78,7 +78,7 @@ describe("Railway auth URL resolution", () => {
     expect(
       resolveAuthUrl({
         RAILWAY_PUBLIC_DOMAIN: "shadowspark-production.up.railway.app",
-      } as NodeJS.ProcessEnv),
+      }),
     ).toBe("https://shadowspark-production.up.railway.app");
   });
 
@@ -86,7 +86,7 @@ describe("Railway auth URL resolution", () => {
     expect(
       resolveAuthUrl({
         RAILWAY_PUBLIC_DOMAIN: "https://shadowspark.tech",
-      } as NodeJS.ProcessEnv),
+      }),
     ).toBe("https://shadowspark.tech");
   });
 
@@ -94,20 +94,20 @@ describe("Railway auth URL resolution", () => {
     expect(
       resolveAuthUrl({
         RAILWAY_STATIC_URL: "https://shadowspark.up.railway.app",
-      } as NodeJS.ProcessEnv),
+      }),
     ).toBe("https://shadowspark.up.railway.app");
   });
 
   it("returns undefined so Auth.js can use the forwarded host", () => {
     expect(
-      resolveAuthUrl({ NODE_ENV: "production" } as NodeJS.ProcessEnv),
+      resolveAuthUrl({ NODE_ENV: "production" }),
     ).toBeUndefined();
   });
 
   it("assigns AUTH_URL from the Railway public domain when no canonical URL is set", () => {
-    const env = {
+    const env: Record<string, string | undefined> = {
       RAILWAY_PUBLIC_DOMAIN: "app.up.railway.app",
-    } as NodeJS.ProcessEnv;
+    };
 
     applyResolvedAuthUrl(env);
 
@@ -115,17 +115,17 @@ describe("Railway auth URL resolution", () => {
   });
 
   it("does not overwrite AUTH_URL or NEXTAUTH_URL", () => {
-    const explicit = {
+    const explicit: Record<string, string | undefined> = {
       AUTH_URL: "https://auth.example.com",
       RAILWAY_PUBLIC_DOMAIN: "app.up.railway.app",
-    } as NodeJS.ProcessEnv;
+    };
     applyResolvedAuthUrl(explicit);
     expect(explicit.AUTH_URL).toBe("https://auth.example.com");
 
-    const legacy = {
+    const legacy: Record<string, string | undefined> = {
       NEXTAUTH_URL: "https://next.example.com",
       RAILWAY_PUBLIC_DOMAIN: "app.up.railway.app",
-    } as NodeJS.ProcessEnv;
+    };
     applyResolvedAuthUrl(legacy);
     expect(legacy.AUTH_URL).toBeUndefined();
     expect(legacy.NEXTAUTH_URL).toBe("https://next.example.com");
@@ -137,7 +137,7 @@ describe("Railway auth URL resolution", () => {
         VERCEL_URL: "shadowspark.vercel.app",
         URL: "https://shadowspark-production.netlify.app",
         DEPLOY_PRIME_URL: "https://deploy-preview-1--shadowspark-production.netlify.app",
-      } as NodeJS.ProcessEnv),
+      }),
     ).toBeUndefined();
   });
 });

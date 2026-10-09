@@ -4,7 +4,7 @@
 - Next.js App Router with TypeScript strict mode
 - Prisma with PostgreSQL
 - BullMQ with hosted Redis/Upstash
-- Vercel deployment
+- Railway deployment
 - pnpm is the only supported package manager
 
 ## Safety and production rules

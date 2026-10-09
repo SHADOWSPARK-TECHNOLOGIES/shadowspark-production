@@ -1,6 +1,6 @@
 const tags = [
   "Next.js", "TypeScript", "Prisma", "PostgreSQL",
-  "Tailwind", "Vercel", "WhatsApp Business API",
+  "Tailwind", "Railway", "WhatsApp Business API",
   "Korapay", "Resend", "Claude", "Gemini", "OpenAI",
 ];
 

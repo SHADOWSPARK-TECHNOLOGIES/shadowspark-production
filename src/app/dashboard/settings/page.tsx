@@ -36,7 +36,7 @@ export default function SettingsPage() {
       <div className="dashboard-card">
         <div className="card-header">
           <div className="card-title">Watchtower Cron</div>
-          <div className="card-sub">Vercel cron schedule (UTC)</div>
+          <div className="card-sub">Cron schedule (UTC)</div>
         </div>
         <div className="settings-section">
           <div className="settings-row">

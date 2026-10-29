@@ -157,8 +157,8 @@ importers:
         specifier: ^3.5.0
         version: 3.5.0
       undici:
-        specifier: ^8.10.2
-        version: 8.11.2
+        specifier: ^8.12.2
+        version: 8.12.2
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -3931,6 +3931,26 @@ packages:
       ws:
         optional: true
 
+  langsmith@0.11.4:
+    resolution: {integrity: sha512-sasOaKuuZ3OKSE9XIXSAxBUX1/r6t2z0SUe2VgBPLQHKKyLayYzKwU38nKzz0cQoMpN4zpSxz7poQwSTt1OdoA==}
+    peerDependencies:
+      '@opentelemetry/api': '*'
+      '@opentelemetry/exporter-trace-otlp-proto': '*'
+      '@opentelemetry/sdk-trace-base': '*'
+      openai: '*'
+      ws: '>=8.21.0'
+    peerDependenciesMeta:
+      '@opentelemetry/api':
+        optional: true
+      '@opentelemetry/exporter-trace-otlp-proto':
+        optional: true
+      '@opentelemetry/sdk-trace-base':
+        optional: true
+      openai:
+        optional: true
+      ws:
+        optional: true
+
   language-subtag-registry@0.3.23:
     resolution: {integrity: sha512-0K65Lea881pHotoGEa5gDlMxt3pctLi2RplBb7Ezh4rRdLEOtgi7n4EwK9lamnUCkKBqaeKRVebTq6BAxSkpXQ==}
 
@@ -5648,8 +5668,8 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
-  undici@8.11.2:
-    resolution: {integrity: sha512-u4UB2/IrKdU6lFxumHmmo1a3fCQO5tzQllRorfoRS63txhrB7xTpSn1PftwC4qEHkOaqP95fCWW4lJzwErwzhQ==}
+  undici@8.12.2:
+    resolution: {integrity: sha512-XtuDWVdqTLr3NAxm2ly9/hU6kUsJOgGh1RASzMBbsw6aWCOaQzHdW+QQDfdERjfJ2V5vL5pRPa4RetO9UfivDg==}
     engines: {node: '>=22.19.0'}
 
   unified@11.0.5:
@@ -5711,6 +5731,10 @@ packages:
 
   uuid@11.1.0:
     resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
+    hasBin: true
+
+  uuid@11.1.1:
+    resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
     hasBin: true
 
   uuid@13.0.0:
@@ -6018,6 +6042,9 @@ packages:
   zod@4.3.6:
     resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
 
+  zod@4.6.7:
+    resolution: {integrity: sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==}
+
   zustand@4.5.7:
     resolution: {integrity: sha512-CHOUy7mu3lbD6o6LJLfllpjkzhHXSBlX8B9+qPddUsIfeF5S/UZ5q0kmCsnRqT1UHFQZchNFDDzMbQsuesHWlw==}
     engines: {node: '>=12.7.0'}
@@ -6063,7 +6090,7 @@ snapshots:
       '@ai-sdk/provider': 3.0.16
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.1.1
-      undici: 8.11.2
+      undici: 8.12.2
       zod: 4.3.6
 
   '@ai-sdk/provider@3.0.16':
@@ -6762,11 +6789,11 @@ snapshots:
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.21
-      langsmith: 0.10.8(@opentelemetry/api@1.9.0)(ws@8.22.0)
+      langsmith: 0.11.4(@opentelemetry/api@1.9.0)(ws@8.22.0)
       mustache: 4.2.0
       p-queue: 6.6.2
-      uuid: 11.1.0
-      zod: 4.3.6
+      uuid: 11.1.1
+      zod: 4.6.7
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@opentelemetry/exporter-trace-otlp-proto'
@@ -9825,6 +9852,13 @@ snapshots:
       '@opentelemetry/api': 1.9.0
       ws: 8.22.0
 
+  langsmith@0.11.4(@opentelemetry/api@1.9.0)(ws@8.22.0):
+    dependencies:
+      p-queue: 6.6.2
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.0
+      ws: 8.22.0
+
   language-subtag-registry@0.3.23: {}
 
   language-tags@1.0.9:
@@ -11862,7 +11896,7 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici@8.11.2: {}
+  undici@8.12.2: {}
 
   unified@11.0.5:
     dependencies:
@@ -11951,6 +11985,8 @@ snapshots:
   uuid@10.0.0: {}
 
   uuid@11.1.0: {}
+
+  uuid@11.1.1: {}
 
   uuid@13.0.0: {}
 
@@ -12266,6 +12302,8 @@ snapshots:
   zod@3.25.76: {}
 
   zod@4.3.6: {}
+
+  zod@4.6.7: {}
 
   zustand@4.5.7(@types/react@19.2.14)(react@19.2.4):
     dependencies:
